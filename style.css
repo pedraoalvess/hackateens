@@ -6,16 +6,22 @@
 
 /* ---------- Tokens (DESIGN.md) ---------- */
 :root {
-  --canvas: #faf9f5;
-  --ink: #141413;
-  --primary: #cc785c;
-  --primary-active: #a9583e;
-  --on-dark: #faf9f5;
+  --canvas: #141012;
+  /* preto suave */
+  --ink: #f5eeef;
+  /* texto */
+  --primary: #8b1f2f;
+  /* bordô */
+  --accent: #e58a9f;
+  /* rosé: contornos, foco, ondas */
+  --on-dark: #f5eeef;
+  color-scheme: dark;
 }
 
 /* ---------- Base ---------- */
 html {
-  font-size: 18px; /* base maior para baixa visão */
+  font-size: 18px;
+  /* base maior para baixa visão */
 }
 
 body {
@@ -25,7 +31,7 @@ body {
 
 /* ---------- Foco visível (teclado e leitores de tela) ---------- */
 :focus-visible {
-  outline: 4px solid var(--primary-active);
+  outline: 4px solid var(--accent);
   outline-offset: 3px;
   border-radius: 8px;
 }
@@ -61,6 +67,7 @@ body {
     transform: scale(1);
     opacity: 0.8;
   }
+
   to {
     transform: scale(1.6);
     opacity: 0;
@@ -73,4 +80,15 @@ body {
     animation: none;
     opacity: 0.5;
   }
+}
+
+/* ---------- Marcadores do mapa ---------- */
+.pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 3px solid #fff;
+  font: 600 14px/1 Inter, system-ui, sans-serif;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }

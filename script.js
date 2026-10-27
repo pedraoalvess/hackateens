@@ -1,109 +1,191 @@
 const $ = s => document.querySelector(s);
 const anim = (el, ms = 0) => { el.classList.remove("animate-rise"); void el.offsetWidth; el.style.animationDelay = ms + "ms"; el.classList.add("animate-rise", "motion-reduce:animate-none"); };
 const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-// Linhas de exemplo, não verificadas: confira com a prefeitura/operadora. Para novas atrações, basta uma linha aqui.
-const L = [
-  { n:"Cataratas do Iguaçu", l:"120", k:["catarata"] },
-  { n:"Parque das Aves", l:"120", k:["aves"] },
-  { n:"Itaipu Binacional", l:"101", k:["itaipu","usina"] },
-  { n:"Marco das Três Fronteiras", l:"103", k:["marco","fronteira"] },
-  { n:"Templo Budista Chen Tien", l:"103", k:["templo","budista"] }
+const rand = n => Math.floor(Math.random() * n);
+const fmt = m => m < 1000 ? Math.round(m) + " metros" : (m / 1000).toFixed(1).replace(".", ",") + " km";
+const SPEED = 5; // segundos simulados por segundo real (1 = tempo real)
+
+// Coordenadas APROXIMADAS (Parque das Aves vem da Wikipédia). Confirme cada uma no Google Maps
+// (clique direito no local > copiar coordenadas). Linhas de exemplo: confirme com a operadora.
+const BASE = { n: "Centro de Foz", c: [-25.5163, -54.5854] };
+const P = [
+  { n: "Cataratas do Iguaçu", l: "120", c: [-25.6866, -54.4420], k: ["catarata"] },
+  { n: "Parque das Aves", l: "120", c: [-25.6140, -54.4826], k: ["aves"] },
+  { n: "Itaipu Binacional", l: "101", c: [-25.4380, -54.5880], k: ["itaipu", "usina"] },
+  { n: "Marco das Três Fronteiras", l: "103", c: [-25.5974, -54.5912], k: ["marco", "fronteira"] },
+  { n: "Templo Budista Chen Tien", l: "103", c: [-25.5330, -54.5620], k: ["templo", "budista"] }
 ];
-const find = t => { t = norm(t); return L.find(x => x.k.some(k => t.includes(k))); };
+const find = t => { t = norm(t); return P.find(x => x.k.some(k => t.includes(k))); };
 console.assert(find("Quero ir às Cataratas")?.l === "120" && find("templo budista")?.n.startsWith("Templo") && !find("pizza"), "find() falhou");
 
-/* Fala */
+/* ---------- Fala ---------- */
 let welcomed = false;
-function say(t, onstart){
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.onstart = onstart;
+function say(t, o = {}) {
+  if (!o.queue) speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.onstart = o.onstart;
   speechSynthesis.speak(u);
 }
-const WELCOME = "Bem-vindo ao Foz Acessível. Toque no botão grande no centro da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Para escolher na lista, toque em Atrações.";
-const welcome = () => say(WELCOME, () => welcomed = true);
+const WELCOME = "Bem-vindo ao Foz Acessível. Toque no botão grande no centro da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus, o assento, a rota e hotéis próximos.";
+const welcome = () => say(WELCOME, { onstart: () => welcomed = true });
 addEventListener("load", welcome); // o navegador pode bloquear até o primeiro toque
-addEventListener("pointerdown", e => { if(!welcomed && !e.target.closest("#mic")) welcome(); }, true);
+addEventListener("pointerdown", e => { if (!welcomed && !e.target.closest("#mic")) welcome(); }, true);
 
-/* Telas */
-function show(name){
+/* ---------- Telas ---------- */
+function show(name) {
   stop();
-  for(const id of ["home","lista"]){
-    const on = id === name; $("#"+id).hidden = !on; $("#"+id).setAttribute("aria-hidden", !on);
-    const b = $("#n"+id[0].toUpperCase()+id.slice(1));
-    b.setAttribute("aria-current", on ? "page" : "false"); b.className = "px-4 min-h-12 rounded-lg font-medium " + (on ? "bg-ink text-on-dark" : "bg-card");
+  for (const id of ["home", "lista"]) {
+    const on = id === name; $("#" + id).hidden = !on; $("#" + id).setAttribute("aria-hidden", !on);
+    const b = $("#n" + id[0].toUpperCase() + id.slice(1));
+    b.setAttribute("aria-current", on ? "page" : "false");
+    b.className = "px-4 min-h-12 rounded-lg font-medium " + (on ? "bg-primary text-white border-2 border-accent" : "bg-card border-2 border-hairline");
   }
-  anim($("#"+name)); $("#"+name+" h1").focus();
-  if(name === "lista") [...$("#cards").children].forEach((c, i) => anim(c, 120 + i * 90));
-  if(name === "lista") say("Lista de atrações. Escolha um destino.");
+  anim($("#" + name)); $("#" + name + " h1").focus();
+  if (name === "lista") { initMap();[...$("#cards").children].forEach((c, i) => anim(c, 120 + i * 90)); say("Mapa e lista de atrações. Escolha um destino."); }
 }
 $("#nHome").onclick = () => show("home");
 $("#nLista").onclick = () => show("lista");
 
-/* Voz */
+/* ---------- Mapa (Leaflet + OpenStreetMap) ---------- */
+let map, layer, bus, me;
+const tip = t => { const e = document.createElement("span"); e.textContent = t; return e; };
+const icon = (t, bg, fg = "#fff", sz = 36) => L.divIcon({ className: "", iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2], html: `<div class="pin" style="width:${sz}px;height:${sz}px;background:${bg};color:${fg}">${t}</div>` });
+function initMap() {
+  if (!window.L) return reply("Não foi possível carregar o mapa. Verifique a internet.");
+  if (map) return setTimeout(() => map.invalidateSize(), 60);
+  map = L.map("map", { keyboard: false, zoomControl: false, attributionControl: false }).setView(BASE.c, 11); // o mapa é visual: tudo também está em texto
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+  layer = L.layerGroup().addTo(map);
+  L.marker(BASE.c, { icon: icon("E", "#f5eeef", "#141012"), keyboard: false }).bindTooltip(tip("Embarque: " + BASE.n)).addTo(map);
+  P.forEach((p, i) => L.marker(p.c, { icon: icon(p.l, "#8b1f2f"), keyboard: false }).bindTooltip(tip(p.n)).on("click", () => choose(i)).addTo(map));
+  setTimeout(() => map.invalidateSize(), 60);
+}
+
+/* ---------- Voz e assistente ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec, on = false, hit = false;
-const setMsg = t => $("#state").textContent = t;
-function stop(){
-  if(on) rec.abort();
-  on = false; $("#ring").classList.remove("listening"); $("#mic").setAttribute("aria-pressed", "false");
+const setMsg = t => { $("#state").textContent = t; $("#ans").textContent = t; };
+function reply(m) { setMsg(m); say(m); }
+function stop() {
+  if (on) rec.abort();
+  on = false; $("#ring").classList.remove("listening");
+  for (const b of [$("#mic"), $("#ask")]) b.setAttribute("aria-pressed", "false");
 }
-function go(p, said){
+function go(p, said) {
   hit = true; stop(); $("#heard").textContent = "“" + said.trim() + "”"; setMsg("Entendi: " + p.n + ".");
-  setTimeout(() => { show("lista"); choose(L.indexOf(p)); }, 600);
+  setTimeout(() => { show("lista"); choose(P.indexOf(p)); }, 600);
 }
-$("#mic").onclick = () => {
-  if(on) return stop(), setMsg("Microfone desligado");
+function ask(text) {
+  const p = find(text); if (p) return go(p, text);
+  const t = norm(text);
+  if (!cur) return reply("Primeiro diga um destino, por exemplo Cataratas.");
+  if (/hotel|hospedagem|pousada|perto|proxim|referencia/.test(t)) return reply(hotelText());
+  if (/assento|poltrona|lugar|vaga|livre|ocupad/.test(t)) return reply(seatText());
+  if (/rota|caminho|linha|distancia|como/.test(t)) return reply(routeText());
+  if (/onde|onibus|chega|minuto|tempo|demora|status/.test(t)) return reply(sentence());
+  reply("Posso informar o ônibus, o assento PCD, a rota e hotéis próximos. Pergunte, por exemplo: tem assento livre?");
+}
+function listen(b) {
+  if (on) return stop(), setMsg("Microfone desligado");
   welcomed = true; speechSynthesis.cancel();
-  if(!SR){ const m = "Este navegador não tem reconhecimento de voz. Digite o destino no campo abaixo."; setMsg(m); say(m); return $("#typed").focus(); }
+  if (!SR) return reply("Este navegador não tem reconhecimento de voz. Digite na tela inicial ou use Chrome, Edge ou Safari.");
   rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = true; hit = false; $("#heard").textContent = "";
-  rec.onstart = () => { on = true; $("#ring").classList.add("listening"); $("#mic").setAttribute("aria-pressed", "true"); setMsg("Ouvindo… fale o destino"); };
-  rec.onresult = e => { const t = [...e.results].map(r => r[0].transcript).join(" "); $("#heard").textContent = t; const p = find(t); if(p && !hit) go(p, t); };
-  rec.onerror = e => {
-    const m = { "not-allowed":"Permissão do microfone negada. Libere nas configurações ou digite o destino.", "no-speech":"Não ouvi nada. Toque e fale de novo.", "audio-capture":"Nenhum microfone encontrado.", "network":"Sem conexão para o reconhecimento de voz." }[e.error];
-    if(m){ hit = true; setMsg(m); say(m); }
+  rec.onstart = () => { on = true; $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true"); setMsg("Ouvindo… fale agora"); };
+  rec.onresult = e => {
+    const t = [...e.results].map(r => r[0].transcript).join(" "); $("#heard").textContent = t; if (hit) return;
+    const p = find(t); if (p) return go(p, t);
+    if (e.results[e.results.length - 1].isFinal) { hit = true; stop(); ask(t); }
   };
-  rec.onend = () => { const was = on; stop(); if(was && !hit){ const m = "Não entendi o destino. Toque e diga, por exemplo, Cataratas."; setMsg(m); say(m); } };
+  rec.onerror = e => {
+    const m = { "not-allowed": "Permissão do microfone negada. Libere nas configurações ou digite.", "no-speech": "Não ouvi nada. Toque e fale de novo.", "audio-capture": "Nenhum microfone encontrado.", "network": "Sem conexão para o reconhecimento de voz." }[e.error];
+    if (m) { hit = true; reply(m); }
+  };
+  rec.onend = () => { const was = on; stop(); if (was && !hit) reply("Não entendi. Toque e diga, por exemplo, Cataratas ou: tem assento livre?"); };
   rec.start();
-};
-$("#form").onsubmit = e => {
-  e.preventDefault(); const p = find($("#typed").value);
-  if(p) go(p, $("#typed").value); else { const m = "Destino não encontrado. Tente Cataratas, Itaipu ou Templo Budista."; setMsg(m); say(m); }
-};
-
-/* Lista */
-$("#cards").innerHTML = L.map((p, i) => `<li class="bg-card rounded-xl p-8 flex flex-col gap-4">
-  <span class="self-start bg-ink text-on-dark rounded-full px-5 py-2 text-2xl font-semibold">Linha ${p.l}</span>
-  <h2 class="text-2xl font-medium">${p.n}</h2>
-  <button data-i="${i}" aria-label="Acompanhar a linha ${p.l} até ${p.n}" class="mt-auto px-5 min-h-12 rounded-lg text-lg font-medium bg-primary-active text-white">Acompanhar linha ${p.l}</button></li>`).join("");
-$("#cards").onclick = e => { const b = e.target.closest("[data-i]"); if(b) choose(+b.dataset.i); };
-
-/* Painel */
-// shortcut: dados simulados a cada 15 s; trocar por fetch à API de frota e de visão computacional.
-function getBusStatus(prev){
-  const r = n => Math.floor(Math.random() * n);
-  if(!prev) return { eta: 3 + r(4), free: 2 + r(8), pcdBusy: false };
-  return { eta: Math.max(0, prev.eta - 1), free: Math.min(12, Math.max(0, prev.free + r(3) - 1)), pcdBusy: Math.random() < .3 ? !prev.pcdBusy : prev.pcdBusy };
 }
-let cur, s, tm;
-const sentence = () => `Linha ${cur.l} ${s.eta ? `chegando em ${s.eta} ${s.eta > 1 ? "minutos" : "minuto"}` : "chegou ao ponto"} com assento PCD ${s.pcdBusy ? "ocupado" : "livre"}. ${s.free} assentos livres.`;
-function announce(prefix = ""){
-  const a = $("#alert"), t = (prefix + " " + sentence()).trim();
-  const c = s.pcdBusy ? "bg-primary text-ink" : "bg-ok text-ink";
-  a.className = "rounded-xl p-5 mt-5 font-display text-3xl md:text-4xl " + c;
+$("#mic").onclick = () => listen($("#mic"));
+$("#ask").onclick = () => listen($("#ask"));
+$("#form").onsubmit = e => { e.preventDefault(); const v = $("#typed").value, p = find(v); p ? go(p, v) : ask(v); };
+
+/* ---------- Lista ---------- */
+$("#cards").innerHTML = P.map((p, i) => `<li class="bg-card rounded-xl p-8 flex flex-col gap-4">
+  <span class="self-start bg-ink text-canvas rounded-full px-5 py-2 text-2xl font-semibold">Linha ${p.l}</span>
+  <h2 class="text-2xl font-medium">${p.n}</h2>
+  <button data-i="${i}" aria-label="Acompanhar a linha ${p.l} até ${p.n}" class="mt-auto px-5 min-h-12 rounded-lg text-lg font-medium bg-primary text-white border-2 border-accent">Acompanhar linha ${p.l}</button></li>`).join("");
+$("#cards").onclick = e => { const b = e.target.closest("[data-i]"); if (b) choose(+b.dataset.i); };
+
+/* ---------- Painel: ônibus, câmera, rota e hotéis ---------- */
+// shortcut: posição e câmera são simuladas; a rota (OSRM) e os hotéis (OpenStreetMap) são reais.
+// Trocar por fetch à API de frota/visão computacional. O ônibus vem do lado do destino rumo ao embarque.
+let cur, s, tm, tc, tok = 0, lastMin;
+const mins = () => Math.max(1, Math.ceil(s.eta / 60));
+const seatText = () => `Poltrona PCD ${s.pcdBusy ? "ocupada" : "livre"}. ${s.free} de 12 assentos livres.`;
+const routeText = () => `Linha ${cur.l}: de ${BASE.n} até ${cur.n}, ${fmt(s.dist)}, cerca de ${Math.round(s.dur / 60)} minutos de viagem.`;
+const hotelText = () => s.hot.length ? "Perto de " + cur.n + ": " + s.hot.map(h => `${h.n}, a ${fmt(h.d)}`).join("; ") + "." : "Não encontrei hotéis próximos nos dados do mapa.";
+const sentence = () => `Linha ${cur.l} ${s.eta ? `chegando em ${mins()} ${mins() > 1 ? "minutos" : "minuto"}` : "chegou ao ponto de embarque"} com assento PCD ${s.pcdBusy ? "ocupado" : "livre"}. ${s.free} assentos livres.`;
+const busPos = () => s.pts[Math.round(s.eta / s.dur * (s.pts.length - 1))];
+
+async function route(a, b) {
+  try {
+    const j = (await (await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`)).json()).routes[0];
+    return { pts: j.geometry.coordinates.map(([x, y]) => [y, x]), dur: j.duration, dist: j.distance };
+  } catch { const d = map.distance(a, b); return { pts: [a, b], dur: d / 8, dist: d }; } // sem internet: linha reta
+}
+function render() {
+  const c = s.pcdBusy ? "bg-accent text-canvas" : "bg-ok text-canvas";
+  $("#alert").className = "rounded-xl p-5 mt-5 font-display text-3xl md:text-4xl " + c;
   $("#pcd").className = "font-display text-5xl rounded-xl px-5 py-2 mt-3 inline-block " + c;
   $("#pcd").textContent = s.pcdBusy ? "✕ OCUPADA" : "✓ LIVRE";
-  a.textContent = ""; setTimeout(() => a.textContent = (s.pcdBusy ? "✕ " : "✓ ") + t, 40);
-  $("#eta").textContent = s.eta ? s.eta + " min" : "Chegou";
+  $("#eta").textContent = s.eta ? mins() + " min" : "Chegou";
   $("#cam").textContent = `Ativa · ${s.free} de 12 assentos livres · ${new Date().toLocaleTimeString("pt-BR")}`;
+}
+function announce(prefix = "") {
+  render(); const a = $("#alert"), t = (prefix + " " + sentence()).trim();
+  a.textContent = ""; setTimeout(() => a.textContent = (s.pcdBusy ? "✕ " : "✓ ") + t, 40);
   say(t);
 }
-function choose(i){
-  clearInterval(tm); cur = L[i]; s = getBusStatus();
-  $("#h-panel").textContent = `Linha ${cur.l} · ${cur.n}`;
-  $("#panel").hidden = false; $("#panel").setAttribute("aria-hidden", "false"); anim($("#panel"));
-  $("#panel").scrollIntoView({ behavior:"smooth" }); announce("Você escolheu " + cur.n + ".");
-  tm = setInterval(() => { const was = s.pcdBusy; s = getBusStatus(s); announce(was !== s.pcdBusy ? "Atenção." : ""); if(!s.eta) clearInterval(tm); }, 15000);
+async function choose(i) {
+  if (!map) return;
+  clearInterval(tm); clearInterval(tc); const my = ++tok; cur = P[i];
+  $("#h-panel").textContent = `Linha ${cur.l} · ${cur.n}`; $("#route").textContent = "Calculando a rota…"; $("#hotels").replaceChildren();
+  const pn = $("#panel"); pn.hidden = false; pn.setAttribute("aria-hidden", "false"); anim(pn); layer.clearLayers();
+  const r = await route(BASE.c, cur.c); if (my !== tok) return;
+  s = { ...r, pcdBusy: false, free: 2 + rand(8), hot: [], eta: Math.min(r.dur, 240 + rand(120)) }; lastMin = mins();
+  L.polyline(s.pts, { color: "#e58a9f", weight: 6 }).addTo(layer);
+  L.marker(cur.c, { icon: icon(cur.l, "#8b1f2f"), keyboard: false }).bindTooltip(tip(cur.n)).addTo(layer);
+  bus = L.marker(busPos(), { icon: icon(cur.l, "#f5eeef", "#141012", 46), keyboard: false, zIndexOffset: 1000 }).addTo(layer);
+  map.fitBounds(L.polyline(s.pts).getBounds(), { padding: [30, 30] });
+  $("#route").textContent = routeText(); announce("Você escolheu " + cur.n + ".");
+  $("#panel").scrollIntoView({ behavior: "smooth" });
+  tm = setInterval(tick, 1000); tc = setInterval(camera, 12000); nearby(my);
 }
-$("#again").onclick = () => announce();
+function tick() {
+  s.eta = Math.max(0, s.eta - SPEED); bus.setLatLng(busPos());
+  if (!s.eta) { clearInterval(tm); announce(); } else if (mins() !== lastMin) { lastMin = mins(); announce(); } else render();
+}
+function camera() {
+  const was = s.pcdBusy; if (Math.random() < .3) s.pcdBusy = !s.pcdBusy;
+  s.free = Math.min(12, Math.max(0, s.free + rand(3) - 1));
+  was !== s.pcdBusy ? announce("Atenção.") : render();
+}
+async function nearby(my) {
+  const li = t => { const e = document.createElement("li"); e.textContent = t; return e; };
+  try {
+    const q = `[out:json][timeout:15];nwr["tourism"~"hotel|hostel|guest_house|motel|apartment"]["name"](around:5000,${cur.c});out center 40;`;
+    const j = await (await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: new URLSearchParams({ data: q }) })).json();
+    if (my !== tok) return;
+    s.hot = j.elements.map(e => { const c = [e.lat ?? e.center?.lat, e.lon ?? e.center?.lon]; return { n: e.tags.name, c, d: map.distance(cur.c, c) }; })
+      .filter(h => h.c[0]).sort((a, b) => a.d - b.d).slice(0, 4);
+  } catch { if (my !== tok) return; s.hot = []; }
+  $("#hotels").replaceChildren(...(s.hot.length ? s.hot.map(h => li(`${h.n} · ${fmt(h.d)}`)) : [li("Sem hotéis nos dados do mapa nesta região.")]));
+  s.hot.forEach(h => L.marker(h.c, { icon: icon("H", "#f5eeef", "#141012", 30), keyboard: false }).bindTooltip(tip(h.n)).addTo(layer));
+  say(hotelText(), { queue: true });
+}
+$("#again").onclick = () => cur && announce();
+$("#hearHotels").onclick = () => cur && reply(hotelText());
+$("#loc").onclick = () => navigator.geolocation ? navigator.geolocation.getCurrentPosition(pos => {
+  const c = [pos.coords.latitude, pos.coords.longitude]; me?.remove();
+  me = L.marker(c, { icon: icon("EU", "#5db872", "#141012", 40), keyboard: false }).addTo(map);
+  reply(`Você está a ${fmt(map.distance(c, BASE.c))} do ponto de embarque, ${BASE.n}.`);
+}, () => reply("Não consegui sua localização. Libere a localização no navegador.")) : reply("Este navegador não tem localização.");
 
 show("home");
