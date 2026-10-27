@@ -5,30 +5,31 @@ const rand = n => Math.floor(Math.random() * n);
 const fmt = m => m < 1000 ? Math.round(m) + " metros" : (m / 1000).toFixed(1).replace(".", ",") + " km";
 const SPEED = 5; // segundos simulados por segundo real (1 = tempo real)
 
-// Coordenadas APROXIMADAS (Parque das Aves vem da Wikipédia). Confirme cada uma no Google Maps
-// (clique direito no local > copiar coordenadas). Linhas de exemplo: confirme com a operadora.
-const BASE = { n: "Centro de Foz", c: [-25.5163, -54.5854] };
+// Foco: ônibus turísticos. Coordenadas APROXIMADAS (Parque das Aves vem da Wikipédia): confirme cada uma no Google Maps
+// (clique direito no local > copiar coordenadas). s = nome do serviço, l = sigla no mapa. Serviço e operadora são EXEMPLOS
+// a confirmar (Parque Nacional: Urbia Cataratas; Itaipu: Itaipu Binacional; City Tour: Iguassu City Tour; transfer: a definir).
+const BASE = { n: "Centro de Foz (hotéis)", c: [-25.5163, -54.5854] };
 const P = [
-  { n: "Cataratas do Iguaçu", l: "120", c: [-25.6866, -54.4420], k: ["catarata"] },
-  { n: "Parque das Aves", l: "120", c: [-25.6140, -54.4826], k: ["aves"] },
-  { n: "Itaipu Binacional", l: "101", c: [-25.4380, -54.5880], k: ["itaipu", "usina"] },
-  { n: "Marco das Três Fronteiras", l: "103", c: [-25.5974, -54.5912], k: ["marco", "fronteira"] },
-  { n: "Templo Budista Chen Tien", l: "103", c: [-25.5330, -54.5620], k: ["templo", "budista"] }
+  { n: "Cataratas do Iguaçu", s: "Ônibus do Parque Nacional", l: "PN", c: [-25.6866, -54.4420], k: ["catarata"] },
+  { n: "Parque das Aves", s: "Transfer turístico", l: "TT", c: [-25.6140, -54.4826], k: ["aves"] },
+  { n: "Itaipu Binacional", s: "Ônibus panorâmico de Itaipu", l: "IT", c: [-25.4380, -54.5880], k: ["itaipu", "usina"] },
+  { n: "Marco das Três Fronteiras", s: "City Tour panorâmico", l: "CT", c: [-25.5974, -54.5912], k: ["marco", "fronteira"] },
+  { n: "Templo Budista Chen Tien", s: "City Tour panorâmico", l: "CT", c: [-25.5330, -54.5620], k: ["templo", "budista"] }
 ];
 const find = t => { t = norm(t); return P.find(x => x.k.some(k => t.includes(k))); };
-console.assert(find("Quero ir às Cataratas")?.l === "120" && find("templo budista")?.n.startsWith("Templo") && !find("pizza"), "find() falhou");
+console.assert(find("Quero ir às Cataratas")?.l === "PN" && find("templo budista")?.n.startsWith("Templo") && !find("pizza"), "find() falhou");
 
 /* ---------- Fala ---------- */
-let welcomed = false;
+let welcomed = false, anywhere = true; // na tela inicial, tocar em qualquer lugar liga o microfone; desliga ao entender o primeiro destino
 function say(t, o = {}) {
   if (!o.queue) speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.onstart = o.onstart;
   speechSynthesis.speak(u);
 }
-const WELCOME = "Bem-vindo ao Mobintéc. Toque no botão grande no centro da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus, o assento, a rota e hotéis próximos.";
+const WELCOME = "Bem-vindo ao Foz Acessível, o aplicativo dos ônibus turísticos de Foz do Iguaçu. Toque em qualquer lugar da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus turístico, o assento, a rota e hotéis próximos.";
 const welcome = () => say(WELCOME, { onstart: () => welcomed = true });
 addEventListener("load", welcome); // o navegador pode bloquear até o primeiro toque
-addEventListener("pointerdown", e => { if (!welcomed && !e.target.closest("#mic")) welcome(); }, true);
+addEventListener("pointerdown", e => { if (!welcomed && !(anywhere && !$("#home").hidden) && !e.target.closest("#mic")) welcome(); }, true);
 
 /* ---------- Telas ---------- */
 function show(name) {
@@ -82,7 +83,7 @@ function stop() {
   for (const b of [$("#mic"), $("#ask")]) b.setAttribute("aria-pressed", "false");
 }
 function go(p, said) {
-  hit = true; stop(); $("#heard").textContent = "“" + said.trim() + "”"; setMsg("Entendi: " + p.n + ".");
+  hit = true; anywhere = false; stop(); $("#heard").textContent = "“" + said.trim() + "”"; setMsg("Entendi: " + p.n + ".");
   setTimeout(() => { show("lista"); choose(P.indexOf(p)); }, 600);
 }
 function ask(text) {
@@ -99,7 +100,7 @@ function listen(b) {
   if (on) return stop(), setMsg("Microfone desligado");
   welcomed = true; speechSynthesis.cancel();
   if (!SR) return reply("Este navegador não tem reconhecimento de voz. Digite na tela inicial ou use Chrome, Edge ou Safari.");
-  rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = true; hit = false; $("#heard").textContent = "";
+  const r = rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = true; hit = false; $("#heard").textContent = "";
   rec.onstart = () => { on = true; $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true"); setMsg("Ouvindo… fale agora"); };
   rec.onresult = e => {
     const t = [...e.results].map(r => r[0].transcript).join(" "); $("#heard").textContent = t; if (hit) return;
@@ -107,21 +108,36 @@ function listen(b) {
     if (e.results[e.results.length - 1].isFinal) { hit = true; stop(); ask(t); }
   };
   rec.onerror = e => {
-    const m = { "not-allowed": "Permissão do microfone negada. Libere nas configurações ou digite.", "no-speech": "Não ouvi nada. Toque e fale de novo.", "audio-capture": "Nenhum microfone encontrado.", "network": "Sem conexão para o reconhecimento de voz." }[e.error];
-    if (m) { hit = true; reply(m); }
+    console.error("Erro de voz:", e.error);
+    if (e.error === "aborted") return;
+    const m = {
+      "not-allowed": "Permissão do microfone negada. Toque no cadeado ao lado do endereço e permita o microfone.",
+      "service-not-allowed": "O navegador bloqueou o serviço de voz. Use Chrome, Edge ou Safari e permita o microfone.",
+      "no-speech": "Não ouvi nada. Toque e fale de novo.",
+      "audio-capture": "Nenhum microfone encontrado.",
+      "network": "Sem conexão com o serviço de voz do navegador. Verifique a internet ou VPN. O Brave não funciona; use Chrome ou Edge.",
+      "language-not-supported": "O idioma pt-BR não é suportado neste navegador."
+    }[e.error];
+    hit = true; reply(m || "Erro de voz: " + e.error);
   };
   rec.onend = () => { const was = on; stop(); if (was && !hit) reply("Não entendi. Toque e diga, por exemplo, Cataratas ou: tem assento livre?"); };
-  rec.start();
+  setMsg("Iniciando microfone…");
+  // pequena pausa: o microfone não consegue iniciar enquanto a voz sintetizada ainda está sendo cancelada
+  setTimeout(() => {
+    if (rec !== r) return; // outro toque já criou um novo reconhecedor
+    try { rec.start(); } catch (err) { reply("Não consegui iniciar o microfone: " + err.message); }
+  }, 300);
 }
 $("#mic").onclick = () => listen($("#mic"));
 $("#ask").onclick = () => listen($("#ask"));
+document.addEventListener("click", e => { if (anywhere && !$("#home").hidden && !e.target.closest("button, input, a")) listen($("#mic")); });
 $("#form").onsubmit = e => { e.preventDefault(); const v = $("#typed").value, p = find(v); p ? go(p, v) : ask(v); };
 
 /* ---------- Lista ---------- */
 $("#cards").innerHTML = P.map((p, i) => `<li class="bg-card rounded-xl p-8 flex flex-col gap-4">
-  <span class="self-start bg-ink text-canvas rounded-full px-5 py-2 text-2xl font-semibold">Linha ${p.l}</span>
+  <span class="self-start bg-ink text-canvas rounded-full px-5 py-2 text-2xl font-semibold">${p.s}</span>
   <h2 class="text-2xl font-medium">${p.n}</h2>
-  <button data-i="${i}" aria-label="Acompanhar a linha ${p.l} até ${p.n}" class="mt-auto px-5 min-h-12 rounded-lg text-lg font-medium bg-primary text-white border-2 border-accent">Acompanhar linha ${p.l}</button></li>`).join("");
+  <button data-i="${i}" aria-label="Acompanhar o ${p.s} até ${p.n}" class="mt-auto px-5 min-h-12 rounded-lg text-lg font-medium bg-primary text-white border-2 border-accent">Acompanhar o ônibus</button></li>`).join("");
 $("#cards").onclick = e => { const b = e.target.closest("[data-i]"); if (b) choose(+b.dataset.i); };
 
 /* ---------- Painel: ônibus, câmera, rota e hotéis ---------- */
@@ -130,9 +146,9 @@ $("#cards").onclick = e => { const b = e.target.closest("[data-i]"); if (b) choo
 let cur, s, tm, tc, tok = 0, lastMin;
 const mins = () => Math.max(1, Math.ceil(s.eta / 60));
 const seatText = () => `Poltrona PCD ${s.pcdBusy ? "ocupada" : "livre"}. ${s.free} de 12 assentos livres.`;
-const routeText = () => `Linha ${cur.l}: de ${BASE.n} até ${cur.n}, ${fmt(s.dist)}, cerca de ${Math.round(s.dur / 60)} minutos de viagem.`;
+const routeText = () => `${cur.s}: de ${BASE.n} até ${cur.n}, ${fmt(s.dist)}, cerca de ${Math.round(s.dur / 60)} minutos de viagem.`;
 const hotelText = () => s.hot.length ? "Perto de " + cur.n + ": " + s.hot.map(h => `${h.n}, a ${fmt(h.d)}`).join("; ") + "." : "Não encontrei hotéis próximos nos dados do mapa.";
-const sentence = () => `Linha ${cur.l} ${s.eta ? `chegando em ${mins()} ${mins() > 1 ? "minutos" : "minuto"}` : "chegou ao ponto de embarque"} com assento PCD ${s.pcdBusy ? "ocupado" : "livre"}. ${s.free} assentos livres.`;
+const sentence = () => `${cur.s} ${s.eta ? `chegando em ${mins()} ${mins() > 1 ? "minutos" : "minuto"}` : "chegou ao ponto de embarque"} com assento PCD ${s.pcdBusy ? "ocupado" : "livre"}. ${s.free} assentos livres.`;
 const busPos = () => s.pts[Math.round(s.eta / s.dur * (s.pts.length - 1))];
 
 async function route(a, b) {
@@ -157,7 +173,7 @@ function announce(prefix = "") {
 async function choose(i) {
   if (!map) return;
   clearInterval(tm); clearInterval(tc); const my = ++tok; cur = P[i];
-  $("#h-panel").textContent = `Linha ${cur.l} · ${cur.n}`; $("#route").textContent = "Calculando a rota…"; $("#hotels").replaceChildren();
+  $("#h-panel").textContent = `${cur.s} · ${cur.n}`; $("#route").textContent = "Calculando a rota…"; $("#hotels").replaceChildren();
   const pn = $("#panel"); pn.hidden = false; pn.setAttribute("aria-hidden", "false"); anim(pn); layer.clearLayers();
   const r = await route(BASE.c, cur.c); if (my !== tok) return;
   s = { ...r, pcdBusy: false, free: 2 + rand(8), hot: [], eta: Math.min(r.dur, 240 + rand(120)) }; lastMin = mins();
