@@ -96,12 +96,22 @@ function ask(text) {
   if (/onde|onibus|chega|minuto|tempo|demora|status/.test(t)) return reply(sentence());
   reply("Posso informar o ônibus, o assento PCD, a rota e hotéis próximos. Pergunte, por exemplo: tem assento livre?");
 }
-function listen(b) {
+async function listen(b, local = false) {
   if (on) return stop(), setMsg("Microfone desligado");
   welcomed = true; speechSynthesis.cancel();
   if (!SR) return reply("Este navegador não tem reconhecimento de voz. Digite na tela inicial ou use Chrome, Edge ou Safari.");
+  const canLocal = "processLocally" in SR.prototype;
   const r = rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = true; hit = false; $("#heard").textContent = "";
-  rec.onstart = () => { on = true; $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true"); setMsg("Ouvindo… fale agora"); };
+  if (local) { // reconhecimento no próprio aparelho: não usa o servidor do Google
+    try {
+      const o = { langs: ["pt-BR"], processLocally: true };
+      const st = SR.available ? await SR.available(o) : "available";
+      if (st === "unavailable") return reply("Seu navegador não consegue reconhecer voz neste aparelho. Use o campo de texto ou outro navegador (Chrome ou Edge).");
+      if (st !== "available") { setMsg("Baixando o pacote de voz em português… aguarde e toque de novo."); await SR.install(o); return setMsg("Pacote instalado. Toque no microfone e fale."); }
+      rec.processLocally = true;
+    } catch (err) { return reply("Não foi possível usar a voz no aparelho: " + err.message); }
+  }
+  rec.onstart = () => { on = true; $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true"); setMsg(local ? "Ouvindo (no aparelho)… fale agora" : "Ouvindo… fale agora"); };
   rec.onresult = e => {
     const t = [...e.results].map(r => r[0].transcript).join(" "); $("#heard").textContent = t; if (hit) return;
     const p = find(t); if (p) return go(p, t);
@@ -110,15 +120,16 @@ function listen(b) {
   rec.onerror = e => {
     console.error("Erro de voz:", e.error);
     if (e.error === "aborted") return;
+    if (e.error === "network" && !local && canLocal) { hit = true; setMsg("Serviço de voz da nuvem indisponível. Tentando no aparelho…"); return void setTimeout(() => listen(b, true), 500); }
     const m = {
       "not-allowed": "Permissão do microfone negada. Toque no cadeado ao lado do endereço e permita o microfone.",
       "service-not-allowed": "O navegador bloqueou o serviço de voz. Use Chrome, Edge ou Safari e permita o microfone.",
       "no-speech": "Não ouvi nada. Toque e fale de novo.",
       "audio-capture": "Nenhum microfone encontrado.",
-      "network": "Sem conexão com o serviço de voz do navegador. Verifique a internet ou VPN. O Brave não funciona; use Chrome ou Edge.",
+      "network": "Sem conexão com o serviço de voz do navegador. Verifique a internet, VPN ou antivírus. Use o Chrome ou Edge originais, ou digite no campo de texto.",
       "language-not-supported": "O idioma pt-BR não é suportado neste navegador."
     }[e.error];
-    hit = true; reply(m || "Erro de voz: " + e.error);
+    hit = true; reply((m || "Erro de voz.") + " (erro: " + e.error + ")");
   };
   rec.onend = () => { const was = on; stop(); if (was && !hit) reply("Não entendi. Toque e diga, por exemplo, Cataratas ou: tem assento livre?"); };
   setMsg("Iniciando microfone…");
