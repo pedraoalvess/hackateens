@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -23,7 +24,7 @@
     };
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 
 <body class="bg-canvas text-ink font-sans leading-relaxed">
@@ -76,6 +77,7 @@
       </h1>
       <div id="map" aria-hidden="true" class="h-80 md:h-[28rem] rounded-2xl border-2 border-accent mt-6 bg-card"></div>
       <p class="text-body mt-2">Mapa de Foz do Iguaçu. Toque em um marcador ou em um cartão para acompanhar a linha.</p>
+      <p id="mapMsg" role="status" class="text-body mt-1"></p>
       <ul id="cards" class="grid gap-6 mt-6 md:grid-cols-2 lg:grid-cols-3"></ul>
 
       <div id="panel" aria-hidden="true" hidden
@@ -126,11 +128,12 @@
   </main>
 
   <footer class="bg-dark text-on-dark-soft mt-8">
-    <p class="max-w-5xl mx-auto px-5 py-6">Mapa © colaboradores do OpenStreetMap; rotas OSRM; hotéis OpenStreetMap.
-      Posição do ônibus e leitura da câmera são simuladas; troque pela API real da frota.</p>
+    <p class="max-w-5xl mx-auto px-5 py-6">Mapa © colaboradores do OpenStreetMap e © CARTO; rotas OSRM; hotéis
+      OpenStreetMap. Posição do ônibus e leitura da câmera são simuladas; troque pela API real da frota.</p>
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" defer></script>
-  <script src="script.js" defer></script>
+  <script src="script.js?v=2" defer></script>
 </body>
+
 </html>

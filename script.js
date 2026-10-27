@@ -49,11 +49,22 @@ $("#nLista").onclick = () => show("lista");
 let map, layer, bus, me;
 const tip = t => { const e = document.createElement("span"); e.textContent = t; return e; };
 const icon = (t, bg, fg = "#fff", sz = 36) => L.divIcon({ className: "", iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2], html: `<div class="pin" style="width:${sz}px;height:${sz}px;background:${bg};color:${fg}">${t}</div>` });
+const TILES = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png", "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"];
+let tilesOk = false;
+function tiles(i) { // se o OpenStreetMap bloquear os quadros, tenta o provedor seguinte
+  const t = L.tileLayer(TILES[i], { maxZoom: 19, subdomains: "abcd" }).addTo(map);
+  t.on("tileload", () => { tilesOk = true; $("#mapMsg").textContent = ""; });
+  t.on("tileerror", () => {
+    if (tilesOk || t.failed) return;
+    t.failed = true; map.removeLayer(t);
+    if (i + 1 < TILES.length) tiles(i + 1); else $("#mapMsg").textContent = "Os quadros do mapa não carregaram. Verifique a internet ou desative bloqueadores.";
+  });
+}
 function initMap() {
-  if (!window.L) return reply("Não foi possível carregar o mapa. Verifique a internet.");
+  if (!window.L) return $("#mapMsg").textContent = "O mapa não carregou: a biblioteca Leaflet foi bloqueada ou está sem internet.";
   if (map) return setTimeout(() => map.invalidateSize(), 60);
   map = L.map("map", { keyboard: false, zoomControl: false, attributionControl: false }).setView(BASE.c, 11); // o mapa é visual: tudo também está em texto
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
+  $("#mapMsg").textContent = "Carregando o mapa…"; tiles(0);
   layer = L.layerGroup().addTo(map);
   L.marker(BASE.c, { icon: icon("E", "#f5eeef", "#141012"), keyboard: false }).bindTooltip(tip("Embarque: " + BASE.n)).addTo(map);
   P.forEach((p, i) => L.marker(p.c, { icon: icon(p.l, "#8b1f2f"), keyboard: false }).bindTooltip(tip(p.n)).on("click", () => choose(i)).addTo(map));
