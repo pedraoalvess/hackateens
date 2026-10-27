@@ -25,7 +25,7 @@ function say(t, o = {}) {
   const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.onstart = o.onstart;
   speechSynthesis.speak(u);
 }
-const WELCOME = "Bem-vindo ao Foz Acessível. Toque no botão grande no centro da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus, o assento, a rota e hotéis próximos.";
+const WELCOME = "Bem-vindo ao Mobintec. Toque no botão grande no centro da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus, o assento, a rota e hotéis próximos.";
 const welcome = () => say(WELCOME, { onstart: () => welcomed = true });
 addEventListener("load", welcome); // o navegador pode bloquear até o primeiro toque
 addEventListener("pointerdown", e => { if (!welcomed && !e.target.closest("#mic")) welcome(); }, true);
