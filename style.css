@@ -1,27 +1,22 @@
 /* ==========================================================================
-   Foz Acessível – estilos próprios
+   MOBINTEC – estilos próprios
    O resto do visual vem das classes Tailwind (cores e fontes do DESIGN.md
    estão no tailwind.config dentro do index.html).
    ========================================================================== */
 
 /* ---------- Tokens (DESIGN.md) ---------- */
 :root {
-  --canvas: #141012;
-  /* preto suave */
-  --ink: #f5eeef;
-  /* texto */
-  --primary: #8b1f2f;
-  /* bordô */
-  --accent: #e58a9f;
-  /* rosé: contornos, foco, ondas */
+  --canvas: #141012;    /* preto suave */
+  --ink: #f5eeef;       /* texto */
+  --primary: #8b1f2f;   /* bordô */
+  --accent: #e58a9f;    /* rosé: contornos, foco, ondas */
   --on-dark: #f5eeef;
   color-scheme: dark;
 }
 
 /* ---------- Base ---------- */
 html {
-  font-size: 18px;
-  /* base maior para baixa visão */
+  font-size: 18px; /* base maior para baixa visão */
 }
 
 body {
@@ -67,7 +62,6 @@ body {
     transform: scale(1);
     opacity: 0.8;
   }
-
   to {
     transform: scale(1.6);
     opacity: 0;
