@@ -1,90 +1,141 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#141012">
-<title>MOBINTEC</title>
-<script src="https://cdn.tailwindcss.com/3.4.17"></script>
-<script>
-tailwind.config = { theme: { extend: {
-  colors: { canvas:"#141012", card:"#221a1d", ink:"#f5eeef", body:"#dccfd2", hairline:"#5c3340",
-    primary:"#8b1f2f", "primary-active":"#6b1624", accent:"#e58a9f",
-    dark:"#3b1522", "dark-el":"#4e1f2e", "on-dark":"#f5eeef", "on-dark-soft":"#ebd0d6", ok:"#5db872" },
-  fontFamily: { display:['"Copernicus"','"Tiempos Headline"','Georgia','serif'], sans:['"StyreneB"','Inter','system-ui','sans-serif'] },
-  keyframes: { rise: { from:{ opacity:0, transform:"translateY(24px)" }, to:{ opacity:1, transform:"none" } } },
-  animation: { rise: "rise .6s cubic-bezier(.2,.8,.2,1) both" }
-}}};
-</script>
-<link rel="stylesheet" href="lib/leaflet/leaflet.css">
-<link rel="stylesheet" href="style.css?v=10">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#141012">
+  <title>MOBINTEC</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: "#141012", card: "#221a1d", ink: "#f5eeef", body: "#dccfd2", hairline: "#5c3340",
+            primary: "#8b1f2f", "primary-active": "#6b1624", accent: "#e58a9f",
+            dark: "#3b1522", "dark-el": "#4e1f2e", "on-dark": "#f5eeef", "on-dark-soft": "#ebd0d6", ok: "#5db872"
+          },
+          fontFamily: { display: ['"Copernicus"', '"Tiempos Headline"', 'Georgia', 'serif'], sans: ['"StyreneB"', 'Inter', 'system-ui', 'sans-serif'] },
+          keyframes: { rise: { from: { opacity: 0, transform: "translateY(24px)" }, to: { opacity: 1, transform: "none" } } },
+          animation: { rise: "rise .6s cubic-bezier(.2,.8,.2,1) both" }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="lib/leaflet/leaflet.css">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
+
 <body class="bg-canvas text-ink font-sans leading-relaxed">
-<header class="border-b border-hairline">
-  <div class="max-w-5xl mx-auto px-5 py-2 flex flex-wrap items-center justify-between gap-3">
-    <p class="font-display text-3xl tracking-tight">MOBINTEC</p>
-    <nav aria-label="Telas" class="flex gap-2">
-      <button id="nHome" aria-label="Ir para o comando de voz" class="px-4 min-h-12 rounded-lg font-medium">Voz</button>
-      <button id="nLista" aria-label="Ir para a lista de ônibus turísticos" class="px-4 min-h-12 rounded-lg font-medium">Atrações</button>
-    </nav>
-  </div>
-</header>
-
-<main class="max-w-5xl mx-auto px-5">
-  <section id="home" aria-labelledby="h-home" class="flex flex-col items-center text-center gap-6 py-10">
-    <p id="warn" role="alert" hidden class="w-full max-w-2xl bg-card border-2 border-accent rounded-xl p-4 text-lg"></p>
-    <h1 id="h-home" tabindex="-1" class="font-display text-4xl md:text-6xl tracking-tight">Para onde você quer ir?</h1>
-    <p class="text-xl text-body max-w-xl">Toque em qualquer lugar da tela e diga: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista.</p>
-    <div id="ring" class="relative w-80 h-80 rounded-full border-4 border-accent flex items-center justify-center">
-      <span class="wave absolute w-60 h-60 rounded-full border-4 border-accent opacity-0" aria-hidden="true"></span>
-      <span class="wave absolute w-60 h-60 rounded-full border-4 border-accent opacity-0" aria-hidden="true"></span>
-      <span class="wave absolute w-60 h-60 rounded-full border-4 border-accent opacity-0" aria-hidden="true"></span>
-      <button id="mic" aria-pressed="false" aria-label="Ativar microfone e falar o destino" class="relative w-60 h-60 rounded-full bg-primary text-white border-2 border-accent flex items-center justify-center">
-        <svg width="104" height="104" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
-      </button>
+  <header class="border-b border-hairline">
+    <div class="max-w-5xl mx-auto px-5 py-2 flex flex-wrap items-center justify-between gap-3">
+      <p class="font-display text-3xl tracking-tight">MOBINTEC</p>
+      <nav aria-label="Telas" class="flex gap-2">
+        <button id="nHome" aria-label="Ir para o comando de voz"
+          class="px-4 min-h-12 rounded-lg font-medium">Voz</button>
+        <button id="nLista" aria-label="Ir para a lista de ônibus turísticos"
+          class="px-4 min-h-12 rounded-lg font-medium">Atrações</button>
+      </nav>
     </div>
-    <div class="w-full max-w-2xl bg-card rounded-xl p-6">
-      <p id="state" role="status" class="text-lg font-medium">Microfone desligado</p>
-      <p id="heard" class="font-display text-3xl mt-2 min-h-[1.2em]"></p>
-    </div>
-    <form id="form" class="w-full max-w-2xl flex gap-3">
-      <input id="typed" aria-label="Digite um destino ou uma pergunta" placeholder="Digite um destino ou pergunta" autocomplete="off" class="flex-1 min-w-0 h-12 px-4 rounded-lg bg-card border-2 border-accent text-lg focus:border-ink focus:outline-none focus:ring-4 focus:ring-accent/40">
-      <button aria-label="Buscar o destino digitado" class="px-6 min-h-12 rounded-lg text-lg font-medium bg-primary text-white border-2 border-accent">Buscar</button>
-    </form>
-    <div id="quick" role="group" aria-label="Escolher o destino sem usar a voz" class="flex flex-wrap gap-3 justify-center max-w-2xl"></div>
-  </section>
+  </header>
 
-  <section id="lista" aria-labelledby="h-lista" aria-hidden="true" hidden class="py-10">
-    <h1 id="h-lista" tabindex="-1" class="font-display text-4xl md:text-5xl tracking-tight">Ônibus turísticos de Foz do Iguaçu</h1>
-    <div id="map" aria-hidden="true" class="h-80 md:h-[28rem] rounded-2xl border-2 border-accent mt-6 bg-card"></div>
-    <p class="text-body mt-2">Mapa de Foz do Iguaçu. Toque em um marcador ou em um cartão para acompanhar a linha.</p>
-    <p id="mapMsg" role="status" class="text-body mt-1"></p>
-    <ul id="cards" class="grid gap-6 mt-6 md:grid-cols-2 lg:grid-cols-3"></ul>
-
-    <div id="panel" aria-hidden="true" hidden class="dark bg-dark text-on-dark border-2 border-accent rounded-2xl p-6 md:p-8 mt-10">
-      <h2 id="h-panel" tabindex="-1" class="font-display text-3xl md:text-4xl tracking-tight"></h2>
-      <div id="alert" role="alert" aria-live="assertive" aria-atomic="true" class="rounded-xl p-5 mt-5 font-display text-3xl md:text-4xl"></div>
-      <div class="grid md:grid-cols-2 gap-5 mt-5">
-        <div class="bg-dark-el rounded-xl p-5"><h3 class="text-xl font-medium">Chegada estimada</h3><p id="eta" aria-hidden="true" class="font-display text-7xl mt-1"></p></div>
-        <div class="bg-dark-el rounded-xl p-5"><h3 class="text-xl font-medium">Câmera interna com IA</h3><p id="pcd" aria-hidden="true" class="font-display text-5xl rounded-xl px-5 py-2 mt-3 inline-block"></p><p id="cam" class="text-lg text-on-dark-soft mt-3"></p>
-          <button id="again" aria-label="Ouvir novamente o status do ônibus" class="mt-4 px-5 min-h-12 rounded-lg font-medium bg-dark text-on-dark border border-on-dark-soft">Ouvir status</button></div>
+  <main class="max-w-5xl mx-auto px-5">
+    <section id="home" aria-labelledby="h-home" class="flex flex-col items-center text-center gap-6 py-10">
+      <p id="warn" role="alert" hidden class="w-full max-w-2xl bg-card border-2 border-accent rounded-xl p-4 text-lg">
+      </p>
+      <h1 id="h-home" tabindex="-1" class="font-display text-4xl md:text-6xl tracking-tight">Para onde você quer ir?
+      </h1>
+      <p class="text-xl text-body max-w-xl">Toque em qualquer lugar da tela e diga: Cataratas, Parque das Aves, Itaipu,
+        Marco das Três Fronteiras ou Templo Budista.</p>
+      <div id="ring" class="relative w-80 h-80 rounded-full border-4 border-accent flex items-center justify-center">
+        <span class="wave absolute w-60 h-60 rounded-full border-4 border-accent opacity-0" aria-hidden="true"></span>
+        <span class="wave absolute w-60 h-60 rounded-full border-4 border-accent opacity-0" aria-hidden="true"></span>
+        <span class="wave absolute w-60 h-60 rounded-full border-4 border-accent opacity-0" aria-hidden="true"></span>
+        <button id="mic" aria-pressed="false" aria-label="Ativar microfone e falar o destino"
+          class="relative w-60 h-60 rounded-full bg-primary text-white border-2 border-accent flex items-center justify-center">
+          <svg width="104" height="104" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" aria-hidden="true">
+            <rect x="9" y="2" width="6" height="12" rx="3" />
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8" />
+          </svg>
+        </button>
       </div>
-      <div class="grid md:grid-cols-2 gap-5 mt-5">
-        <div class="bg-dark-el rounded-xl p-5"><h3 class="text-xl font-medium">Rota do ônibus</h3><p id="route" class="text-lg text-on-dark-soft mt-2"></p>
-          <button id="loc" aria-label="Mostrar minha localização no mapa" class="mt-4 px-5 min-h-12 rounded-lg font-medium bg-dark text-on-dark border border-on-dark-soft">Minha localização</button></div>
-        <div class="bg-dark-el rounded-xl p-5"><h3 class="text-xl font-medium">Hotéis e referências próximos</h3><ul id="hotels" class="text-lg text-on-dark-soft mt-2 list-disc pl-5"></ul>
-          <button id="hearHotels" aria-label="Ouvir os hotéis próximos" class="mt-4 px-5 min-h-12 rounded-lg font-medium bg-dark text-on-dark border border-on-dark-soft">Ouvir hotéis</button></div>
+      <div class="w-full max-w-2xl bg-card rounded-xl p-6">
+        <p id="state" role="status" class="text-lg font-medium">Microfone desligado</p>
+        <p id="heard" class="font-display text-3xl mt-2 min-h-[1.2em]"></p>
       </div>
-      <div class="bg-dark-el rounded-xl p-5 mt-5"><h3 class="text-xl font-medium">Pergunte à assistente</h3>
-        <p id="ans" role="status" class="text-lg mt-2 min-h-[1.5em]">Toque no botão e pergunte, por exemplo: tem assento livre?</p>
-        <button id="ask" aria-pressed="false" aria-label="Perguntar por voz à assistente" class="mt-4 px-5 min-h-12 rounded-lg font-medium bg-primary text-white border-2 border-accent">Perguntar por voz</button></div>
-    </div>
-  </section>
-</main>
+      <form id="form" class="w-full max-w-2xl flex gap-3">
+        <input id="typed" aria-label="Digite um destino ou uma pergunta" placeholder="Digite um destino ou pergunta"
+          autocomplete="off"
+          class="flex-1 min-w-0 h-12 px-4 rounded-lg bg-card border-2 border-accent text-lg focus:border-ink focus:outline-none focus:ring-4 focus:ring-accent/40">
+        <button aria-label="Buscar o destino digitado"
+          class="px-6 min-h-12 rounded-lg text-lg font-medium bg-primary text-white border-2 border-accent">Buscar</button>
+      </form>
+      <div id="quick" role="group" aria-label="Escolher o destino sem usar a voz"
+        class="flex flex-wrap gap-3 justify-center max-w-2xl"></div>
+    </section>
 
-<footer class="bg-dark text-on-dark-soft mt-8"><p class="max-w-5xl mx-auto px-5 py-6">Mapa © colaboradores do OpenStreetMap e © CARTO; rotas OSRM; hotéis OpenStreetMap. Voz alternativa: modelo Whisper tiny (Hugging Face). Posição do ônibus e leitura da câmera são simuladas; troque pela API real da frota.</p></footer>
+    <section id="lista" aria-labelledby="h-lista" aria-hidden="true" hidden class="py-10">
+      <h1 id="h-lista" tabindex="-1" class="font-display text-4xl md:text-5xl tracking-tight">Ônibus turísticos de Foz
+        do Iguaçu</h1>
+      <div id="map" aria-hidden="true" class="h-80 md:h-[28rem] rounded-2xl border-2 border-accent mt-6 bg-card"></div>
+      <p class="text-body mt-2">Mapa de Foz do Iguaçu. Toque em um marcador ou em um cartão para acompanhar a linha.</p>
+      <p id="mapMsg" role="status" class="text-body mt-1"></p>
+      <ul id="cards" class="grid gap-6 mt-6 md:grid-cols-2 lg:grid-cols-3"></ul>
 
-<script src="lib/leaflet/leaflet.js" defer></script>
-<script src="script.js?v=10" defer></script>
+      <div id="panel" aria-hidden="true" hidden
+        class="dark bg-dark text-on-dark border-2 border-accent rounded-2xl p-6 md:p-8 mt-10">
+        <h2 id="h-panel" tabindex="-1" class="font-display text-3xl md:text-4xl tracking-tight"></h2>
+        <div id="alert" role="alert" aria-live="assertive" aria-atomic="true"
+          class="rounded-xl p-5 mt-5 font-display text-3xl md:text-4xl"></div>
+        <div class="grid md:grid-cols-2 gap-5 mt-5">
+          <div class="bg-dark-el rounded-xl p-5">
+            <h3 class="text-xl font-medium">Chegada estimada</h3>
+            <p id="eta" aria-hidden="true" class="font-display text-7xl mt-1"></p>
+          </div>
+          <div class="bg-dark-el rounded-xl p-5">
+            <h3 class="text-xl font-medium">Câmera interna com IA</h3>
+            <p id="pcd" aria-hidden="true" class="font-display text-5xl rounded-xl px-5 py-2 mt-3 inline-block"></p>
+            <p id="cam" class="text-lg text-on-dark-soft mt-3"></p>
+            <button id="again" aria-label="Ouvir novamente o status do ônibus"
+              class="mt-4 px-5 min-h-12 rounded-lg font-medium bg-dark text-on-dark border border-on-dark-soft">Ouvir
+              status</button>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-5 mt-5">
+          <div class="bg-dark-el rounded-xl p-5">
+            <h3 class="text-xl font-medium">Rota do ônibus</h3>
+            <p id="route" class="text-lg text-on-dark-soft mt-2"></p>
+          </div>
+          <div class="bg-dark-el rounded-xl p-5">
+            <h3 class="text-xl font-medium">Hotéis e referências próximos</h3>
+            <ul id="hotels" class="text-lg text-on-dark-soft mt-2 list-disc pl-5"></ul>
+            <button id="hearHotels" aria-label="Ouvir os hotéis próximos"
+              class="mt-4 px-5 min-h-12 rounded-lg font-medium bg-dark text-on-dark border border-on-dark-soft">Ouvir
+              hotéis</button>
+          </div>
+        </div>
+        <div class="bg-dark-el rounded-xl p-5 mt-5">
+          <h3 class="text-xl font-medium">Pergunte à assistente</h3>
+          <p id="ans" role="status" class="text-lg mt-2 min-h-[1.5em]">Toque no botão e pergunte, por exemplo: tem
+            assento livre?</p>
+          <button id="ask" aria-pressed="false" aria-label="Perguntar por voz à assistente"
+            class="mt-4 px-5 min-h-12 rounded-lg font-medium bg-primary text-white border-2 border-accent">Perguntar por
+            voz</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-dark text-on-dark-soft mt-8">
+    <p class="max-w-5xl mx-auto px-5 py-6">Mapa © colaboradores do OpenStreetMap e © CARTO; rotas OSRM; hotéis
+      OpenStreetMap. Voz alternativa: modelo Whisper tiny (Hugging Face). Posição do ônibus e leitura da câmera são
+      simuladas; troque pela API real da frota.</p>
+  </footer>
+
+  <script src="lib/leaflet/leaflet.js" defer></script>
+  <script src="script.js?v=11" defer></script>
 </body>
+
 </html>
