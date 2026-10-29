@@ -31,7 +31,7 @@ function say(t, o = {}) {
   const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.rate = rate; u.onstart = o.onstart;
   speechSynthesis.speak(u);
 }
-const WELCOME = "Bem-vindo ao Mobintec, o aplicativo dos ônibus turísticos de Foz do Iguaçu. Toque em qualquer lugar da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus turístico, o assento, a rota e hotéis próximos.";
+const WELCOME = "Bem-vindo ao Mobintéc, o aplicativo dos ônibus turísticos de Foz do Iguaçu. Toque em qualquer lugar da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus turístico, o assento, a rota e hotéis próximos.";
 const welcome = () => say(WELCOME, { onstart: () => welcomed = true });
 addEventListener("load", welcome); // o navegador pode bloquear até o primeiro toque
 addEventListener("pointerdown", e => { if (!welcomed && !(anywhere && !$("#home").hidden) && !e.target.closest("#mic")) welcome(); }, true);
