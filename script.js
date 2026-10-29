@@ -3,6 +3,11 @@ const anim = (el, ms = 0) => { el.classList.remove("animate-rise"); void el.offs
 const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const rand = n => Math.floor(Math.random() * n);
 const fmt = m => m < 1000 ? Math.round(m) + " metros" : (m / 1000).toFixed(1).replace(".", ",") + " km";
+if (!window.speechSynthesis) { window.speechSynthesis = { cancel() { }, speak() { } }; window.SpeechSynthesisUtterance = function () { }; } // sem voz sintetizada: o texto na tela continua
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { } } };
+let rate = +store.get("rate") || 1, last = "";
+const beep = f => { try { const c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(); o.frequency.value = f; o.connect(c.destination); o.start(); o.stop(c.currentTime + .12); setTimeout(() => c.close(), 400); } catch { } };
+const HELP = "Você pode dizer: o nome de um destino, como Cataratas; quando o ônibus chega; tem assento livre; qual a rota; hotéis perto; repetir; mais devagar; mais rápido; letra maior; alto contraste; ou voltar.";
 const SPEED = 5; // segundos simulados por segundo real (1 = tempo real)
 
 // Foco: ônibus turísticos. Coordenadas APROXIMADAS (Parque das Aves vem da Wikipédia): confirme cada uma no Google Maps
@@ -22,8 +27,8 @@ console.assert(find("Quero ir às Cataratas")?.l === "PN" && find("templo budist
 /* ---------- Fala ---------- */
 let welcomed = false, anywhere = true; // na tela inicial, tocar em qualquer lugar liga o microfone; desliga ao entender o primeiro destino
 function say(t, o = {}) {
-  if (!o.queue) speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.onstart = o.onstart;
+  last = t; if (!o.queue) speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.rate = rate; u.onstart = o.onstart;
   speechSynthesis.speak(u);
 }
 const WELCOME = "Bem-vindo ao Mobintec, o aplicativo dos ônibus turísticos de Foz do Iguaçu. Toque em qualquer lugar da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus turístico, o assento, a rota e hotéis próximos.";
@@ -65,7 +70,7 @@ function initMap() {
   if (!window.L) return $("#mapMsg").textContent = "O mapa não carregou: a biblioteca Leaflet foi bloqueada ou está sem internet.";
   if (map) return setTimeout(() => map.invalidateSize(), 60);
   map = L.map("map", { keyboard: false, zoomControl: false, attributionControl: false }).setView(BASE.c, 11); // o mapa é visual: tudo também está em texto
-  $("#mapMsg").textContent = "Carregando o mapa…"; tiles(0);
+  $("#mapMsg").textContent = "Carregando o mapa… (Leaflet " + L.version + ")"; tiles(0);
   layer = L.layerGroup().addTo(map);
   L.marker(BASE.c, { icon: icon("E", "#f5eeef", "#141012"), keyboard: false }).bindTooltip(tip("Embarque: " + BASE.n)).addTo(map);
   P.forEach((p, i) => L.marker(p.c, { icon: icon(p.l, "#8b1f2f"), keyboard: false }).bindTooltip(tip(p.n)).on("click", () => choose(i)).addTo(map));
@@ -91,13 +96,22 @@ function go(p, said) {
 function ask(text) {
   const p = find(text); if (p) return go(p, text);
   const t = norm(text);
+  if (/repet|de novo/.test(t)) return say(last);
+  if (/devagar|lent/.test(t)) return setRate(rate - .2);
+  if (/rapido|depressa/.test(t)) return setRate(rate + .2);
+  if (/letra maior|aumentar a letra/.test(t)) return setFont(px() + 4), reply("Letra maior.");
+  if (/letra menor|diminuir a letra/.test(t)) return setFont(px() - 4), reply("Letra menor.");
+  if (/contraste/.test(t)) return setHC(!root.classList.contains("hc")), reply("Alto contraste " + (root.classList.contains("hc") ? "ligado" : "desligado") + ".");
+  if (/silencio|parar de falar|cala/.test(t)) return speechSynthesis.cancel();
+  if (/ajuda|comandos|o que posso/.test(t)) return reply(HELP);
+  if (/voltar|inicio|trocar destino|outro destino/.test(t)) return show("home");
   if (/localizacao|onde estou|perto de mim/.test(t)) return away ? reply(`Você está a ${fmt(away)} do ponto de embarque, ${BASE.n}.`) : locate(true);
   if (!cur) return reply("Primeiro diga um destino, por exemplo Cataratas.");
   if (/hotel|hospedagem|pousada|perto|proxim|referencia/.test(t)) return reply(hotelText());
   if (/assento|poltrona|lugar|vaga|livre|ocupad/.test(t)) return reply(seatText());
   if (/rota|caminho|linha|distancia|como/.test(t)) return reply(routeText());
   if (/onde|onibus|chega|minuto|tempo|demora|status/.test(t)) return reply(sentence());
-  reply("Posso informar o ônibus, o assento PCD, a rota e hotéis próximos. Pergunte, por exemplo: tem assento livre?");
+  reply("Posso informar o ônibus, o assento PCD, a rota e hotéis próximos. Diga ajuda para ouvir os comandos.");
 }
 /* Plano B: reconhecimento dentro do navegador (Whisper tiny via transformers.js). Serve onde a voz do navegador falha
    (Firefox, Brave, Safari sem ditado, rede bloqueando). Baixa cerca de 40 MB na primeira vez e fica em cache. */
@@ -114,7 +128,7 @@ async function listenWhisper(b) {
   const chunks = []; mr = new MediaRecorder(ms); const m = mr;
   mr.ondataavailable = e => chunks.push(e.data);
   mr.onstop = async () => {
-    recording = false; busy = true; ms.getTracks().forEach(t => t.stop()); $("#ring").classList.remove("listening"); b.setAttribute("aria-pressed", "false");
+    recording = false; busy = true; beep(440); ms.getTracks().forEach(t => t.stop()); $("#ring").classList.remove("listening"); b.setAttribute("aria-pressed", "false");
     try {
       setMsg("Entendendo o que você disse…");
       const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
@@ -124,7 +138,7 @@ async function listenWhisper(b) {
     } catch { reply("Não consegui entender o áudio. Verifique a internet ou escolha o destino abaixo."); }
     busy = false;
   };
-  mr.start(); recording = true; $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true");
+  mr.start(); beep(880); recording = true; $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true");
   setMsg("Ouvindo… fale agora e toque de novo para terminar");
   setTimeout(() => m.state === "recording" && m.stop(), 6000);
 }
@@ -135,7 +149,7 @@ function listen(b) {
   if (useWhisper) return listenWhisper(b);
   if (rec) { rec.onstart = rec.onresult = rec.onerror = rec.onend = null; try { rec.abort(); } catch { } } // ignora eventos de um reconhecimento antigo
   rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = true; hit = false; $("#heard").textContent = "";
-  rec.onstart = () => { starting = false; on = true; $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true"); setMsg("Ouvindo… fale agora"); };
+  rec.onstart = () => { starting = false; on = true; beep(880); $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true"); setMsg("Ouvindo… fale agora"); };
   rec.onresult = e => {
     const t = [...e.results].map(r => r[0].transcript).join(" "); $("#heard").textContent = t; if (hit) return;
     const p = find(t); if (p) return go(p, t);
@@ -151,7 +165,7 @@ function listen(b) {
     if (m) { hit = true; setMsg(m + " (código: " + e.error + ")"); say(m); }
     else if (e.error !== "aborted") { hit = true; setMsg("Erro de voz (código: " + e.error + ")."); }
   };
-  rec.onend = () => { starting = false; const was = on; stop(); if (was && !hit) reply("Não entendi. Toque e diga, por exemplo, Cataratas ou: tem assento livre?"); };
+  rec.onend = () => { starting = false; const was = on; stop(); if (was) beep(440); if (was && !hit) reply("Não entendi. Toque e diga, por exemplo, Cataratas ou: tem assento livre?"); };
   starting = true; setTimeout(() => { if (starting && !on) { starting = false; reply("O microfone demorou para responder. Toque de novo ou escolha o destino abaixo."); } }, 10000);
   try { rec.start(); } catch { starting = false; reply("Não consegui ligar o microfone. Escolha o destino abaixo."); }
 }
@@ -203,7 +217,7 @@ function render() {
 function announce(prefix = "") {
   render(); const a = $("#alert"), t = (prefix + " " + sentence()).trim();
   a.textContent = ""; setTimeout(() => a.textContent = (s.pcdBusy ? "✕ " : "✓ ") + t, 40);
-  say(t);
+  navigator.vibrate?.(s.eta ? (prefix ? [200, 100, 200] : 80) : [400, 150, 400]); say(t);
 }
 async function choose(i) {
   if (!map) return;
@@ -216,7 +230,7 @@ async function choose(i) {
   L.marker(cur.c, { icon: icon(cur.l, "#8b1f2f"), keyboard: false }).bindTooltip(tip(cur.n)).addTo(layer);
   bus = L.marker(busPos(), { icon: icon(cur.l, "#f5eeef", "#141012", 46), keyboard: false, zIndexOffset: 1000 }).addTo(layer);
   map.fitBounds(L.polyline(s.pts).getBounds(), { padding: [30, 30] });
-  $("#route").textContent = routeText(); announce("Você escolheu " + cur.n + "."); locate(false);
+  $("#route").textContent = routeText(); announce("Você escolheu " + cur.n + "."); locate(false); $("#gmaps").href = `https://www.google.com/maps/dir/?api=1&destination=${BASE.c}&travelmode=walking`; navigator.wakeLock?.request("screen").catch(() => { });
   $("#panel").scrollIntoView({ behavior: "smooth" });
   tm = setInterval(tick, 1000); tc = setInterval(camera, 12000); nearby(my);
 }
@@ -255,4 +269,20 @@ async function locate(ask) {
   }, () => ask && reply("Não consegui sua localização. O embarque continua sendo no " + BASE.n + "."));
 }
 
-show("home");
+show("home"); // antes dos ajustes: a página abre mesmo que algum ajuste falhe
+
+/* ---------- Ajustes de acessibilidade (ficam salvos no aparelho) ---------- */
+const root = document.documentElement;
+const px = () => parseFloat(getComputedStyle(root).fontSize);
+function setFont(n) { root.style.fontSize = Math.min(32, Math.max(14, n)) + "px"; store.set("font", px()); }
+function setHC(on) { root.classList.toggle("hc", on); $("#hc").setAttribute("aria-pressed", on); store.set("hc", on ? "1" : ""); }
+const rateName = () => rate < .95 ? "lenta" : rate > 1.1 ? "rápida" : "normal";
+function rateUI() { $("#rate").textContent = "Voz: " + rateName(); $("#rate").setAttribute("aria-label", "Velocidade da voz: " + rateName() + ". Toque para mudar."); }
+function setRate(r) { rate = Math.round(Math.min(1.6, Math.max(.6, r)) * 10) / 10; store.set("rate", rate); rateUI(); say("Voz " + rateName() + "."); }
+$("#fMais").onclick = () => setFont(px() + 2);
+$("#fMenos").onclick = () => setFont(px() - 2);
+$("#hc").onclick = () => setHC(!root.classList.contains("hc"));
+$("#rate").onclick = () => setRate(rate < .95 ? 1 : rate < 1.1 ? 1.25 : .8);
+$("#repeat").onclick = () => say(last);
+$("#help").onclick = () => reply(HELP);
+if (store.get("font")) setFont(+store.get("font")); if (store.get("hc")) setHC(true); rateUI();

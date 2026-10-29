@@ -8,14 +8,43 @@
 :root {
   --canvas: #141012;
   /* preto suave */
+  --card: #221a1d;
   --ink: #f5eeef;
   /* texto */
+  --body: #dccfd2;
+  --hairline: #5c3340;
   --primary: #8b1f2f;
   /* bordô */
+  --primary-active: #6b1624;
   --accent: #e58a9f;
   /* rosé: contornos, foco, ondas */
+  --dark: #3b1522;
+  --dark-el: #4e1f2e;
   --on-dark: #f5eeef;
+  --on-dark-soft: #ebd0d6;
+  --ok: #5db872;
   color-scheme: dark;
+}
+
+/* Alto contraste: preto, branco e amarelo */
+.hc {
+  --canvas: #000;
+  --card: #0d0d0d;
+  --ink: #fff;
+  --body: #fff;
+  --hairline: #fff;
+  --accent: #ffd400;
+  --dark: #000;
+  --dark-el: #111;
+  --on-dark: #fff;
+  --on-dark-soft: #fff;
+  --ok: #3dff7a;
+}
+
+.hc .bg-card,
+.hc .bg-dark-el {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
 }
 
 /* ---------- Base ---------- */
