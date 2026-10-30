@@ -1,100 +1,174 @@
-/* ==========================================================================
-   MOBINTEC – estilos próprios
-   O resto do visual vem das classes Tailwind (cores e fontes do DESIGN.md
-   estão no tailwind.config dentro do index.html).
-   ========================================================================== */
+/* MOBINTEC - estilos próprios (o resto vem do Tailwind) */
 
-/* ---------- Tokens (DESIGN.md) ---------- */
-:root {
-  --canvas: #141012;
-  /* preto suave */
-  --card: #221a1d;
-  --ink: #f5eeef;
-  /* texto */
-  --body: #dccfd2;
-  --hairline: #5c3340;
-  --primary: #8b1f2f;
-  /* bordô */
-  --primary-active: #6b1624;
-  --accent: #e58a9f;
-  /* rosé: contornos, foco, ondas */
-  --dark: #3b1522;
-  --dark-el: #4e1f2e;
-  --on-dark: #f5eeef;
-  --on-dark-soft: #ebd0d6;
-  --ok: #5db872;
-  color-scheme: dark;
-}
-
-/* Alto contraste: preto, branco e amarelo */
-.hc {
-  --canvas: #000;
-  --card: #0d0d0d;
-  --ink: #fff;
-  --body: #fff;
-  --hairline: #fff;
-  --accent: #ffd400;
-  --dark: #000;
-  --dark-el: #111;
-  --on-dark: #fff;
-  --on-dark-soft: #fff;
-  --ok: #3dff7a;
-}
-
-.hc .bg-card,
-.hc .bg-dark-el {
-  outline: 2px solid #fff;
-  outline-offset: -2px;
-}
-
-/* ---------- Base ---------- */
 html {
-  font-size: 18px;
-  /* base maior para baixa visão */
+  font-size: 20px;
 }
 
+/* letra grande por padrão */
 body {
-  background: var(--canvas);
-  color: var(--ink);
+  background: #0d0a0b;
+  color: #fff;
 }
 
-/* ---------- Foco visível (teclado e leitores de tela) ---------- */
+/* Foco bem visível para quem navega por teclado ou leitor de tela */
 :focus-visible {
-  outline: 4px solid var(--accent);
+  outline: 5px solid #ffb3c4;
   outline-offset: 3px;
-  border-radius: 8px;
 }
 
-/* No painel escuro o contorno inverte para manter o contraste */
-.dark :focus-visible {
-  outline-color: var(--on-dark);
+/* Link "Ir para o conteúdo": só aparece quando recebe o foco */
+.pular {
+  position: absolute;
+  left: -999px;
 }
 
-/* ---------- Microfone: ondas em cascata ---------- */
-#mic {
-  transition: transform 0.4s ease;
+.pular:focus {
+  left: 8px;
+  top: 8px;
+  background: #fff;
+  color: #000;
+  padding: 12px;
+  z-index: 50;
 }
 
-.listening #mic {
+/* Botões grandes e fáceis de tocar */
+.botao {
+  min-height: 3.5rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 2px solid #ffb3c4;
+  background: #1f1519;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.botao-forte {
+  background: #8b1f2f;
+}
+
+.campo {
+  flex: 1;
+  min-width: 0;
+  min-height: 3.5rem;
+  padding: 0 1rem;
+  border-radius: 0.75rem;
+  border: 2px solid #ffb3c4;
+  background: #1f1519;
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+/* Caixas de texto */
+.caixa {
+  background: #1f1519;
+  border: 2px solid #ffb3c4;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.painel {
+  background: #3b1522;
+  border: 2px solid #ffb3c4;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.subcaixa {
+  background: #4e1f2e;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.alerta {
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  font-family: Georgia, serif;
+  font-size: 1.9rem;
+  color: #0d0a0b;
+  background: #5de08a;
+}
+
+.alerta.ocupado {
+  background: #ffb3c4;
+}
+
+.selo {
+  font-family: Georgia, serif;
+  font-size: 2.5rem;
+  padding: 0.25rem 1.25rem;
+  border-radius: 0.75rem;
+  color: #0d0a0b;
+  background: #5de08a;
+}
+
+.selo.ocupado {
+  background: #ffb3c4;
+}
+
+/* Microfone grande com ondas */
+.anel {
+  position: relative;
+  width: 20rem;
+  height: 20rem;
+  border: 4px solid #ffb3c4;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.microfone {
+  position: relative;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 9999px;
+  border: 2px solid #ffb3c4;
+  background: #8b1f2f;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .4s;
+}
+
+.onda {
+  position: absolute;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 9999px;
+  border: 4px solid #ffb3c4;
+  opacity: 0;
+}
+
+.ouvindo .microfone {
   transform: scale(1.05);
 }
 
-.listening .wave {
-  animation: wave-pulse 2.4s ease-out infinite;
+.ouvindo .onda {
+  animation: pulsar 2.4s ease-out infinite;
 }
 
-.listening .wave:nth-child(2) {
-  animation-delay: 0.8s;
+.ouvindo .onda:nth-child(2) {
+  animation-delay: .8s;
 }
 
-.listening .wave:nth-child(3) {
+.ouvindo .onda:nth-child(3) {
   animation-delay: 1.6s;
 }
 
-@keyframes wave-pulse {
+@keyframes pulsar {
   from {
     transform: scale(1);
-    opacity: 0.8;
+    opacity: .8;
   }
 
   to {
@@ -103,21 +177,26 @@ body {
   }
 }
 
-/* ---------- Movimento reduzido ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .listening .wave {
+  .ouvindo .onda {
     animation: none;
-    opacity: 0.5;
+    opacity: .5;
   }
 }
 
-/* ---------- Marcadores do mapa ---------- */
-.pin {
+/* Mapa */
+#mapa {
+  height: 22rem;
+  border: 2px solid #ffb3c4;
+  border-radius: 1rem;
+  isolation: isolate;
+}
+
+.pino {
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
   border: 3px solid #fff;
-  font: 600 14px/1 Inter, system-ui, sans-serif;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  font: 600 14px/1 sans-serif;
 }

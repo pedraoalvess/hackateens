@@ -1,288 +1,773 @@
-const $ = s => document.querySelector(s);
-const anim = (el, ms = 0) => { el.classList.remove("animate-rise"); void el.offsetWidth; el.style.animationDelay = ms + "ms"; el.classList.add("animate-rise", "motion-reduce:animate-none"); };
-const norm = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-const rand = n => Math.floor(Math.random() * n);
-const fmt = m => m < 1000 ? Math.round(m) + " metros" : (m / 1000).toFixed(1).replace(".", ",") + " km";
-if (!window.speechSynthesis) { window.speechSynthesis = { cancel() { }, speak() { } }; window.SpeechSynthesisUtterance = function () { }; } // sem voz sintetizada: o texto na tela continua
-const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { } } };
-let rate = +store.get("rate") || 1, last = "";
-const beep = f => { try { const c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(); o.frequency.value = f; o.connect(c.destination); o.start(); o.stop(c.currentTime + .12); setTimeout(() => c.close(), 400); } catch { } };
-const HELP = "Você pode dizer: o nome de um destino, como Cataratas; quando o ônibus chega; tem assento livre; qual a rota; hotéis perto; repetir; mais devagar; mais rápido; letra maior; alto contraste; ou voltar.";
-const SPEED = 5; // segundos simulados por segundo real (1 = tempo real)
+/* ==========================================================================
+   MOBINTEC - script do site
+   Tudo foi escrito de forma simples, em português, com uma ideia por linha.
+   Partes: 1) ajudantes  2) dados  3) fala  4) telas  5) mapa  6) microfone
+           7) assistente  8) painel do ônibus  9) ligações dos botões
+   ========================================================================== */
 
-// Foco: ônibus turísticos. Coordenadas APROXIMADAS (Parque das Aves vem da Wikipédia): confirme cada uma no Google Maps
-// (clique direito no local > copiar coordenadas). s = nome do serviço, l = sigla no mapa. Serviço e operadora são EXEMPLOS
-// a confirmar (Parque Nacional: Urbia Cataratas; Itaipu: Itaipu Binacional; City Tour: Iguassu City Tour; transfer: a definir).
-const BASE = { n: "Centro de Foz (hotéis)", c: [-25.5163, -54.5854] };
-const P = [
-  { n: "Cataratas do Iguaçu", s: "Ônibus do Parque Nacional", l: "PN", c: [-25.6866, -54.4420], k: ["catarata"] },
-  { n: "Parque das Aves", s: "Transfer turístico", l: "TT", c: [-25.6140, -54.4826], k: ["aves"] },
-  { n: "Itaipu Binacional", s: "Ônibus panorâmico de Itaipu", l: "IT", c: [-25.4380, -54.5880], k: ["itaipu", "usina"] },
-  { n: "Marco das Três Fronteiras", s: "City Tour panorâmico", l: "CT", c: [-25.5974, -54.5912], k: ["marco", "fronteira"] },
-  { n: "Templo Budista Chen Tien", s: "City Tour panorâmico", l: "CT", c: [-25.5330, -54.5620], k: ["templo", "budista"] }
-];
-const find = t => { t = norm(t); return P.find(x => x.k.some(k => t.includes(k))); };
-console.assert(find("Quero ir às Cataratas")?.l === "PN" && find("templo budista")?.n.startsWith("Templo") && !find("pizza"), "find() falhou");
+/* ---------- 1) Ajudantes ---------- */
 
-/* ---------- Fala ---------- */
-let welcomed = false, anywhere = true; // na tela inicial, tocar em qualquer lugar liga o microfone; desliga ao entender o primeiro destino
-function say(t, o = {}) {
-  last = t; if (!o.queue) speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(t); u.lang = "pt-BR"; u.rate = rate; u.onstart = o.onstart;
-  speechSynthesis.speak(u);
+// Pega um elemento da página pelo seletor (ex.: "#botaoVoltar").
+function pegar(seletor) {
+  return document.querySelector(seletor);
 }
-const WELCOME = "Bem-vindo ao Mobintéc, o aplicativo dos ônibus turísticos de Foz do Iguaçu. Toque em qualquer lugar da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, Marco das Três Fronteiras ou Templo Budista. Depois você pode perguntar sobre o ônibus turístico, o assento, a rota e hotéis próximos.";
-const welcome = () => say(WELCOME, { onstart: () => welcomed = true });
-addEventListener("load", welcome); // o navegador pode bloquear até o primeiro toque
-addEventListener("pointerdown", e => { if (!welcomed && !(anywhere && !$("#home").hidden) && !e.target.closest("#mic")) welcome(); }, true);
 
-/* ---------- Telas ---------- */
-function show(name) {
-  stop();
-  for (const id of ["home", "lista"]) {
-    const on = id === name; $("#" + id).hidden = !on; $("#" + id).setAttribute("aria-hidden", !on);
-    const b = $("#n" + id[0].toUpperCase() + id.slice(1));
-    b.setAttribute("aria-current", on ? "page" : "false");
-    b.className = "px-4 min-h-12 rounded-lg font-medium " + (on ? "bg-primary text-white border-2 border-accent" : "bg-card border-2 border-hairline");
+// Deixa o texto em minúsculas e sem acentos, para comparar palavras.
+function semAcento(texto) {
+  return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+// Sorteia um número inteiro de 0 até max - 1.
+function sortear(max) {
+  return Math.floor(Math.random() * max);
+}
+
+// Escreve uma distância em metros ou quilômetros.
+function formatarDistancia(metros) {
+  if (metros < 1000) {
+    return Math.round(metros) + " metros";
   }
-  anim($("#" + name)); $("#" + name + " h1").focus();
-  if (name === "lista") { initMap();[...$("#cards").children].forEach((c, i) => anim(c, 120 + i * 90)); say("Mapa e lista de atrações. Escolha um destino."); }
+  return (metros / 1000).toFixed(1).replace(".", ",") + " km";
 }
-$("#nHome").onclick = () => show("home");
-$("#nLista").onclick = () => show("lista");
 
-/* ---------- Mapa (Leaflet + OpenStreetMap) ---------- */
-let map, layer, bus, me, away;
-const tip = t => { const e = document.createElement("span"); e.textContent = t; return e; };
-const icon = (t, bg, fg = "#fff", sz = 36) => L.divIcon({ className: "", iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2], html: `<div class="pin" style="width:${sz}px;height:${sz}px;background:${bg};color:${fg}">${t}</div>` });
-const TILES = ["https://tile.openstreetmap.org/{z}/{x}/{y}.png", "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"];
-let tilesOk = false;
-function tiles(i) { // se o OpenStreetMap bloquear os quadros, tenta o provedor seguinte
-  const t = L.tileLayer(TILES[i], { maxZoom: 19, subdomains: "abcd" }).addTo(map);
-  t.on("tileload", () => { tilesOk = true; $("#mapMsg").textContent = ""; });
-  t.on("tileerror", () => {
-    if (tilesOk || t.failed) return;
-    t.failed = true; map.removeLayer(t);
-    if (i + 1 < TILES.length) tiles(i + 1); else $("#mapMsg").textContent = "Os quadros do mapa não carregaram. Verifique a internet ou desative bloqueadores.";
+// Mostra ou esconde um elemento, avisando também os leitores de tela.
+function mostrar(elemento, visivel) {
+  elemento.hidden = !visivel;
+  elemento.setAttribute("aria-hidden", visivel ? "false" : "true");
+}
+
+/* ---------- 2) Dados do projeto ---------- */
+
+// Quantos segundos "passam" a cada segundo real no teste. Use 1 para tempo real.
+const VELOCIDADE_TESTE = 5;
+
+// Ponto de embarque (fixo). Coordenadas APROXIMADAS: confira no Google Maps.
+const EMBARQUE = { nome: "Centro de Foz (hotéis)", posicao: [-25.5163, -54.5854] };
+
+// Destinos. "servico" e "sigla" são EXEMPLOS: troque pelos serviços reais dos operadores.
+// "palavras" são as palavras que a pessoa pode dizer para escolher aquele destino.
+const DESTINOS = [
+  { nome: "Cataratas do Iguaçu", servico: "Ônibus do Parque Nacional", sigla: "PN", posicao: [-25.6866, -54.4420], palavras: ["catarata"] },
+  { nome: "Parque das Aves", servico: "Transfer turístico", sigla: "TT", posicao: [-25.6140, -54.4826], palavras: ["aves"] },
+  { nome: "Itaipu Binacional", servico: "Ônibus panorâmico de Itaipu", sigla: "IT", posicao: [-25.4380, -54.5880], palavras: ["itaipu", "usina"] },
+  { nome: "Marco das Três Fronteiras", servico: "City Tour panorâmico", sigla: "CT", posicao: [-25.5974, -54.5912], palavras: ["marco", "fronteira"] },
+  { nome: "Templo Budista Chen Tien", servico: "City Tour panorâmico", sigla: "CT", posicao: [-25.5330, -54.5620], palavras: ["templo", "budista"] }
+];
+
+const BOAS_VINDAS = "Bem-vindo ao Mobintec, o aplicativo dos ônibus turísticos de Foz do Iguaçu. " +
+  "Toque em qualquer lugar da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, " +
+  "Marco das Três Fronteiras ou Templo Budista. Se você usa leitor de tela, toque duas vezes. " +
+  "Depois você pode perguntar sobre o ônibus, o assento, a rota e hotéis próximos.";
+
+const TEXTO_AJUDA = "Você pode dizer: o nome de um destino, como Cataratas; quando o ônibus chega; " +
+  "tem assento livre; qual a rota; hotéis perto; onde estou; repetir; mais devagar; mais rápido; " +
+  "silêncio; ou voltar.";
+
+// Devolve o destino citado em um texto, ou null se não achar nenhum.
+function acharDestino(texto) {
+  const limpo = semAcento(texto);
+  for (const destino of DESTINOS) {
+    for (const palavra of destino.palavras) {
+      if (limpo.includes(palavra)) {
+        return destino;
+      }
+    }
+  }
+  return null;
+}
+
+/* ---------- 3) Fala, sons e vibração ---------- */
+
+let ultimaFala = "";      // guarda a última mensagem, para o botão "Repetir"
+let velocidadeVoz = 1;    // 1 = normal
+
+// O site fala o texto em voz alta (se o navegador tiver voz).
+function falar(texto, naFila) {
+  ultimaFala = texto;
+  if (!window.speechSynthesis) {
+    return;
+  }
+  if (!naFila) {
+    window.speechSynthesis.cancel();   // corta a fala anterior
+  }
+  const fala = new SpeechSynthesisUtterance(texto);
+  fala.lang = "pt-BR";
+  fala.rate = velocidadeVoz;
+  window.speechSynthesis.speak(fala);
+}
+
+// Mostra a mensagem na tela e também fala.
+function avisar(texto) {
+  pegar("#textoEstado").textContent = texto;
+  pegar("#textoResposta").textContent = texto;
+  falar(texto);
+}
+
+// Toca um bipe curto (agudo = começou a ouvir, grave = terminou).
+function apitar(frequencia) {
+  try {
+    const audio = new (window.AudioContext || window.webkitAudioContext)();
+    const tom = audio.createOscillator();
+    tom.frequency.value = frequencia;
+    tom.connect(audio.destination);
+    tom.start();
+    tom.stop(audio.currentTime + 0.12);
+  } catch (erro) {
+    // sem som: tudo bem, o resto continua funcionando
+  }
+}
+
+// Faz o celular vibrar (só funciona em alguns aparelhos).
+function vibrar(padrao) {
+  if (navigator.vibrate) {
+    navigator.vibrate(padrao);
+  }
+}
+
+/* ---------- 4) Telas ---------- */
+
+function abrirTela(nome) {
+  pararMicrofone();
+  mostrar(pegar("#telaInicio"), nome === "inicio");
+  mostrar(pegar("#telaLista"), nome === "lista");
+  if (nome === "lista") {
+    criarMapa();
+    pegar("#tituloLista").focus();
+    falar("Ônibus turísticos. Escolha um destino.");
+  } else {
+    pegar("#tituloInicio").focus();
+  }
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 5) Mapa (Leaflet + OpenStreetMap) ---------- */
+
+let mapa = null;          // o mapa
+let camada = null;        // desenhos da rota atual
+let marcadorOnibus = null;
+let marcadorVoce = null;
+let distanciaAteVoce = null;
+
+// Cria um pino redondo com um texto dentro.
+function criarPino(texto, corFundo, corTexto, tamanho) {
+  return L.divIcon({
+    className: "",
+    iconSize: [tamanho, tamanho],
+    iconAnchor: [tamanho / 2, tamanho / 2],
+    html: '<div class="pino" style="width:' + tamanho + 'px;height:' + tamanho + 'px;background:' +
+      corFundo + ';color:' + corTexto + '">' + texto + "</div>"
   });
 }
-function initMap() {
-  if (!window.L) return $("#mapMsg").textContent = "O mapa não carregou: a biblioteca Leaflet foi bloqueada ou está sem internet.";
-  if (map) return setTimeout(() => map.invalidateSize(), 60);
-  map = L.map("map", { keyboard: false, zoomControl: false, attributionControl: false }).setView(BASE.c, 11); // o mapa é visual: tudo também está em texto
-  $("#mapMsg").textContent = "Carregando o mapa… (Leaflet " + L.version + ")"; tiles(0);
-  layer = L.layerGroup().addTo(map);
-  L.marker(BASE.c, { icon: icon("E", "#f5eeef", "#141012"), keyboard: false }).bindTooltip(tip("Embarque: " + BASE.n)).addTo(map);
-  P.forEach((p, i) => L.marker(p.c, { icon: icon(p.l, "#8b1f2f"), keyboard: false }).bindTooltip(tip(p.n)).on("click", () => choose(i)).addTo(map));
-  setTimeout(() => map.invalidateSize(), 60);
+
+function criarMapa() {
+  if (!window.L) {
+    pegar("#mensagemMapa").textContent = "O mapa não carregou. Tudo continua disponível em texto.";
+    return;
+  }
+  if (mapa) {
+    setTimeout(function () { mapa.invalidateSize(); }, 60);
+    return;
+  }
+  mapa = L.map("mapa", { keyboard: false, zoomControl: false, attributionControl: false });
+  mapa.setView(EMBARQUE.posicao, 11);
+
+  // Mapa de fundo. Se o OpenStreetMap bloquear, usa o CARTO.
+  const mapaOSM = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(mapa);
+  mapaOSM.once("tileerror", function () {
+    mapa.removeLayer(mapaOSM);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      { maxZoom: 19, subdomains: "abcd" }).addTo(mapa);
+  });
+
+  camada = L.layerGroup().addTo(mapa);
+
+  // Pino do embarque e um pino para cada destino.
+  L.marker(EMBARQUE.posicao, { icon: criarPino("E", "#ffffff", "#0d0a0b", 36), keyboard: false }).addTo(mapa);
+  DESTINOS.forEach(function (destino, indice) {
+    const pino = L.marker(destino.posicao, { icon: criarPino(destino.sigla, "#8b1f2f", "#ffffff", 36), keyboard: false });
+    pino.on("click", function () { escolherDestino(indice); });
+    pino.addTo(mapa);
+  });
+  setTimeout(function () { mapa.invalidateSize(); }, 60);
 }
 
-/* ---------- Voz e assistente ---------- */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let useWhisper = !SR, recording = false, busy = false, mr, ms, asr;
-let rec, on = false, hit = false, starting = false; // starting evita 2 toques seguidos criarem 2 reconhecimentos
-const setMsg = t => { $("#state").textContent = t; $("#ans").textContent = t; };
-function reply(m) { setMsg(m); say(m); }
-function stop() {
-  if (rec && (on || starting)) try { rec.abort(); } catch { }
-  if (recording) { mr.ondataavailable = null; mr.onstop = () => ms.getTracks().forEach(t => t.stop()); mr.stop(); recording = false; }
-  on = starting = false; $("#ring").classList.remove("listening");
-  for (const b of [$("#mic"), $("#ask")]) b.setAttribute("aria-pressed", "false");
+/* ---------- 6) Microfone ---------- */
+
+const ReconhecimentoDoNavegador = window.SpeechRecognition || window.webkitSpeechRecognition;
+let usarModeloProprio = !ReconhecimentoDoNavegador;  // true = usa o plano B (Whisper)
+
+let reconhecimento = null;   // reconhecimento de voz do navegador
+let ouvindo = false;
+let iniciando = false;       // evita dois toques seguidos criarem dois reconhecimentos
+let entendeu = false;        // já entendi o que a pessoa disse?
+
+let gravador = null;         // plano B: gravador de áudio
+let fluxoDoMicrofone = null;
+let gravando = false;
+let processando = false;
+let gravacaoCancelada = false;
+let transcritor = null;      // plano B: modelo que transforma voz em texto
+
+// Para tudo o que estiver ouvindo ou gravando.
+function pararMicrofone() {
+  if (reconhecimento && (ouvindo || iniciando)) {
+    try { reconhecimento.abort(); } catch (erro) { }
+  }
+  if (gravando) {
+    gravacaoCancelada = true;
+    gravador.stop();
+  }
+  ouvindo = false;
+  iniciando = false;
+  pegar("#anel").classList.remove("ouvindo");
+  pegar("#botaoMicrofone").setAttribute("aria-pressed", "false");
+  pegar("#botaoPerguntar").setAttribute("aria-pressed", "false");
 }
-function go(p, said) {
-  hit = true; anywhere = false; stop(); $("#heard").textContent = "“" + said.trim() + "”"; setMsg("Entendi: " + p.n + ".");
-  setTimeout(() => { show("lista"); choose(P.indexOf(p)); }, 600);
+
+// Chamado quando a pessoa toca no microfone (ou em qualquer lugar da tela inicial).
+function tocarMicrofone(botao) {
+  if (iniciando) {
+    return;
+  }
+  if (ouvindo) {
+    pararMicrofone();
+    avisar("Microfone desligado.");
+    return;
+  }
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  if (usarModeloProprio) {
+    ouvirComModeloProprio(botao);
+  } else {
+    ouvirComNavegador(botao);
+  }
 }
-function ask(text) {
-  const p = find(text); if (p) return go(p, text);
-  const t = norm(text);
-  if (/repet|de novo/.test(t)) return say(last);
-  if (/devagar|lent/.test(t)) return setRate(rate - .2);
-  if (/rapido|depressa/.test(t)) return setRate(rate + .2);
-  if (/letra maior|aumentar a letra/.test(t)) return setFont(px() + 4), reply("Letra maior.");
-  if (/letra menor|diminuir a letra/.test(t)) return setFont(px() - 4), reply("Letra menor.");
-  if (/contraste/.test(t)) return setHC(!root.classList.contains("hc")), reply("Alto contraste " + (root.classList.contains("hc") ? "ligado" : "desligado") + ".");
-  if (/silencio|parar de falar|cala/.test(t)) return speechSynthesis.cancel();
-  if (/ajuda|comandos|o que posso/.test(t)) return reply(HELP);
-  if (/voltar|inicio|trocar destino|outro destino/.test(t)) return show("home");
-  if (/localizacao|onde estou|perto de mim/.test(t)) return away ? reply(`Você está a ${fmt(away)} do ponto de embarque, ${BASE.n}.`) : locate(true);
-  if (!cur) return reply("Primeiro diga um destino, por exemplo Cataratas.");
-  if (/hotel|hospedagem|pousada|perto|proxim|referencia/.test(t)) return reply(hotelText());
-  if (/assento|poltrona|lugar|vaga|livre|ocupad/.test(t)) return reply(seatText());
-  if (/rota|caminho|linha|distancia|como/.test(t)) return reply(routeText());
-  if (/onde|onibus|chega|minuto|tempo|demora|status/.test(t)) return reply(sentence());
-  reply("Posso informar o ônibus, o assento PCD, a rota e hotéis próximos. Diga ajuda para ouvir os comandos.");
+
+// Plano A: voz do próprio navegador (Chrome, Edge, Safari).
+function ouvirComNavegador(botao) {
+  const este = new ReconhecimentoDoNavegador();
+  reconhecimento = este;
+  este.lang = "pt-BR";
+  este.interimResults = true;
+  entendeu = false;
+  iniciando = true;
+  pegar("#textoOuvido").textContent = "";
+
+  este.onstart = function () {
+    if (este !== reconhecimento) { return; }
+    iniciando = false;
+    ouvindo = true;
+    apitar(880);
+    pegar("#anel").classList.add("ouvindo");
+    botao.setAttribute("aria-pressed", "true");
+    pegar("#textoEstado").textContent = "Ouvindo… fale agora.";
+  };
+
+  este.onresult = function (evento) {
+    if (este !== reconhecimento || entendeu) { return; }
+    let texto = "";
+    for (const resultado of evento.results) {
+      texto += " " + resultado[0].transcript;
+    }
+    pegar("#textoOuvido").textContent = texto.trim();
+
+    const ultimo = evento.results[evento.results.length - 1];
+    if (acharDestino(texto) || ultimo.isFinal) {
+      entendeu = true;
+      pararMicrofone();
+      responder(texto);
+    }
+  };
+
+  este.onerror = function (evento) {
+    if (este !== reconhecimento) { return; }
+    iniciando = false;
+    const erro = evento.error;
+
+    // Se o serviço de voz do navegador não funciona, passa para o plano B.
+    if (erro === "network" || erro === "service-not-allowed" || erro === "language-not-supported") {
+      entendeu = true;
+      usarModeloProprio = true;
+      avisar("A voz do navegador não está disponível. Usando a voz do próprio site.");
+      ouvirComModeloProprio(botao);
+    } else if (erro === "not-allowed") {
+      entendeu = true;
+      avisar("Permissão do microfone negada. Libere o microfone nas configurações do navegador ou escolha o destino na lista.");
+    } else if (erro === "no-speech") {
+      entendeu = true;
+      avisar("Não ouvi nada. Toque e fale de novo.");
+    } else if (erro === "audio-capture") {
+      entendeu = true;
+      avisar("Nenhum microfone encontrado.");
+    }
+  };
+
+  este.onend = function () {
+    if (este !== reconhecimento) { return; }
+    const estavaOuvindo = ouvindo;
+    pararMicrofone();
+    if (estavaOuvindo) {
+      apitar(440);
+      if (!entendeu) {
+        avisar("Não entendi. Toque e diga, por exemplo, Cataratas.");
+      }
+    }
+  };
+
+  // Se o navegador não responder em 10 segundos, libera o botão.
+  setTimeout(function () {
+    if (este === reconhecimento && iniciando) {
+      iniciando = false;
+      avisar("O microfone demorou para responder. Toque de novo ou escolha o destino na lista.");
+    }
+  }, 10000);
+
+  try {
+    este.start();
+  } catch (erro) {
+    iniciando = false;
+    avisar("Não consegui ligar o microfone. Escolha o destino na lista.");
+  }
 }
-/* Plano B: reconhecimento dentro do navegador (Whisper tiny via transformers.js). Serve onde a voz do navegador falha
-   (Firefox, Brave, Safari sem ditado, rede bloqueando). Baixa cerca de 40 MB na primeira vez e fica em cache. */
-const heard = t => { t = t.trim(); $("#heard").textContent = t; if (!t) return reply("Não ouvi nada. Toque e fale de novo."); const p = find(t); p ? go(p, t) : ask(t); };
-const loadAsr = () => asr ??= import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.web.min.js")
-  .then(m => m.pipeline("automatic-speech-recognition", "Xenova/whisper-tiny", { progress_callback: p => { if (p.status === "progress") setMsg(`Baixando o reconhecimento de voz: ${Math.round(p.progress)}% (só na primeira vez)`); } }))
-  .catch(err => { asr = null; throw err; });
-async function listenWhisper(b) {
-  if (recording) return mr.stop();
-  if (busy) return;
-  welcomed = true; speechSynthesis.cancel(); hit = false; $("#heard").textContent = "";
-  try { ms = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch { return reply("Não consegui usar o microfone. Libere a permissão nas configurações do navegador ou escolha o destino abaixo."); }
-  const chunks = []; mr = new MediaRecorder(ms); const m = mr;
-  mr.ondataavailable = e => chunks.push(e.data);
-  mr.onstop = async () => {
-    recording = false; busy = true; beep(440); ms.getTracks().forEach(t => t.stop()); $("#ring").classList.remove("listening"); b.setAttribute("aria-pressed", "false");
+
+// Plano B: grava 6 segundos e transforma em texto com o modelo Whisper (roda no próprio aparelho).
+// Baixa cerca de 40 MB na primeira vez e depois fica guardado no navegador.
+async function ouvirComModeloProprio(botao) {
+  if (gravando) {
+    gravador.stop();       // segundo toque: termina a gravação antes
+    return;
+  }
+  if (processando) {
+    return;
+  }
+  try {
+    fluxoDoMicrofone = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (erro) {
+    avisar("Não consegui usar o microfone. Libere a permissão nas configurações do navegador ou escolha o destino na lista.");
+    return;
+  }
+
+  const pedacos = [];
+  gravacaoCancelada = false;
+  gravador = new MediaRecorder(fluxoDoMicrofone);
+  const esteGravador = gravador;
+
+  gravador.ondataavailable = function (evento) {
+    pedacos.push(evento.data);
+  };
+
+  gravador.onstop = async function () {
+    gravando = false;
+    fluxoDoMicrofone.getTracks().forEach(function (faixa) { faixa.stop(); });
+    pegar("#anel").classList.remove("ouvindo");
+    botao.setAttribute("aria-pressed", "false");
+    if (gravacaoCancelada) {
+      return;
+    }
+    apitar(440);
+    processando = true;
+    avisar("Entendendo o que você disse…");
     try {
-      setMsg("Entendendo o que você disse…");
-      const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-      const audio = await ctx.decodeAudioData(await new Blob(chunks, { type: m.mimeType }).arrayBuffer()); ctx.close();
-      if (!asr) say("Preparando o reconhecimento de voz do site. Pode levar um minuto na primeira vez.");
-      heard((await (await loadAsr())(audio.getChannelData(0), { language: "portuguese", task: "transcribe" })).text);
-    } catch { reply("Não consegui entender o áudio. Verifique a internet ou escolha o destino abaixo."); }
-    busy = false;
+      const audioBruto = await new Blob(pedacos, { type: esteGravador.mimeType }).arrayBuffer();
+      const contexto = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+      const audio = await contexto.decodeAudioData(audioBruto);
+      contexto.close();
+      const modelo = await carregarModelo();
+      const resultado = await modelo(audio.getChannelData(0), { language: "portuguese", task: "transcribe" });
+      pegar("#textoOuvido").textContent = resultado.text.trim();
+      responder(resultado.text);
+    } catch (erro) {
+      avisar("Não consegui entender o áudio. Verifique a internet ou escolha o destino na lista.");
+    }
+    processando = false;
   };
-  mr.start(); beep(880); recording = true; $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true");
-  setMsg("Ouvindo… fale agora e toque de novo para terminar");
-  setTimeout(() => m.state === "recording" && m.stop(), 6000);
-}
-function listen(b) {
-  if (starting) return;
-  if (on) return stop(), setMsg("Microfone desligado");
-  welcomed = true; speechSynthesis.cancel();
-  if (useWhisper) return listenWhisper(b);
-  if (rec) { rec.onstart = rec.onresult = rec.onerror = rec.onend = null; try { rec.abort(); } catch { } } // ignora eventos de um reconhecimento antigo
-  rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = true; hit = false; $("#heard").textContent = "";
-  rec.onstart = () => { starting = false; on = true; beep(880); $("#ring").classList.add("listening"); b.setAttribute("aria-pressed", "true"); setMsg("Ouvindo… fale agora"); };
-  rec.onresult = e => {
-    const t = [...e.results].map(r => r[0].transcript).join(" "); $("#heard").textContent = t; if (hit) return;
-    const p = find(t); if (p) return go(p, t);
-    if (e.results[e.results.length - 1].isFinal) { hit = true; stop(); ask(t); }
-  };
-  rec.onerror = e => {
-    starting = false;
-    if (["network", "service-not-allowed", "language-not-supported"].includes(e.error)) { hit = true; useWhisper = true; setMsg("O serviço de voz do navegador não está disponível. Usando o reconhecimento do próprio site…"); return listenWhisper(b); }
-    const m = {
-      "not-allowed": "Permissão do microfone negada. Libere o microfone nas configurações do navegador ou escolha o destino abaixo.",
-      "no-speech": "Não ouvi nada. Toque e fale de novo.", "audio-capture": "Nenhum microfone encontrado."
-    }[e.error];
-    if (m) { hit = true; setMsg(m + " (código: " + e.error + ")"); say(m); }
-    else if (e.error !== "aborted") { hit = true; setMsg("Erro de voz (código: " + e.error + ")."); }
-  };
-  rec.onend = () => { starting = false; const was = on; stop(); if (was) beep(440); if (was && !hit) reply("Não entendi. Toque e diga, por exemplo, Cataratas ou: tem assento livre?"); };
-  starting = true; setTimeout(() => { if (starting && !on) { starting = false; reply("O microfone demorou para responder. Toque de novo ou escolha o destino abaixo."); } }, 10000);
-  try { rec.start(); } catch { starting = false; reply("Não consegui ligar o microfone. Escolha o destino abaixo."); }
-}
-$("#mic").onclick = () => listen($("#mic"));
-$("#ask").onclick = () => listen($("#ask"));
-document.addEventListener("click", e => { if (anywhere && !$("#home").hidden && !e.target.closest("button, input, a")) listen($("#mic")); });
-// Plano B sem voz: botões de destino sempre visíveis + aviso quando o navegador não ajuda
-$("#quick").innerHTML = P.map((p, i) => `<button data-q="${i}" aria-label="Escolher ${p.n}" class="px-4 min-h-12 rounded-lg font-medium bg-card border-2 border-hairline">${p.n}</button>`).join("");
-$("#quick").onclick = e => { const b = e.target.closest("[data-q]"); if (b) go(P[+b.dataset.q], P[+b.dataset.q].n); };
-if (/Instagram|FBAN|FBAV|FB_IAB|WhatsApp|TikTok|Line\/|; wv\)/i.test(navigator.userAgent)) {
-  $("#warn").hidden = false; $("#warn").textContent = "Você abriu o site dentro de outro aplicativo (como Instagram ou WhatsApp), onde a voz não funciona. Toque nos três pontinhos e escolha “Abrir no navegador” (Chrome ou Safari).";
-} else if (!SR) {
-  $("#warn").hidden = false; $("#warn").textContent = "Este navegador não tem reconhecimento de voz próprio. O site vai usar o dele, que baixa cerca de 40 MB na primeira vez. Se preferir, escolha o destino abaixo.";
-}
-$("#form").onsubmit = e => { e.preventDefault(); const v = $("#typed").value, p = find(v); p ? go(p, v) : ask(v); };
 
-/* ---------- Lista ---------- */
-$("#cards").innerHTML = P.map((p, i) => `<li class="bg-card rounded-xl p-8 flex flex-col gap-4">
-  <span class="self-start bg-ink text-canvas rounded-full px-5 py-2 text-2xl font-semibold">${p.s}</span>
-  <h2 class="text-2xl font-medium">${p.n}</h2>
-  <button data-i="${i}" aria-label="Acompanhar o ${p.s} até ${p.n}" class="mt-auto px-5 min-h-12 rounded-lg text-lg font-medium bg-primary text-white border-2 border-accent">Acompanhar o ônibus</button></li>`).join("");
-$("#cards").onclick = e => { const b = e.target.closest("[data-i]"); if (b) choose(+b.dataset.i); };
+  gravador.start();
+  gravando = true;
+  apitar(880);
+  pegar("#anel").classList.add("ouvindo");
+  botao.setAttribute("aria-pressed", "true");
+  pegar("#textoEstado").textContent = "Ouvindo… fale agora e toque de novo para terminar.";
+  setTimeout(function () {
+    if (esteGravador.state === "recording") {
+      esteGravador.stop();
+    }
+  }, 6000);
+}
 
-/* ---------- Painel: ônibus, câmera, rota e hotéis ---------- */
-// shortcut: posição e câmera são simuladas; a rota (OSRM) e os hotéis (OpenStreetMap) são reais.
-// Trocar por fetch à API de frota/visão computacional. O ônibus vem do lado do destino rumo ao embarque.
-let cur, s, tm, tc, tok = 0, lastMin;
-const mins = () => Math.max(1, Math.ceil(s.eta / 60));
-const seatText = () => `Poltrona PCD ${s.pcdBusy ? "ocupada" : "livre"}. ${s.free} de 12 assentos livres.`;
-const routeText = () => `${cur.s}: de ${BASE.n} até ${cur.n}, ${fmt(s.dist)}, cerca de ${Math.round(s.dur / 60)} minutos de viagem.`;
-const hotelText = () => s.hot.length ? "Perto de " + cur.n + ": " + s.hot.map(h => `${h.n}, a ${fmt(h.d)}`).join("; ") + "." : "Não encontrei hotéis próximos nos dados do mapa.";
-const sentence = () => `${cur.s} ${s.eta ? `chegando em ${mins()} ${mins() > 1 ? "minutos" : "minuto"}` : "chegou ao ponto de embarque"} com assento PCD ${s.pcdBusy ? "ocupado" : "livre"}. ${s.free} assentos livres.`;
-const busPos = () => s.pts[Math.round(s.eta / s.dur * (s.pts.length - 1))];
+async function carregarModelo() {
+  if (transcritor) {
+    return transcritor;
+  }
+  const biblioteca = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.web.min.js");
+  transcritor = await biblioteca.pipeline("automatic-speech-recognition", "Xenova/whisper-tiny", {
+    progress_callback: function (progresso) {
+      if (progresso.status === "progress") {
+        pegar("#textoEstado").textContent = "Baixando a voz do site: " + Math.round(progresso.progress) + "% (só na primeira vez)";
+      }
+    }
+  });
+  return transcritor;
+}
 
-async function route(a, b) {
+/* ---------- 7) Assistente: entende o que a pessoa falou ou digitou ---------- */
+
+function responder(texto) {
+  // 1) A pessoa citou um destino?
+  const destino = acharDestino(texto);
+  if (destino) {
+    tocarEmQualquerLugar = false;   // a partir daqui, tocar em qualquer lugar não liga mais o microfone
+    pegar("#textoOuvido").textContent = "“" + texto.trim() + "”";
+    avisar("Entendi: " + destino.nome + ".");
+    setTimeout(function () {
+      abrirTela("lista");
+      escolherDestino(DESTINOS.indexOf(destino));
+    }, 700);
+    return;
+  }
+
+  // 2) Comandos gerais (funcionam em qualquer momento).
+  const t = semAcento(texto);
+  if (t.includes("repet") || t.includes("de novo")) { falar(ultimaFala); return; }
+  if (t.includes("devagar") || t.includes("lent")) { mudarVelocidade(velocidadeVoz - 0.2); return; }
+  if (t.includes("rapido") || t.includes("depressa")) { mudarVelocidade(velocidadeVoz + 0.2); return; }
+  if (t.includes("silencio") || t.includes("parar de falar")) {
+    if (window.speechSynthesis) { window.speechSynthesis.cancel(); }
+    return;
+  }
+  if (t.includes("ajuda") || t.includes("comandos")) { avisar(TEXTO_AJUDA); return; }
+  if (t.includes("voltar") || t.includes("inicio")) { abrirTela("inicio"); return; }
+  if (t.includes("onde estou") || t.includes("localizacao")) { descobrirLocalizacao(); return; }
+
+  // 3) Perguntas sobre o ônibus (precisam de um destino já escolhido).
+  if (!destinoAtual) {
+    avisar("Primeiro diga um destino, por exemplo Cataratas.");
+    return;
+  }
+  if (t.includes("hotel") || t.includes("perto") || t.includes("proxim")) { avisar(textoHoteis()); return; }
+  if (t.includes("assento") || t.includes("poltrona") || t.includes("lugar") || t.includes("livre")) { avisar(textoAssento()); return; }
+  if (t.includes("rota") || t.includes("caminho") || t.includes("linha") || t.includes("distancia")) { avisar(textoRota()); return; }
+  if (t.includes("onibus") || t.includes("chega") || t.includes("minuto") || t.includes("tempo") || t.includes("onde")) { avisar(frasePrincipal()); return; }
+
+  avisar("Não entendi. Diga ajuda para ouvir os comandos.");
+}
+
+function mudarVelocidade(nova) {
+  velocidadeVoz = Math.min(1.6, Math.max(0.6, nova));
+  falar("Velocidade da voz alterada.");
+}
+
+// Mostra onde a pessoa está (só quando ela pede). O navegador vai pedir permissão.
+function descobrirLocalizacao() {
+  if (!navigator.geolocation) {
+    avisar("Este navegador não tem localização.");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(function (posicao) {
+    const ponto = [posicao.coords.latitude, posicao.coords.longitude];
+    if (mapa) {
+      if (marcadorVoce) { marcadorVoce.remove(); }
+      marcadorVoce = L.marker(ponto, { icon: criarPino("EU", "#5de08a", "#0d0a0b", 40), keyboard: false }).addTo(mapa);
+      distanciaAteVoce = mapa.distance(ponto, EMBARQUE.posicao);
+    }
+    if (distanciaAteVoce !== null) {
+      avisar("Você está a " + formatarDistancia(distanciaAteVoce) + " do ponto de embarque, " + EMBARQUE.nome + ".");
+    } else {
+      avisar("Localização encontrada.");
+    }
+  }, function () {
+    avisar("Não consegui sua localização. O embarque é no " + EMBARQUE.nome + ".");
+  });
+}
+
+/* ---------- 8) Painel do ônibus ---------- */
+
+let destinoAtual = null;   // destino escolhido
+let dados = null;          // dados do ônibus: pontos da rota, tempo, assentos, hotéis
+let relogioDoTempo = null;
+let relogioDaCamera = null;
+let numeroDaEscolha = 0;   // ajuda a ignorar respostas atrasadas de uma escolha antiga
+let ultimoMinuto = 0;
+
+// Minutos que faltam (nunca menos de 1, enquanto o ônibus não chegou).
+function minutosQueFaltam() {
+  return Math.max(1, Math.ceil(dados.segundosAteChegar / 60));
+}
+
+function textoAssento() {
+  const estado = dados.assentoPcdOcupado ? "ocupada" : "livre";
+  return "Poltrona PCD " + estado + ". " + dados.assentosLivres + " de 12 assentos livres.";
+}
+
+function textoRota() {
+  return destinoAtual.servico + ": de " + EMBARQUE.nome + " até " + destinoAtual.nome + ", " +
+    formatarDistancia(dados.distancia) + ", cerca de " + Math.round(dados.duracao / 60) + " minutos de viagem.";
+}
+
+function textoHoteis() {
+  if (dados.hoteis.length === 0) {
+    return "Não encontrei hotéis próximos nos dados do mapa.";
+  }
+  const nomes = dados.hoteis.map(function (hotel) {
+    return hotel.nome + ", a " + formatarDistancia(hotel.distancia);
+  });
+  return "Perto de " + destinoAtual.nome + ": " + nomes.join("; ") + ".";
+}
+
+// Frase principal: tempo de chegada + assento PCD.
+function frasePrincipal() {
+  let quando = "chegou ao ponto de embarque";
+  if (dados.segundosAteChegar > 0) {
+    const minutos = minutosQueFaltam();
+    quando = "chegando em " + minutos + (minutos > 1 ? " minutos" : " minuto");
+  }
+  const assento = dados.assentoPcdOcupado ? "ocupado" : "livre";
+  return destinoAtual.servico + " " + quando + " com assento PCD " + assento + ". " +
+    dados.assentosLivres + " assentos livres.";
+}
+
+// Busca a rota de carro (OSRM). Sem internet, usa uma linha reta.
+async function buscarRota(origem, destino) {
   try {
-    const j = (await (await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`)).json()).routes[0];
-    return { pts: j.geometry.coordinates.map(([x, y]) => [y, x]), dur: j.duration, dist: j.distance };
-  } catch { const d = map.distance(a, b); return { pts: [a, b], dur: d / 8, dist: d }; } // sem internet: linha reta
+    const endereco = "https://router.project-osrm.org/route/v1/driving/" +
+      origem[1] + "," + origem[0] + ";" + destino[1] + "," + destino[0] +
+      "?overview=full&geometries=geojson";
+    const resposta = await fetch(endereco);
+    const json = await resposta.json();
+    const rota = json.routes[0];
+    const pontos = rota.geometry.coordinates.map(function (par) { return [par[1], par[0]]; });
+    return { pontos: pontos, duracao: rota.duration, distancia: rota.distance };
+  } catch (erro) {
+    const metros = mapa.distance(origem, destino);
+    return { pontos: [origem, destino], duracao: metros / 8, distancia: metros };
+  }
 }
-function render() {
-  const c = s.pcdBusy ? "bg-accent text-canvas" : "bg-ok text-canvas";
-  $("#alert").className = "rounded-xl p-5 mt-5 font-display text-3xl md:text-4xl " + c;
-  $("#pcd").className = "font-display text-5xl rounded-xl px-5 py-2 mt-3 inline-block " + c;
-  $("#pcd").textContent = s.pcdBusy ? "✕ OCUPADA" : "✓ LIVRE";
-  $("#eta").textContent = s.eta ? mins() + " min" : "Chegou";
-  $("#cam").textContent = `Ativa · ${s.free} de 12 assentos livres · ${new Date().toLocaleTimeString("pt-BR")}`;
+
+// Posição do ônibus na rota, de acordo com o tempo que falta.
+function posicaoDoOnibus() {
+  const parte = dados.segundosAteChegar / dados.duracao;
+  const indice = Math.round(parte * (dados.pontos.length - 1));
+  return dados.pontos[indice];
 }
-function announce(prefix = "") {
-  render(); const a = $("#alert"), t = (prefix + " " + sentence()).trim();
-  a.textContent = ""; setTimeout(() => a.textContent = (s.pcdBusy ? "✕ " : "✓ ") + t, 40);
-  navigator.vibrate?.(s.eta ? (prefix ? [200, 100, 200] : 80) : [400, 150, 400]); say(t);
+
+// Atualiza os textos e cores do painel.
+function desenharPainel() {
+  const cor = dados.assentoPcdOcupado ? "ocupado" : "";
+  pegar("#alerta").className = "alerta " + cor;
+  pegar("#selo").className = "selo " + cor;
+  pegar("#selo").textContent = dados.assentoPcdOcupado ? "✕ OCUPADA" : "✓ LIVRE";
+  pegar("#tempo").textContent = dados.segundosAteChegar > 0 ? minutosQueFaltam() + " min" : "Chegou";
+  pegar("#textoCamera").textContent = "Poltrona PCD " + (dados.assentoPcdOcupado ? "ocupada" : "livre") + ". " +
+    dados.assentosLivres + " de 12 assentos livres. Atualizado às " + new Date().toLocaleTimeString("pt-BR") + ".";
 }
-async function choose(i) {
-  if (!map) return;
-  clearInterval(tm); clearInterval(tc); const my = ++tok; cur = P[i];
-  $("#h-panel").textContent = `${cur.s} · ${cur.n}`; $("#route").textContent = "Calculando a rota…"; $("#hotels").replaceChildren();
-  const pn = $("#panel"); pn.hidden = false; pn.setAttribute("aria-hidden", "false"); anim(pn); layer.clearLayers();
-  const r = await route(BASE.c, cur.c); if (my !== tok) return;
-  s = { ...r, pcdBusy: false, free: 2 + rand(8), hot: [], eta: Math.min(r.dur, 240 + rand(120)) }; lastMin = mins();
-  L.polyline(s.pts, { color: "#e58a9f", weight: 6 }).addTo(layer);
-  L.marker(cur.c, { icon: icon(cur.l, "#8b1f2f"), keyboard: false }).bindTooltip(tip(cur.n)).addTo(layer);
-  bus = L.marker(busPos(), { icon: icon(cur.l, "#f5eeef", "#141012", 46), keyboard: false, zIndexOffset: 1000 }).addTo(layer);
-  map.fitBounds(L.polyline(s.pts).getBounds(), { padding: [30, 30] });
-  $("#route").textContent = routeText(); announce("Você escolheu " + cur.n + "."); locate(false); $("#gmaps").href = `https://www.google.com/maps/dir/?api=1&destination=${BASE.c}&travelmode=walking`; navigator.wakeLock?.request("screen").catch(() => { });
-  $("#panel").scrollIntoView({ behavior: "smooth" });
-  tm = setInterval(tick, 1000); tc = setInterval(camera, 12000); nearby(my);
+
+// Anuncia o status: escreve no alerta (leitor de tela), fala e vibra.
+function anunciarStatus(prefixo) {
+  desenharPainel();
+  const frase = (prefixo ? prefixo + " " : "") + frasePrincipal();
+  const alerta = pegar("#alerta");
+  alerta.textContent = "";
+  setTimeout(function () { alerta.textContent = frase; }, 40);   // texto novo faz o leitor de tela falar
+  falar(frase);
+  if (dados.segundosAteChegar === 0) {
+    vibrar([400, 150, 400]);
+  } else if (prefixo) {
+    vibrar([200, 100, 200]);
+  } else {
+    vibrar(80);
+  }
 }
-function tick() {
-  s.eta = Math.max(0, s.eta - SPEED); bus.setLatLng(busPos());
-  if (!s.eta) { clearInterval(tm); announce(); } else if (mins() !== lastMin) { lastMin = mins(); announce(); } else render();
+
+// Escolhe um destino (pela voz, pela lista ou pelo mapa).
+async function escolherDestino(indice) {
+  if (!mapa) {
+    return;
+  }
+  clearInterval(relogioDoTempo);
+  clearInterval(relogioDaCamera);
+  numeroDaEscolha = numeroDaEscolha + 1;
+  const minhaEscolha = numeroDaEscolha;
+  destinoAtual = DESTINOS[indice];
+
+  pegar("#tituloPainel").textContent = destinoAtual.servico + " · " + destinoAtual.nome;
+  pegar("#textoRota").textContent = "Calculando a rota…";
+  pegar("#listaHoteis").replaceChildren();
+  mostrar(pegar("#painel"), true);
+  camada.clearLayers();
+
+  const rota = await buscarRota(EMBARQUE.posicao, destinoAtual.posicao);
+  if (minhaEscolha !== numeroDaEscolha) {
+    return;   // a pessoa já escolheu outro destino
+  }
+
+  dados = {
+    pontos: rota.pontos,
+    duracao: rota.duracao,
+    distancia: rota.distancia,
+    segundosAteChegar: Math.min(rota.duracao, 240 + sortear(120)),   // simulado: ônibus a 4 a 6 minutos
+    assentoPcdOcupado: false,                                        // simulado: câmera com IA
+    assentosLivres: 2 + sortear(8),                                  // simulado
+    hoteis: []
+  };
+  ultimoMinuto = minutosQueFaltam();
+
+  // Desenha no mapa: rota, destino e ônibus.
+  L.polyline(dados.pontos, { color: "#ffb3c4", weight: 6 }).addTo(camada);
+  L.marker(destinoAtual.posicao, { icon: criarPino(destinoAtual.sigla, "#8b1f2f", "#ffffff", 36), keyboard: false }).addTo(camada);
+  marcadorOnibus = L.marker(posicaoDoOnibus(), { icon: criarPino(destinoAtual.sigla, "#ffffff", "#0d0a0b", 46), keyboard: false }).addTo(camada);
+  mapa.fitBounds(L.polyline(dados.pontos).getBounds(), { padding: [30, 30] });
+
+  pegar("#textoRota").textContent = textoRota();
+  pegar("#linkMaps").href = "https://www.google.com/maps/dir/?api=1&destination=" +
+    EMBARQUE.posicao[0] + "," + EMBARQUE.posicao[1] + "&travelmode=walking";
+
+  anunciarStatus("Você escolheu " + destinoAtual.nome + ".");
+  pegar("#tituloPainel").focus();
+
+  // Mantém a tela acesa durante o acompanhamento (se o navegador permitir).
+  if (navigator.wakeLock) {
+    navigator.wakeLock.request("screen").catch(function () { });
+  }
+
+  relogioDoTempo = setInterval(passarTempo, 1000);
+  relogioDaCamera = setInterval(lerCamera, 12000);
+  buscarHoteis(minhaEscolha);
 }
-function camera() {
-  const was = s.pcdBusy; if (Math.random() < .3) s.pcdBusy = !s.pcdBusy;
-  s.free = Math.min(12, Math.max(0, s.free + rand(3) - 1));
-  was !== s.pcdBusy ? announce("Atenção.") : render();
+
+// A cada segundo: o ônibus anda e o tempo diminui.
+function passarTempo() {
+  dados.segundosAteChegar = Math.max(0, dados.segundosAteChegar - VELOCIDADE_TESTE);
+  marcadorOnibus.setLatLng(posicaoDoOnibus());
+
+  if (dados.segundosAteChegar === 0) {
+    clearInterval(relogioDoTempo);
+    anunciarStatus("");
+  } else if (minutosQueFaltam() !== ultimoMinuto) {
+    ultimoMinuto = minutosQueFaltam();
+    anunciarStatus("");
+  } else {
+    desenharPainel();
+  }
 }
-async function nearby(my) {
-  const li = t => { const e = document.createElement("li"); e.textContent = t; return e; };
+
+// A cada 12 segundos: nova "leitura" da câmera (simulada).
+function lerCamera() {
+  const estavaOcupado = dados.assentoPcdOcupado;
+  if (Math.random() < 0.3) {
+    dados.assentoPcdOcupado = !dados.assentoPcdOcupado;
+  }
+  dados.assentosLivres = Math.min(12, Math.max(0, dados.assentosLivres + sortear(3) - 1));
+  if (estavaOcupado !== dados.assentoPcdOcupado) {
+    anunciarStatus("Atenção.");     // o assento PCD mudou
+  } else {
+    desenharPainel();
+  }
+}
+
+// Procura hotéis até 5 km do destino (dados do OpenStreetMap).
+async function buscarHoteis(minhaEscolha) {
   try {
-    const q = `[out:json][timeout:15];nwr["tourism"~"hotel|hostel|guest_house|motel|apartment"]["name"](around:5000,${cur.c});out center 40;`;
-    const j = await (await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: new URLSearchParams({ data: q }) })).json();
-    if (my !== tok) return;
-    s.hot = j.elements.map(e => { const c = [e.lat ?? e.center?.lat, e.lon ?? e.center?.lon]; return { n: e.tags.name, c, d: map.distance(cur.c, c) }; })
-      .filter(h => h.c[0]).sort((a, b) => a.d - b.d).slice(0, 4);
-  } catch { if (my !== tok) return; s.hot = []; }
-  $("#hotels").replaceChildren(...(s.hot.length ? s.hot.map(h => li(`${h.n} · ${fmt(h.d)}`)) : [li("Sem hotéis nos dados do mapa nesta região.")]));
-  s.hot.forEach(h => L.marker(h.c, { icon: icon("H", "#f5eeef", "#141012", 30), keyboard: false }).bindTooltip(tip(h.n)).addTo(layer));
-  say(hotelText(), { queue: true });
-}
-$("#again").onclick = () => cur && announce();
-$("#hearHotels").onclick = () => cur && reply(hotelText());
-// Localização nunca é exigida: o embarque é fixo (BASE). Usa sozinha se a permissão já foi dada; senão só se a pessoa pedir por voz ("usar minha localização").
-async function locate(ask) {
-  if (!navigator.geolocation) return ask && reply("Este navegador não tem localização.");
-  try { if (!ask && (await navigator.permissions.query({ name: "geolocation" })).state !== "granted") return; } catch { if (!ask) return; }
-  navigator.geolocation.getCurrentPosition(pos => {
-    const c = [pos.coords.latitude, pos.coords.longitude]; me?.remove();
-    me = L.marker(c, { icon: icon("EU", "#5db872", "#141012", 40), keyboard: false }).addTo(map); away = map.distance(c, BASE.c);
-    if (ask) reply(`Você está a ${fmt(away)} do ponto de embarque, ${BASE.n}.`);
-  }, () => ask && reply("Não consegui sua localização. O embarque continua sendo no " + BASE.n + "."));
+    const consulta = '[out:json][timeout:15];nwr["tourism"~"hotel|hostel|guest_house|motel|apartment"]["name"]' +
+      "(around:5000," + destinoAtual.posicao[0] + "," + destinoAtual.posicao[1] + ");out center 40;";
+    const resposta = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: new URLSearchParams({ data: consulta })
+    });
+    const json = await resposta.json();
+    if (minhaEscolha !== numeroDaEscolha) { return; }
+
+    const lista = [];
+    for (const item of json.elements) {
+      const ponto = item.center ? [item.center.lat, item.center.lon] : [item.lat, item.lon];
+      if (ponto[0] && item.tags && item.tags.name) {
+        lista.push({ nome: item.tags.name, posicao: ponto, distancia: mapa.distance(destinoAtual.posicao, ponto) });
+      }
+    }
+    lista.sort(function (a, b) { return a.distancia - b.distancia; });
+    dados.hoteis = lista.slice(0, 4);
+  } catch (erro) {
+    if (minhaEscolha !== numeroDaEscolha) { return; }
+    dados.hoteis = [];
+  }
+
+  // Mostra na lista e no mapa.
+  const itens = dados.hoteis.map(function (hotel) {
+    const item = document.createElement("li");
+    item.textContent = hotel.nome + " · " + formatarDistancia(hotel.distancia);
+    return item;
+  });
+  if (itens.length === 0) {
+    const vazio = document.createElement("li");
+    vazio.textContent = "Sem hotéis nos dados do mapa nesta região.";
+    itens.push(vazio);
+  }
+  pegar("#listaHoteis").replaceChildren(...itens);
+  dados.hoteis.forEach(function (hotel) {
+    L.marker(hotel.posicao, { icon: criarPino("H", "#ffffff", "#0d0a0b", 30), keyboard: false }).addTo(camada);
+  });
+  falar(textoHoteis(), true);   // "true" = fala depois da mensagem atual
 }
 
-show("home"); // antes dos ajustes: a página abre mesmo que algum ajuste falhe
+/* ---------- 9) Ligações dos botões e início ---------- */
 
-/* ---------- Ajustes de acessibilidade (ficam salvos no aparelho) ---------- */
-const root = document.documentElement;
-const px = () => parseFloat(getComputedStyle(root).fontSize);
-function setFont(n) { root.style.fontSize = Math.min(32, Math.max(14, n)) + "px"; store.set("font", px()); }
-function setHC(on) { root.classList.toggle("hc", on); $("#hc").setAttribute("aria-pressed", on); store.set("hc", on ? "1" : ""); }
-const rateName = () => rate < .95 ? "lenta" : rate > 1.1 ? "rápida" : "normal";
-function rateUI() { $("#rate").textContent = "Voz: " + rateName(); $("#rate").setAttribute("aria-label", "Velocidade da voz: " + rateName() + ". Toque para mudar."); }
-function setRate(r) { rate = Math.round(Math.min(1.6, Math.max(.6, r)) * 10) / 10; store.set("rate", rate); rateUI(); say("Voz " + rateName() + "."); }
-$("#fMais").onclick = () => setFont(px() + 2);
-$("#fMenos").onclick = () => setFont(px() - 2);
-$("#hc").onclick = () => setHC(!root.classList.contains("hc"));
-$("#rate").onclick = () => setRate(rate < .95 ? 1 : rate < 1.1 ? 1.25 : .8);
-$("#repeat").onclick = () => say(last);
-$("#help").onclick = () => reply(HELP);
-if (store.get("font")) setFont(+store.get("font")); if (store.get("hc")) setHC(true); rateUI();
+// Botões de destino da tela inicial (alternativa sem voz) e cartões da lista.
+DESTINOS.forEach(function (destino, indice) {
+  const botao = document.createElement("button");
+  botao.className = "botao";
+  botao.textContent = destino.nome;
+  botao.setAttribute("aria-label", "Escolher " + destino.nome);
+  botao.onclick = function () {
+    responder(destino.nome);
+  };
+  pegar("#botoesDestino").appendChild(botao);
+
+  const cartao = document.createElement("li");
+  cartao.className = "caixa flex flex-col gap-3";
+  cartao.innerHTML = '<h3 class="text-2xl font-semibold"></h3><p class="text-xl"></p><button class="botao botao-forte">Acompanhar o ônibus</button>';
+  cartao.querySelector("h3").textContent = destino.nome;
+  cartao.querySelector("p").textContent = destino.servico;
+  const acompanhar = cartao.querySelector("button");
+  acompanhar.setAttribute("aria-label", "Acompanhar o " + destino.servico + " até " + destino.nome);
+  acompanhar.onclick = function () { escolherDestino(indice); };
+  pegar("#cartoes").appendChild(cartao);
+});
+
+pegar("#botaoMicrofone").onclick = function () { tocarMicrofone(pegar("#botaoMicrofone")); };
+pegar("#botaoPerguntar").onclick = function () { tocarMicrofone(pegar("#botaoPerguntar")); };
+pegar("#botaoVoltar").onclick = function () { abrirTela("inicio"); };
+pegar("#botaoRepetir").onclick = function () { falar(ultimaFala); };
+pegar("#botaoAjuda").onclick = function () { avisar(TEXTO_AJUDA); };
+pegar("#botaoOuvirStatus").onclick = function () { if (dados) { anunciarStatus(""); } };
+pegar("#botaoOuvirHoteis").onclick = function () { if (dados) { avisar(textoHoteis()); } };
+
+// Formulário de texto (alternativa à voz).
+pegar("#formulario").onsubmit = function (evento) {
+  evento.preventDefault();
+  responder(pegar("#campoTexto").value);
+};
+
+// Na tela inicial, tocar em qualquer lugar liga o microfone (só até o primeiro destino ser entendido).
+let tocarEmQualquerLugar = true;
+document.addEventListener("click", function (evento) {
+  const naTelaInicial = !pegar("#telaInicio").hidden;
+  const tocouEmControle = evento.target.closest("button, input, a");
+  if (tocarEmQualquerLugar && naTelaInicial && !tocouEmControle) {
+    tocarMicrofone(pegar("#botaoMicrofone"));
+  }
+});
+
+// Avisos para quem abriu o site em um lugar onde a voz não funciona.
+const navegador = navigator.userAgent;
+if (/Instagram|FBAN|FBAV|FB_IAB|WhatsApp|TikTok|; wv\)/i.test(navegador)) {
+  mostrar(pegar("#aviso"), true);
+  pegar("#aviso").textContent = "Você abriu o site dentro de outro aplicativo (como Instagram ou WhatsApp), onde a voz não funciona. " +
+    "Toque nos três pontinhos e escolha “Abrir no navegador”.";
+} else if (!ReconhecimentoDoNavegador) {
+  mostrar(pegar("#aviso"), true);
+  pegar("#aviso").textContent = "Este navegador não tem voz própria. O site vai usar a voz dele, que baixa cerca de 40 MB na primeira vez.";
+}
+
+// Começa na tela inicial e fala as boas-vindas (o navegador pode bloquear a fala até o primeiro toque).
+abrirTela("inicio");
+window.addEventListener("load", function () { falar(BOAS_VINDAS); });
