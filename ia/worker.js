@@ -8,6 +8,7 @@ const SISTEMA =
   "Responda sempre em português do Brasil, em no máximo 3 frases curtas e simples, pensando que será ouvido em voz alta (sem listas, sem símbolos, sem emojis). " +
   "Para tempo de chegada, assento, rota, hotéis e acessibilidade use APENAS os dados do contexto; se o dado não estiver lá ou estiver marcado como 'A confirmar', diga que ainda não foi confirmado. Nunca invente horários nem condições de acessibilidade. " +
   "Sobre turismo em geral, ajude com cuidado e avise que a informação pode estar desatualizada. " +
+  "Você conhece os destinos em 'todosOsDestinos' e pode compará-los. Se a pessoa quiser algo que o site faz, diga o comando para ela falar: 'mapa', 'rota', 'restaurantes', 'hotéis', 'pontos turísticos', 'acessibilidade' ou 'minha localização'. Faça no máximo uma pergunta por vez. " +
   "Em emergência, oriente ligar para 192 (SAMU) ou 193 (Bombeiros).";
 
 const ENDERECO_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/";
