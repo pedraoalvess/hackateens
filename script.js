@@ -170,6 +170,7 @@ function voltar() {
 function abrirTela(nome, silencioso, semHistorico) {
   pararMicrofone();
   mostrar(pegar("#telaInicio"), nome === "inicio");
+  mostrar(pegar("#telaOpcoes"), nome === "opcoes");
   mostrar(pegar("#telaLista"), nome === "lista");
   mostrar(pegar("#telaMapa"), nome === "mapa");
 
@@ -184,13 +185,16 @@ function abrirTela(nome, silencioso, semHistorico) {
   if (nome === "lista") {
     pegar("#tituloLista").focus();
     falar("Ônibus turísticos. Escolha um destino.");
+  } else if (nome === "opcoes") {
+    pegar("#tituloOpcoes").focus();
+    falar("Opções.");
   } else if (nome === "mapa") {
     criarMapa();
     desenharRotaNoMapa();
     mostrarVoceNoMapa();
     pegar("#tituloMapa").focus();
     desenharPerto();
-    if (idLocal === null) { ligarLocalizacao(); } else { falar("Mapa. " + pegar("#textoLocal").textContent); }
+    if (idLocal === null) { ligarLocalizacao(silencioso); } else if (!silencioso) { falar("Mapa. " + pegar("#textoLocal").textContent); }
   } else {
     pararAcompanhamento();
     limparBolhas();
@@ -638,6 +642,7 @@ function responder(texto) {
   if (t.includes("voltar") || t.includes("inicio")) { voltar(); return; }
   if (t.includes("onde estou") || t.includes("localizacao")) { falarLocalizacao(); return; }
   if (t.includes("mapa")) { abrirTela("mapa"); return; }
+  if (t.includes("opcoes") || t.includes("configurac")) { abrirTela("opcoes"); return; }
   if (t.includes("restaurante") || t.includes("comer") || t.includes("lanche")) { pedirPerto("restaurantes"); return; }
   if (t.includes("ponto turistico") || t.includes("pontos turisticos") || t.includes("atracao") || t.includes("atracoes") || t.includes("passeio")) { pedirPerto("atracoes"); return; }
   if (t.includes("hotel") || t.includes("hospedagem") || t.includes("pousada") || t.includes("perto") || t.includes("proxim")) { pedirPerto("hoteis"); return; }
@@ -699,7 +704,11 @@ async function perguntarParaIA(texto) {
     conversa.push({ role: "user", content: texto });
     conversa.push({ role: "assistant", content: json.resposta });
     conversa = conversa.slice(-6);
-    avisar(json.resposta, function () { executarAcao(json); });
+    avisar(json.resposta, function () {
+      // Se a pessoa pediu lugares e a IA abre o mapa, a busca roda assim que a localização chegar.
+      if (json.acao === "abrir_mapa" && categoria && !posicaoUsuario && !destinoAtual) { categoriaPendente = categoria; }
+      executarAcao(json);
+    });
   } catch (erro) {
     console.warn("Erro da assistente de IA:", erro);   // aparece no Console (F12) para ajudar a achar o problema
     avisar("Não consegui falar com a assistente agora. Diga ajuda para ouvir os comandos.");
@@ -741,6 +750,11 @@ function aoReceberPosicao(posicao) {
     centralizouNaPessoa = true;
   }
   avisarProximidade();
+  if (categoriaPendente) {   // a pessoa pediu lugares perto antes da localização chegar
+    const pedido = categoriaPendente;
+    categoriaPendente = null;
+    pedirPerto(pedido, true);
+  }
 
   // O texto só muda quando a distância muda bastante (para não ficar falando toda hora).
   if (ultimaDistanciaMostrada === null || Math.abs(distanciaAteVoce - ultimaDistanciaMostrada) >= 25) {
@@ -757,7 +771,7 @@ function aoReceberPosicao(posicao) {
   }
 }
 
-function ligarLocalizacao() {
+function ligarLocalizacao(silencioso) {
   if (!navigator.geolocation) {
     avisar("Este navegador não tem localização.");
     return;
@@ -776,7 +790,7 @@ function ligarLocalizacao() {
     avisar("Localização desligada.");
     return;
   }
-  avisar("Ligando a localização. Se o navegador perguntar, escolha permitir.");
+  if (!silencioso) { avisar("Ligando a localização. Se o navegador perguntar, escolha permitir."); }
   idLocal = navigator.geolocation.watchPosition(aoReceberPosicao, function () {
     navigator.geolocation.clearWatch(idLocal);
     idLocal = null;
@@ -1175,12 +1189,18 @@ async function buscarPerto(categoria) {
 }
 
 // Quando a pessoa pede (por voz ou botão): procura e lê o resultado.
-async function pedirPerto(categoria) {
-  if (!posicaoUsuario && !destinoAtual) {
-    avisar("Para procurar lugares, diga um destino ou ative a localização no mapa.");
+let categoriaPendente = null;   // pedido de lugares que espera a localização da pessoa
+
+async function pedirPerto(categoria, ficarNaTela) {
+  if (!ficarNaTela && pegar("#telaMapa").hidden) {
+    abrirTela("mapa", true);   // lugares perto aparecem na tela do mapa
+  }
+  if (!posicaoUsuario && !destinoAtual) {   // ainda não sei onde a pessoa está: espera a localização
+    categoriaPendente = categoria;
+    avisar("Ligando a localização para procurar " + CATEGORIAS[categoria].nome + " perto de você. Se o navegador perguntar, escolha permitir.");
     return;
   }
-  if (destinoAtual) { mostrarAba("Perto"); }
+  if (destinoAtual && ficarNaTela) { mostrarAba("Perto"); }
   avisar("Procurando " + CATEGORIAS[categoria].nome + "…");
   const achou = await buscarPerto(categoria);
   if (achou) { avisar(textoPerto()); }
@@ -1222,11 +1242,13 @@ document.querySelectorAll(".botao-aba").forEach(function (botao) {
   };
 });
 document.querySelectorAll(".botao-cat").forEach(function (botao) {
-  botao.onclick = function () { pedirPerto(botao.dataset.cat); };
+  botao.onclick = function () { pedirPerto(botao.dataset.cat, true); };
 });
 pegar("#botaoAbrirMapa").onclick = function () { abrirTela("mapa"); };
 pegar("#botaoVoltarMapa").onclick = function () { voltar(); };
 pegar("#botaoLocal").onclick = function () { ligarLocalizacao(); };
+pegar("#botaoOpcoes").onclick = function () { abrirTela("opcoes"); };
+pegar("#botaoVoltarOpcoes").onclick = function () { voltar(); };
 pegar("#botaoVoltar").onclick = function () { voltar(); };
 pegar("#botaoRepetir").onclick = function () { repetirUltima(); };
 pegar("#botaoVoz").onclick = function () { definirVoz(!vozLigada, true); };
