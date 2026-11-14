@@ -954,7 +954,7 @@ async function buscarParadas() {
     const longitudes = dados.pontos.map(function (ponto) { return ponto[1]; });
     const margem = 0.002;
     const caixa = [Math.min(...latitudes) - margem, Math.min(...longitudes) - margem,
-      Math.max(...latitudes) + margem, Math.max(...longitudes) + margem].join(",");
+    Math.max(...latitudes) + margem, Math.max(...longitudes) + margem].join(",");
     const consulta = '[out:json][timeout:20];node["highway"="bus_stop"](' + caixa + ");out 600;";
     const resposta = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
