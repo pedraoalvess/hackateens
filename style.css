@@ -549,7 +549,7 @@ body:not(.claro) .bolha .nome {
 }
 
 .painel .botao-aba[aria-current="true"],
-.painel .botao-cat[aria-current="true"] {
+.botao-cat[aria-current="true"] {
   background: var(--primary);
   border-color: var(--primary);
   color: var(--on-primary);
@@ -629,4 +629,34 @@ body.claro .pino {
   .painel {
     border: 2px solid ButtonText;
   }
+}
+
+/* ---------- Conversa com a assistente (tela inicial) ---------- */
+.conversa {
+  list-style: none;
+  margin: .75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  text-align: left;
+}
+
+.conversa li {
+  padding: .6rem .9rem;
+  border-radius: 12px;
+  background: var(--card-2);
+  color: var(--ink);
+}
+
+.conversa .voce {
+  background: var(--primary);
+  color: var(--on-primary);
+  align-self: flex-end;
+  max-width: 90%;
+}
+
+.conversa .assistente {
+  align-self: flex-start;
+  max-width: 95%;
 }

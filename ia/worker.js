@@ -8,10 +8,26 @@ const SISTEMA =
   "Responda sempre em português do Brasil, em no máximo 3 frases curtas e simples, pensando que será ouvido em voz alta (sem listas, sem símbolos, sem emojis). " +
   "Para tempo de chegada, assento, rota, hotéis e acessibilidade use APENAS os dados do contexto; se o dado não estiver lá ou estiver marcado como 'A confirmar', diga que ainda não foi confirmado. Nunca invente horários nem condições de acessibilidade. " +
   "Sobre turismo em geral, ajude com cuidado e avise que a informação pode estar desatualizada. " +
-  "Você conhece os destinos em 'todosOsDestinos' e pode compará-los. Se a pessoa quiser algo que o site faz, diga o comando para ela falar: 'mapa', 'rota', 'restaurantes', 'hotéis', 'pontos turísticos', 'acessibilidade' ou 'minha localização'. Faça no máximo uma pergunta por vez. " +
+  "Você conhece os destinos em 'todosOsDestinos' e pode compará-los. Responda SEMPRE e SOMENTE com um JSON neste formato: {\"resposta\": \"texto curto para ser falado\", \"acao\": \"nenhuma\", \"destino\": \"\"}. Use 'acao' só quando a pessoa pedir claramente: 'abrir_onibus' (quer ir ou acompanhar o ônibus; coloque em 'destino' o nome exato de um destino de 'todosOsDestinos'), 'abrir_mapa', 'ligar_localizacao', 'ler_paradas', 'ler_acessibilidade', 'ler_transporte' ou 'voltar'. Em qualquer outro caso use 'nenhuma'. Quando usar uma ação, diga na 'resposta' o que vai fazer, em uma frase. Se a pessoa só perguntar sobre um lugar, converse e ofereça abrir o ônibus, sem usar ação. Quando 'lugaresPerto' estiver no contexto, recomende um ou dois lugares dessa lista e diga a distância; nunca cite lugares que não estejam na lista. Faça no máximo uma pergunta por vez. " +
   "Em emergência, oriente ligar para 192 (SAMU) ou 193 (Bombeiros).";
 
 const ENDERECO_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/";
+
+// A IA responde em JSON com o texto e, se for o caso, uma ação para o site executar. Outros formatos viram só texto.
+const ACOES = ["abrir_onibus", "abrir_mapa", "ligar_localizacao", "ler_paradas", "ler_acessibilidade", "ler_transporte", "voltar"];
+function lerRespostaDaIA(texto) {
+  try {
+    const json = JSON.parse(texto.replace(/```json|```/g, "").trim());
+    if (json && typeof json.resposta === "string" && json.resposta.trim()) {
+      return {
+        resposta: json.resposta.trim(),
+        acao: ACOES.includes(json.acao) ? json.acao : "nenhuma",
+        destino: typeof json.destino === "string" ? json.destino.slice(0, 60) : ""
+      };
+    }
+  } catch (erro) { }
+  return { resposta: texto, acao: "nenhuma", destino: "" };
+}
 
 // Pergunta ao Gemini. "mensagens" é uma lista [{ role: "user" ou "assistant", content: "..." }].
 async function perguntarAoGemini(modelo, env, sistema, mensagens) {
@@ -21,7 +37,7 @@ async function perguntarAoGemini(modelo, env, sistema, mensagens) {
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: sistema }] },
       contents: mensagens.map(function (m) { return { role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }; }),
-      generationConfig: { maxOutputTokens: 1024, temperature: 0.4 }
+      generationConfig: { maxOutputTokens: 1024, temperature: 0.4, responseMimeType: "application/json" }
     })
   });
   const dados = await resposta.json();
@@ -93,7 +109,7 @@ export default {
       }
 
       if (!texto) { throw ultimoErro || new Error("sem texto"); }
-      return new Response(JSON.stringify({ resposta: texto }), { headers: cabecalhos });
+      return new Response(JSON.stringify(lerRespostaDaIA(texto)), { headers: cabecalhos });
     } catch (erro) {
       return new Response(JSON.stringify({ erro: "falha", detalhe: String(erro.message || erro).slice(0, 200) }), { status: 500, headers: cabecalhos });
     }

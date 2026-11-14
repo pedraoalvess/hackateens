@@ -56,14 +56,13 @@ const VELOCIDADE_TESTE = 5;
 const URL_DA_IA = "";
 
 
-const BOAS_VINDAS = "Bem-vindo ao Mobintec, o aplicativo dos ônibus turísticos de Foz do Iguaçu. " +
-  "Toque em qualquer lugar da tela e diga o destino: Cataratas, Parque das Aves, Itaipu, " +
-  "Marco das Três Fronteiras ou Templo Budista. Se você usa leitor de tela, vá até o botão Falar o destino e toque duas vezes. " +
-  "Depois você pode perguntar sobre o ônibus, o assento, a rota e hotéis próximos.";
+const BOAS_VINDAS = "Bem-vindo ao Mobintec. Toque em qualquer lugar da tela e converse comigo. " +
+  "Você pode pedir o ônibus de um destino, procurar hotéis e restaurantes perto de você, abrir o mapa e perguntar o que quiser. " +
+  "Se você usa leitor de tela, toque duas vezes no botão do microfone.";
 
-const TEXTO_AJUDA = "Você pode dizer: o nome de um destino, como Cataratas; quando o ônibus chega; acessibilidade; mapa; minha localização; paradas; transporte; horários; restaurantes perto; pontos turísticos perto; " +
-  "tem assento livre; qual a rota; tema claro; tema escuro; hotéis perto; onde estou; repetir; mais devagar; mais rápido; " +
-  "silêncio; desligar a voz; ou voltar.";
+const TEXTO_AJUDA = "Você pode conversar comigo normalmente. Por exemplo: quero ir para as Cataratas; tem restaurante perto de mim; " +
+  "abre o mapa; quando o ônibus chega; tem assento livre; como é a acessibilidade; quais as paradas; qual o horário; onde estou. " +
+  "Também funcionam: repetir, mais devagar, mais rápido, silêncio, desligar a voz e voltar.";
 
 // Devolve o destino citado em um texto, ou null se não achar nenhum.
 function acharDestino(texto) {
@@ -85,9 +84,10 @@ let velocidadeVoz = 1;
 let vozLigada = true;      // false = o site não fala (bom para quem já usa leitor de tela)    // 1 = normal
 
 // O site fala o texto em voz alta (se o navegador tiver voz).
-function falar(texto, naFila) {
+function falar(texto, naFila, aoTerminar) {
   ultimaFala = texto;
   if (!vozLigada || !window.speechSynthesis) {
+    if (aoTerminar) { setTimeout(aoTerminar, 0); }   // sem voz: faz a ação logo
     return;
   }
   if (!naFila) {
@@ -96,14 +96,32 @@ function falar(texto, naFila) {
   const fala = new SpeechSynthesisUtterance(texto);
   fala.lang = "pt-BR";
   fala.rate = velocidadeVoz;
+  if (aoTerminar) {
+    let feito = false;
+    const terminar = function () { if (!feito) { feito = true; aoTerminar(); } };
+    fala.onend = terminar;
+    fala.onerror = terminar;
+    setTimeout(terminar, 12000);   // garantia: se o navegador não avisar que terminou
+  }
   window.speechSynthesis.speak(fala);
 }
 
+// Guarda as últimas mensagens da conversa na tela inicial.
+function registrarConversa(quem, texto) {
+  const lista = pegar("#conversa");
+  const item = document.createElement("li");
+  item.className = quem === "Você" ? "voce" : "assistente";
+  item.textContent = quem + ": " + texto;
+  lista.appendChild(item);
+  while (lista.children.length > 6) { lista.removeChild(lista.firstChild); }
+}
+
 // Mostra a mensagem na tela e também fala.
-function avisar(texto) {
+function avisar(texto, aoTerminar) {
   pegar("#textoEstado").textContent = texto;
   pegar("#textoResposta").textContent = texto;
-  falar(texto);
+  registrarConversa("Assistente", texto);
+  falar(texto, false, aoTerminar);
 }
 
 // Toca um bipe curto (agudo = começou a ouvir, grave = terminou).
@@ -151,7 +169,6 @@ function voltar() {
 
 function abrirTela(nome, silencioso, semHistorico) {
   pararMicrofone();
-  mostrar(pegar("#telaAbertura"), nome === "abertura");
   mostrar(pegar("#telaInicio"), nome === "inicio");
   mostrar(pegar("#telaLista"), nome === "lista");
   mostrar(pegar("#telaMapa"), nome === "mapa");
@@ -172,14 +189,13 @@ function abrirTela(nome, silencioso, semHistorico) {
     desenharRotaNoMapa();
     mostrarVoceNoMapa();
     pegar("#tituloMapa").focus();
-    falar("Mapa. Para ver onde você está, ative a localização.");
-  } else if (nome === "abertura") {
-    pegar("#tituloAbertura").focus();   // as boas-vindas faladas tocam quando a página abre
+    desenharPerto();
+    if (idLocal === null) { ligarLocalizacao(); } else { falar("Mapa. " + pegar("#textoLocal").textContent); }
   } else {
     pararAcompanhamento();
     limparBolhas();
     tocarEmQualquerLugar = true;
-    if (!silencioso) { falar("Comando de voz. Toque em qualquer lugar e diga o destino."); }
+    if (!silencioso) { falar("Conversa. Toque em qualquer lugar e fale."); }
     pegar("#tituloInicio").focus();
   }
   window.scrollTo(0, 0);
@@ -191,6 +207,7 @@ let mapa = null;          // o mapa
 let camada = null;        // desenhos da rota atual
 let marcadorOnibus = null;
 let marcadorVoce = null;
+let camadaPerto = null;
 let distanciaAteVoce = null;
 
 // Cria um pino redondo com um texto dentro.
@@ -220,6 +237,7 @@ function criarMapa() {
   trocarFundoDoMapa();
 
   camada = L.layerGroup().addTo(mapa);
+  camadaPerto = L.layerGroup().addTo(mapa);
 
   // Pino do embarque e um pino para cada destino.
   L.marker(EMBARQUE.posicao, { icon: criarPino("E", "#ffffff", "#0d0a0b", 36), keyboard: false }).addTo(mapa);
@@ -543,18 +561,56 @@ async function carregarModelo() {
 
 /* ---------- 7) Assistente: entende o que a pessoa falou ou digitou ---------- */
 
+// A pessoa quer ir até o destino (e não só conversar sobre ele)?
+function querIrAoDestino(texto) {
+  return /quero ir|vou para|ir para|ir ao|ir a |me leva|levar|acompanhar|onibus|rota|abrir|vamos/.test(semAcento(texto));
+}
+
+// Abre o painel do ônibus do destino.
+function irParaDestino(destino, silencioso) {
+  destacarBolha(destino);
+  if (!silencioso) { avisar("Certo: ônibus para " + destino.nome + "."); }
+  setTimeout(function () {
+    abrirTela("lista");
+    escolherDestino(DESTINOS.indexOf(destino));
+  }, silencioso ? 0 : 900);
+}
+
+// Conta sobre o lugar (sem abrir o ônibus) e oferece abrir.
+function falarSobreDestino(destino) {
+  destacarBolha(destino);
+  avisar(destino.nome + ". " + destino.descricao + " Acessibilidade: " + destino.acessibilidade + " Para acompanhar o ônibus, diga: quero ir.");
+}
+
+// Faz o que a assistente de IA pediu (só as ações desta lista).
+function executarAcao(resposta) {
+  const acao = resposta.acao;
+  if (acao === "abrir_onibus") {
+    const destino = acharDestino(resposta.destino || "");
+    if (destino) { irParaDestino(destino, true); }
+  } else if (acao === "abrir_mapa") {
+    abrirTela("mapa");
+  } else if (acao === "ligar_localizacao") {
+    if (idLocal === null) { ligarLocalizacao(); }
+  } else if (acao === "voltar") {
+    voltar();
+  } else if (destinoAtual && dados) {
+    if (acao === "ler_paradas") { mostrarAba("Rota"); avisar(textoParadas()); }
+    if (acao === "ler_acessibilidade") { mostrarAba("Onibus"); avisar(textoAcessibilidade()); }
+    if (acao === "ler_transporte") { mostrarAba("Onibus"); avisar(textoTransporte()); }
+  }
+}
+
 function responder(texto) {
-  // 1) A pessoa citou um destino?
+  registrarConversa("Você", texto);
+  pegar("#textoOuvido").textContent = "“" + texto.trim() + "”";
+
+  // 1) Citou um destino? Só abre o ônibus se pediu para ir. Senão, conversa sobre o lugar.
   const destino = acharDestino(texto);
   if (destino) {
-    tocarEmQualquerLugar = false;   // a partir daqui, tocar em qualquer lugar não liga mais o microfone
-    pegar("#textoOuvido").textContent = "“" + texto.trim() + "”";
-    destacarBolha(destino);
-    avisar("Entendi: " + destino.nome + ".");
-    setTimeout(function () {
-      abrirTela("lista");
-      escolherDestino(DESTINOS.indexOf(destino));
-    }, 700);
+    if (querIrAoDestino(texto)) { irParaDestino(destino, false); return; }
+    if (URL_DA_IA) { destacarBolha(destino); perguntarParaIA(texto); return; }
+    falarSobreDestino(destino);
     return;
   }
 
@@ -643,7 +699,7 @@ async function perguntarParaIA(texto) {
     conversa.push({ role: "user", content: texto });
     conversa.push({ role: "assistant", content: json.resposta });
     conversa = conversa.slice(-6);
-    avisar(json.resposta);
+    avisar(json.resposta, function () { executarAcao(json); });
   } catch (erro) {
     console.warn("Erro da assistente de IA:", erro);   // aparece no Console (F12) para ajudar a achar o problema
     avisar("Não consegui falar com a assistente agora. Diga ajuda para ouvir os comandos.");
@@ -661,6 +717,7 @@ let idLocal = null;                 // número da vigilância de posição (null
 let posicaoUsuario = null;          // [latitude, longitude] da pessoa
 let ultimoLimiar = null;            // último aviso de proximidade já falado
 let ultimaDistanciaMostrada = null;
+let centralizouNaPessoa = false;
 
 function mostrarVoceNoMapa() {
   if (!mapa || !posicaoUsuario) { return; }
@@ -679,6 +736,10 @@ function aoReceberPosicao(posicao) {
   posicaoUsuario = [posicao.coords.latitude, posicao.coords.longitude];
   distanciaAteVoce = distanciaEntre(posicaoUsuario, EMBARQUE.posicao);
   mostrarVoceNoMapa();
+  if (mapa && !dados && !centralizouNaPessoa) {   // sem rota aberta: o mapa vai para onde a pessoa está
+    mapa.setView(posicaoUsuario, 15);
+    centralizouNaPessoa = true;
+  }
   avisarProximidade();
 
   // O texto só muda quando a distância muda bastante (para não ficar falando toda hora).
@@ -708,6 +769,7 @@ function ligarLocalizacao() {
     distanciaAteVoce = null;
     ultimoLimiar = null;
     ultimaDistanciaMostrada = null;
+    centralizouNaPessoa = false;
     if (marcadorVoce) { marcadorVoce.remove(); marcadorVoce = null; }
     atualizarBotaoLocal();
     pegar("#textoLocal").textContent = "Localização desligada. O ponto de embarque é no " + EMBARQUE.nome + ".";
@@ -832,10 +894,18 @@ function desenharRotaNoMapa() {
   L.polyline(dados.pontos, { color: corDaRota(), weight: 6 }).addTo(camada);
   L.marker(destinoAtual.posicao, { icon: criarPino(destinoAtual.sigla, "#8b1f2f", "#ffffff", 36), keyboard: false }).addTo(camada);
   marcadorOnibus = L.marker(posicaoDoOnibus(), { icon: criarPino(destinoAtual.sigla, "#ffffff", "#0d0a0b", 46), keyboard: false }).addTo(camada);
+  const limites = L.polyline(dados.pontos).getBounds();
+  if (posicaoUsuario) { limites.extend(posicaoUsuario); }   // mostra também onde a pessoa está
+  mapa.fitBounds(limites, { padding: [30, 30] });
+}
+
+// Desenha no mapa os lugares perto (hotéis, restaurantes ou pontos turísticos).
+function desenharPerto() {
+  if (!mapa) { return; }
+  camadaPerto.clearLayers();
   perto.lista.forEach(function (lugar) {
-    L.marker(lugar.posicao, { icon: criarPino(CATEGORIAS[perto.categoria].sigla, "#ffffff", "#0d0a0b", 30), keyboard: false }).addTo(camada);
+    L.marker(lugar.posicao, { icon: criarPino(CATEGORIAS[perto.categoria].sigla, "#ffffff", "#0d0a0b", 30), keyboard: false }).addTo(camadaPerto);
   });
-  mapa.fitBounds(L.polyline(dados.pontos).getBounds(), { padding: [30, 30] });
 }
 
 // ---------- Transporte turístico e paradas da rota ----------
@@ -1099,7 +1169,8 @@ async function buscarPerto(categoria) {
   }
   pegar("#listaHoteis").replaceChildren(...itens);
   pegar("#textoPerto").textContent = "Mostrando " + tipo.nome + " perto de " + perto.referencia + ".";
-  desenharRotaNoMapa();
+  pegar("#listaPertoMapa").replaceChildren(...itens.map(function (item) { return item.cloneNode(true); }));
+  desenharPerto();
   return true;
 }
 
@@ -1126,7 +1197,7 @@ DESTINOS.forEach(function (destino, indice) {
   bolha.innerHTML = '<span class="foto" aria-hidden="true"></span><span class="nome"></span>';
   bolha.querySelector(".foto").style.backgroundImage = "url(" + destino.foto + ")";
   bolha.querySelector(".nome").textContent = destino.nome;
-  bolha.onclick = function () { responder(destino.nome); };
+  bolha.onclick = function () { irParaDestino(destino, false); };
   pegar("#bolhas").appendChild(bolha);
 
   const cartao = document.createElement("li");
@@ -1156,7 +1227,6 @@ document.querySelectorAll(".botao-cat").forEach(function (botao) {
 pegar("#botaoAbrirMapa").onclick = function () { abrirTela("mapa"); };
 pegar("#botaoVoltarMapa").onclick = function () { voltar(); };
 pegar("#botaoLocal").onclick = function () { ligarLocalizacao(); };
-pegar("#botaoComecar").onclick = function () { abrirTela("inicio"); };
 pegar("#botaoVoltar").onclick = function () { voltar(); };
 pegar("#botaoRepetir").onclick = function () { repetirUltima(); };
 pegar("#botaoVoz").onclick = function () { definirVoz(!vozLigada, true); };
@@ -1183,11 +1253,6 @@ let tocarEmQualquerLugar = true;
 document.addEventListener("click", function (evento) {
   const naTelaInicial = !pegar("#telaInicio").hidden;
   const tocouEmControle = evento.target.closest("button, input, a");
-  if (!pegar("#telaAbertura").hidden && !tocouEmControle) {   // tocar em qualquer lugar da abertura: abre a tela de voz e já começa a ouvir
-    abrirTela("inicio", true);
-    tocarMicrofone(pegar("#botaoMicrofone"));
-    return;
-  }
   if (tocarEmQualquerLugar && naTelaInicial && !tocouEmControle) {
     tocarMicrofone(pegar("#botaoMicrofone"));
   }
@@ -1217,5 +1282,5 @@ pegar(".pular").onclick = function (evento) {
 };
 
 // Começa na tela inicial e fala as boas-vindas (o navegador pode bloquear a fala até o primeiro toque).
-abrirTela("abertura", true);
+abrirTela("inicio", true);
 window.addEventListener("load", function () { falar(BOAS_VINDAS); });
