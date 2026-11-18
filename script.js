@@ -53,15 +53,16 @@ function mostrar(elemento, visivel) {
 const VELOCIDADE_TESTE = 5;
 
 // Endereço da função da assistente de IA (veja a pasta "ia"). Deixe vazio ("") para desligar a IA.
-const URL_DA_IA = "";
+const URL_DA_IA = "https://mobintec-ia.pdeoliveiraalves840.workers.dev/";
 
 
 const BOAS_VINDAS = "Bem-vindo ao Mobintec. Toque em qualquer lugar da tela e converse comigo. " +
     "Você pode pedir o ônibus de um destino, procurar hotéis e restaurantes perto de você, abrir o mapa e perguntar o que quiser. " +
     "Se você usa leitor de tela, toque duas vezes no botão do microfone.";
 
-const TEXTO_AJUDA = "Você pode conversar comigo normalmente. Por exemplo: quero ir para as Cataratas; tem restaurante perto de mim; " +
+const TEXTO_AJUDA = "Você pode conversar comigo normalmente. Por exemplo: quero falar com a assistente; voltar aos pontos turísticos; quero ir para as Cataratas; tem restaurante perto de mim; " +
     "abre o mapa; quando o ônibus chega; tem assento livre; como é a acessibilidade; quais as paradas; qual o horário; onde estou. " +
+    "Para os assentos: ler os assentos com a câmera do celular, ver a câmera do ônibus ou parar a câmera. " +
     "Também funcionam: repetir, mais devagar, mais rápido, silêncio, desligar a voz e voltar.";
 
 // Devolve o destino citado em um texto, ou null se não achar nenhum.
@@ -98,8 +99,12 @@ function falar(texto, naFila, aoTerminar) {
     fala.rate = velocidadeVoz;
     if (aoTerminar) {
         let feito = false;
-        const terminar = function() { if (!feito) { feito = true;
-                aoTerminar(); } };
+        const terminar = function() {
+            if (!feito) {
+                feito = true;
+                aoTerminar();
+            }
+        };
         fala.onend = terminar;
         fala.onerror = terminar;
         setTimeout(terminar, 12000); // garantia: se o navegador não avisar que terminou
@@ -115,6 +120,16 @@ function registrarConversa(quem, texto) {
     item.textContent = quem + ": " + texto;
     lista.appendChild(item);
     while (lista.children.length > 6) { lista.removeChild(lista.firstChild); }
+    // Também mostra na conversa flutuante (disponível em todas as telas).
+    const flutuante = document.getElementById("conversaFlutuante");
+    if (flutuante) {
+        const copia = document.createElement("li");
+        copia.className = item.className;
+        copia.textContent = texto;
+        flutuante.appendChild(copia);
+        while (flutuante.children.length > 30) { flutuante.removeChild(flutuante.firstChild); }
+        flutuante.scrollTop = flutuante.scrollHeight;
+    }
 }
 
 // Mostra a mensagem na tela e também fala.
@@ -151,7 +166,6 @@ function vibrar(padrao) {
 // Para os avisos do ônibus (quando a pessoa volta ao início para escolher outro destino).
 function pararAcompanhamento() {
     clearInterval(relogioDoTempo);
-    clearInterval(relogioDaCamera);
     numeroDaEscolha = numeroDaEscolha + 1; // ignora respostas atrasadas
     destinoAtual = null;
     dados = null;
@@ -174,6 +188,17 @@ function abrirTela(nome, silencioso, semHistorico) {
     mostrar(pegar("#telaOpcoes"), nome === "opcoes");
     mostrar(pegar("#telaLista"), nome === "lista");
     mostrar(pegar("#telaMapa"), nome === "mapa");
+
+    // Painel da câmera de assentos: aparece nas Opções e na aba Ônibus. Nas outras telas a câmera é desligada.
+    if (window.CameraMobintec) {
+        if (nome === "opcoes") {
+            window.CameraMobintec.montarEm("#slotCameraOpcoes");
+        } else if (nome === "lista") {
+            window.CameraMobintec.montarEm("#slotCameraOnibus");
+        } else {
+            window.CameraMobintec.desmontar();
+        }
+    }
 
     if (nome !== "inicio" && !semHistorico) {
         try {
@@ -314,6 +339,11 @@ function definirVoz(ligada, anunciar) {
 
 // Repete a última mensagem: falando, ou só escrevendo se a voz do site estiver desligada.
 function repetirUltima() {
+    // Se a última fala tinha a leitura dos assentos, confere de novo se ela ainda vale antes de repetir.
+    if (window.CameraMobintec && window.CameraMobintec.ehMensagemDaCamera(ultimaFala)) {
+        window.CameraMobintec.ouvir();
+        return;
+    }
     if (vozLigada) {
         falar(ultimaFala);
         return;
@@ -385,10 +415,22 @@ function pararMicrofone() {
     pegar("#anel").classList.remove("ouvindo");
     pegar("#botaoMicrofone").setAttribute("aria-pressed", "false");
     pegar("#botaoPerguntar").setAttribute("aria-pressed", "false");
+    const micChat = document.getElementById("botaoMicChat");
+    if (micChat) { micChat.setAttribute("aria-pressed", "false"); }
+    const micFixo = document.getElementById("botaoFalarSempre");
+    if (micFixo) { micFixo.setAttribute("aria-pressed", "false"); }
 }
 
 // Chamado quando a pessoa toca no microfone (ou em qualquer lugar da tela inicial).
-function tocarMicrofone(botao) {
+// Modo conversa por voz: depois que a IA responde falando, o microfone liga sozinho de novo.
+let modoConversa = false;
+let botaoDaConversa = null;
+
+function tocarMicrofone(botao, automatico) {
+    if (!automatico) {
+        if (ouvindo) { modoConversa = false; } else { modoConversa = true;
+            botaoDaConversa = botao; }
+    }
     if (iniciando) {
         return;
     }
@@ -440,6 +482,12 @@ function ouvirComNavegador(botao) {
         if (acharDestino(texto) || ultimo.isFinal) {
             entendeu = true;
             pararMicrofone();
+            const fraseLimpa = semAcento(texto.trim());
+            if (/^(parar|pare|chega|tchau|encerrar|sair)( conversa)?$/.test(fraseLimpa)) {
+                modoConversa = false;
+                avisar("Conversa encerrada. Toque no microfone quando quiser falar de novo.");
+                return;
+            }
             responder(texto);
         }
     };
@@ -460,6 +508,7 @@ function ouvirComNavegador(botao) {
             avisar("Permissão do microfone negada. Libere o microfone nas configurações do navegador ou escolha o destino na lista.");
         } else if (erro === "no-speech") {
             entendeu = true;
+            modoConversa = false;
             avisar("Não ouvi nada. Toque e fale de novo.");
         } else if (erro === "audio-capture") {
             entendeu = true;
@@ -583,6 +632,51 @@ function querIrAoDestino(texto) {
     return /quero ir|vou para|ir para|ir ao|ir a |me leva|levar|acompanhar|onibus|rota|abrir|vamos/.test(semAcento(texto));
 }
 
+// A pessoa pediu para abrir, trocar ou parar a câmera? Devolve "celular", "fixa" (câmera do ônibus), "parar" ou null.
+function comandoDeCamera(texto) {
+    const t = semAcento(texto);
+    const falaCamera = /\bcameras?\b/.test(t);
+    const verboDeUso = /\b(abrir|abre|abra|ligar|liga|ligue|iniciar|inicia|inicie|usar|use|ativar|ativa|ative|ler|leia|analisar|analise|reconhecer|reconheca|reconhecimento)\b/.test(t);
+    const falaAssento = /\b(assentos?|poltronas?)\b/.test(t);
+    if (falaCamera && /\b(parar|pare|desligar|desliga|desligue|fechar|feche|encerrar|encerre)\b/.test(t)) { return "parar"; }
+    if (/\b(esp32|esp)\b/.test(t)) { return "fixa"; }
+    if ((falaCamera || (verboDeUso && falaAssento)) && /\b(celular|telefone|aparelho|cel)\b/.test(t)) { return "celular"; }
+    if (falaCamera && /\bonibus\b/.test(t)) { return "fixa"; }
+    if (falaCamera && verboDeUso) { return "celular"; }
+    return null;
+}
+
+// Executa o comando de câmera: mostra o painel (aba Ônibus se há destino escolhido; senão, Opções) e começa.
+function executarComandoDeCamera(comando) {
+    if (!window.CameraMobintec) {
+        avisar("A câmera de assentos não está disponível agora.");
+        return;
+    }
+    if (comando === "parar") {
+        window.CameraMobintec.parar(false);
+        avisar("Câmera parada. Sem leitura atual de assentos.");
+        return;
+    }
+    if (destinoAtual && dados) {
+        if (pegar("#telaLista").hidden) { abrirTela("lista", true); }
+        mostrarAba("Onibus");
+    } else if (pegar("#telaOpcoes").hidden) {
+        abrirTela("opcoes", true);
+    }
+    avisar(comando === "celular" ?
+        "Abrindo a câmera do celular. Se o navegador perguntar, escolha permitir. Aponte para os assentos." :
+        "Buscando a análise da câmera do ônibus.");
+    window.CameraMobintec.iniciar(comando);
+}
+
+// A pessoa perguntou sobre assentos? (a resposta vem só da câmera, nunca de números inventados)
+function perguntaSobreAssento(texto) {
+    const t = semAcento(texto);
+    return /\b(assentos?|poltronas?)\b/.test(t) ||
+        (/\blugar(es)?\b/.test(t) && /\b(livres?|vazios?|sentar)\b/.test(t)) ||
+        /\blivres?\b/.test(t);
+}
+
 // Abre o painel do ônibus do destino.
 function irParaDestino(destino, silencioso) {
     destacarBolha(destino);
@@ -611,13 +705,32 @@ function executarAcao(resposta) {
         if (idLocal === null) { ligarLocalizacao(); }
     } else if (acao === "voltar") {
         voltar();
+    } else if (acao === "abrir_camera_celular") {
+        executarComandoDeCamera("celular");
+    } else if (acao === "abrir_camera_onibus") {
+        executarComandoDeCamera("fixa");
+    } else if (acao === "parar_camera") {
+        executarComandoDeCamera("parar");
+    } else if (acao === "ler_assentos") {
+        if (destinoAtual && dados) { mostrarAba("Onibus"); }
+        avisar(textoAssento());
+    } else if (acao === "abrir_opcoes") {
+        abrirTela("opcoes");
+    } else if (acao === "trocar_tema") {
+        aplicarTema(!document.body.classList.contains("claro"), true);
     } else if (destinoAtual && dados) {
-        if (acao === "ler_paradas") { mostrarAba("Rota");
-            avisar(textoParadas()); }
-        if (acao === "ler_acessibilidade") { mostrarAba("Onibus");
-            avisar(textoAcessibilidade()); }
-        if (acao === "ler_transporte") { mostrarAba("Onibus");
-            avisar(textoTransporte()); }
+        if (acao === "ler_paradas") {
+            mostrarAba("Rota");
+            avisar(textoParadas());
+        }
+        if (acao === "ler_acessibilidade") {
+            mostrarAba("Onibus");
+            avisar(textoAcessibilidade());
+        }
+        if (acao === "ler_transporte") {
+            mostrarAba("Onibus");
+            avisar(textoTransporte());
+        }
     }
 }
 
@@ -625,15 +738,58 @@ function responder(texto) {
     registrarConversa("Você", texto);
     pegar("#textoOuvido").textContent = "“" + texto.trim() + "”";
 
+    // Comando de câmera por voz: "ler os assentos com a câmera do celular", "câmera do ônibus", "parar a câmera".
+    const comandoCamera = comandoDeCamera(texto);
+    if (comandoCamera) {
+        executarComandoDeCamera(comandoCamera);
+        return;
+    }
+
+    // Comandos de voz para navegar entre as telas (funcionam em qualquer momento).
+    const tNav = semAcento(texto);
+    if (/\b(assistente|ia|inteligencia artificial|chat)\b/.test(tNav) && /\b(falar|conversar|abrir|abre|abra|quero|chamar|chama)\b/.test(tNav) && pegar("#chatFlutuante").hidden) {
+        abrirChat(true);
+        avisar("Assistente aberta. Pode perguntar o que quiser.");
+        return;
+    }
+    if (/\b(fechar|feche|sair)\b/.test(tNav) && /\b(assistente|chat|conversa)\b/.test(tNav)) {
+        abrirChat(false);
+        avisar("Assistente fechada.");
+        return;
+    }
+    if (/\b(voltar|volta|retornar|retorna|inicio|comeco)\b/.test(tNav) && /\b(pontos? turisticos?|destinos?|inicio|comeco|tela inicial)\b/.test(tNav)) {
+        abrirChat(false);
+        voltar();
+        avisar("Voltando aos pontos turísticos. Diga para onde quer ir.");
+        return;
+    }
+
+    // Assistente flutuante aberta: ela funciona como um "ChatGPT" dentro do MOBINTEC.
+    // Tudo o que a pessoa fala ou digita ali vai direto para a IA, que responde e, se for o caso, executa a ação.
+    if (URL_DA_IA && !pegar("#chatFlutuante").hidden) {
+        perguntarParaIA(texto);
+        return;
+    }
+
     // 1) Citou um destino? Só abre o ônibus se pediu para ir. Senão, conversa sobre o lugar.
     const destino = acharDestino(texto);
     if (destino) {
         const pedido = categoriaNoTexto(texto); // ex.: "hotéis perto das Cataratas"
         if (pedido) { pedirPertoDe(destino, pedido); return; }
         if (querIrAoDestino(texto)) { irParaDestino(destino, false); return; }
-        if (URL_DA_IA) { destacarBolha(destino);
-            perguntarParaIA(texto); return; }
+        if (URL_DA_IA) {
+            destacarBolha(destino);
+            perguntarParaIA(texto);
+            return;
+        }
         falarSobreDestino(destino);
+        return;
+    }
+
+    // Pergunta sobre assento: responde só com o que a câmera leu de verdade (ou avisa que ainda não há leitura).
+    if (perguntaSobreAssento(texto)) {
+        if (destinoAtual && dados) { mostrarAba("Onibus"); }
+        avisar(textoAssento());
         return;
     }
 
@@ -672,18 +828,36 @@ function responder(texto) {
         avisar("Primeiro diga um destino, por exemplo Cataratas.");
         return;
     }
-    if (t.includes("transporte") || t.includes("horario") || t.includes("preco") || t.includes("valor") || t.includes("contato") || t.includes("operadora")) { mostrarAba("Onibus");
-        avisar(textoTransporte()); return; }
-    if (t.includes("acessibilidade") || t.includes("rampa")) { mostrarAba("Onibus");
-        avisar(textoAcessibilidade()); return; }
-    if (t.includes("assento") || t.includes("poltrona") || t.includes("lugar") || t.includes("livre")) { mostrarAba("Onibus");
-        avisar(textoAssento()); return; }
-    if (t.includes("parada") || t.includes("ponto de onibus")) { mostrarAba("Rota");
-        avisar(textoParadas()); return; }
-    if (t.includes("rota") || t.includes("caminho") || t.includes("linha") || t.includes("distancia")) { mostrarAba("Rota");
-        avisar(textoRota()); return; }
-    if (t.includes("onibus") || t.includes("chega") || t.includes("minuto") || t.includes("tempo") || t.includes("onde")) { mostrarAba("Onibus");
-        avisar(frasePrincipal()); return; }
+    if (t.includes("transporte") || t.includes("horario") || t.includes("preco") || t.includes("valor") || t.includes("contato") || t.includes("operadora")) {
+        mostrarAba("Onibus");
+        avisar(textoTransporte());
+        return;
+    }
+    if (t.includes("acessibilidade") || t.includes("rampa")) {
+        mostrarAba("Onibus");
+        avisar(textoAcessibilidade());
+        return;
+    }
+    if (t.includes("assento") || t.includes("poltrona") || t.includes("lugar") || t.includes("livre")) {
+        mostrarAba("Onibus");
+        avisar(textoAssento());
+        return;
+    }
+    if (t.includes("parada") || t.includes("ponto de onibus")) {
+        mostrarAba("Rota");
+        avisar(textoParadas());
+        return;
+    }
+    if (t.includes("rota") || t.includes("caminho") || t.includes("linha") || t.includes("distancia")) {
+        mostrarAba("Rota");
+        avisar(textoRota());
+        return;
+    }
+    if (t.includes("onibus") || t.includes("chega") || t.includes("minuto") || t.includes("tempo") || t.includes("onde")) {
+        mostrarAba("Onibus");
+        avisar(frasePrincipal());
+        return;
+    }
 
     if (URL_DA_IA) { perguntarParaIA(texto); return; }
     avisar("Não entendi. Diga ajuda para ouvir os comandos.");
@@ -703,7 +877,7 @@ async function perguntarParaIA(texto) {
 
     let contexto = { destino: "nenhum escolhido ainda" };
     if (destinoAtual && dados) {
-        contexto = { destino: destinoAtual.nome, descricao: destinoAtual.descricao, servico: destinoAtual.servico, acessibilidade: destinoAtual.acessibilidade, aConfirmar: destinoAtual.aConfirmar, status: frasePrincipal(), rota: textoRota(), lugaresPerto: textoPerto(), paradas: textoParadas(), transporte: textoTransporte() };
+        contexto = { destino: destinoAtual.nome, descricao: destinoAtual.descricao, servico: destinoAtual.servico, acessibilidade: destinoAtual.acessibilidade, aConfirmar: destinoAtual.aConfirmar, status: frasePrincipal(true), rota: textoRota(), lugaresPerto: textoPerto(), paradas: textoParadas(), transporte: textoTransporte() };
         mostrarAba("Assistente");
     }
     contexto.todosOsDestinos = DESTINOS.map(function(d) {
@@ -713,7 +887,7 @@ async function perguntarParaIA(texto) {
     if (distanciaAteVoce !== null) { contexto.voceEstaA = formatarDistancia(distanciaAteVoce) + " do ponto de embarque"; }
     try {
         const controle = new AbortController();
-        const prazo = setTimeout(function() { controle.abort(); }, 15000);
+        const prazo = setTimeout(function() { controle.abort(); }, 30000);
         const resposta = await fetch(URL_DA_IA, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -725,15 +899,22 @@ async function perguntarParaIA(texto) {
         if (!resposta.ok || !json.resposta) { throw new Error(json.detalhe || json.erro || "sem resposta"); }
         conversa.push({ role: "user", content: texto });
         conversa.push({ role: "assistant", content: json.resposta });
-        conversa = conversa.slice(-6);
+        conversa = conversa.slice(-10);
         avisar(json.resposta, function() {
             // Se a pessoa pediu lugares e a IA abre o mapa, a busca roda assim que a localização chegar.
             if (json.acao === "abrir_mapa" && categoria && !posicaoUsuario && !destinoAtual) { categoriaPendente = categoria; }
             executarAcao(json);
+            // Continua a conversa por voz: escuta a próxima pergunta.
+            if (modoConversa && botaoDaConversa && (!json.acao || json.acao === "nenhuma")) {
+                setTimeout(function() { if (modoConversa && !ouvindo && !iniciando) { tocarMicrofone(botaoDaConversa, true); } }, 400);
+            }
         });
     } catch (erro) {
         console.warn("Erro da assistente de IA:", erro); // aparece no Console (F12) para ajudar a achar o problema
-        avisar("Não consegui falar com a assistente agora. Diga ajuda para ouvir os comandos.");
+        modoConversa = false;
+        const motivo = erro.name === "AbortError" ? " Ela demorou demais para responder." :
+            (erro instanceof TypeError ? " Sem internet ou o site não tem permissão para falar com ela." : "");
+        avisar("Não consegui falar com a assistente agora." + motivo + " Tente de novo ou diga ajuda para ouvir os comandos.");
     }
 }
 
@@ -806,8 +987,10 @@ function ligarLocalizacao(silencioso) {
         ultimoLimiar = null;
         ultimaDistanciaMostrada = null;
         centralizouNaPessoa = false;
-        if (marcadorVoce) { marcadorVoce.remove();
-            marcadorVoce = null; }
+        if (marcadorVoce) {
+            marcadorVoce.remove();
+            marcadorVoce = null;
+        }
         atualizarBotaoLocal();
         pegar("#textoLocal").textContent = "Localização desligada. O ponto de embarque é no " + EMBARQUE.nome + ".";
         avisar("Localização desligada.");
@@ -836,7 +1019,6 @@ function falarLocalizacao() {
 let destinoAtual = null; // destino escolhido
 let dados = null; // dados do ônibus: pontos da rota, tempo, assentos, hotéis
 let relogioDoTempo = null;
-let relogioDaCamera = null;
 let numeroDaEscolha = 0; // ajuda a ignorar respostas atrasadas de uma escolha antiga
 let ultimoMinuto = 0;
 
@@ -859,9 +1041,12 @@ function mostrarAba(nome) {
     });
 }
 
+// Texto dos assentos: vem SÓ da leitura real da câmera (seção 10 deste arquivo). Sem leitura, avisa que ainda não há.
 function textoAssento() {
-    const estado = dados.assentoPcdOcupado ? "ocupada" : "livre";
-    return "Poltrona PCD " + estado + ". " + dados.assentosLivres + " de 12 assentos livres.";
+    if (window.CameraMobintec) {
+        return window.CameraMobintec.textoAssentos();
+    }
+    return "Sem leitura atual de assentos. A câmera ainda não fez uma leitura válida. A disponibilidade do assento PCD não foi verificada.";
 }
 
 function textoRota() {
@@ -897,16 +1082,15 @@ function textoPerto() {
     return "Perto de " + perto.referencia + ", " + perto.nome + ": " + nomes.join("; ") + ".";
 }
 
-// Frase principal: tempo de chegada + assento PCD.
-function frasePrincipal() {
+// Frase principal: tempo de chegada. Com comAssentos = true, acrescenta o resultado REAL da câmera (ou o aviso de que não há leitura).
+function frasePrincipal(comAssentos) {
     let quando = "chegou ao ponto de embarque";
     if (dados.segundosAteChegar > 0) {
         const minutos = minutosQueFaltam();
         quando = "chegando em " + minutos + (minutos > 1 ? " minutos" : " minuto");
     }
-    const assento = dados.assentoPcdOcupado ? "ocupado" : "livre";
-    return destinoAtual.servico + " " + quando + " com assento PCD " + assento + ". " +
-        dados.assentosLivres + " assentos livres.";
+    const frase = destinoAtual.servico + " " + quando + ".";
+    return comAssentos ? frase + " " + textoAssento() : frase;
 }
 
 // Busca a rota de carro (OSRM). Sem internet, usa uma linha reta.
@@ -1009,8 +1193,10 @@ async function buscarParadas() {
             let ordem = 0;
             dados.pontos.forEach(function(ponto, i) {
                 const distancia = distanciaEntre(ponto, [item.lat, item.lon]);
-                if (distancia < menor) { menor = distancia;
-                    ordem = i; }
+                if (distancia < menor) {
+                    menor = distancia;
+                    ordem = i;
+                }
             });
             if (menor <= 100) { // só as que ficam a até 100 metros da rota
                 achadas.push({ nome: (item.tags && item.tags.name) || "parada sem nome", posicao: [item.lat, item.lon], ordem: ordem });
@@ -1055,21 +1241,16 @@ function avisarProximidade() {
 
 // Atualiza os textos e cores do painel.
 function desenharPainel() {
-    const cor = dados.assentoPcdOcupado ? "ocupado" : "";
-    pegar("#alerta").className = "alerta " + cor;
-    pegar("#selo").className = "selo " + cor;
-    pegar("#selo").textContent = dados.assentoPcdOcupado ? "✕ OCUPADA" : "✓ LIVRE";
     pegar("#tempo").textContent = dados.segundosAteChegar > 0 ? minutosQueFaltam() + " min" : "Chegou";
     const feito = 1 - dados.segundosAteChegar / dados.segundosIniciais; // quanto do caminho o ônibus já andou
     pegar("#barra").style.width = Math.round(Math.min(1, Math.max(0, feito)) * 100) + "%";
-    pegar("#textoCamera").textContent = "Poltrona PCD " + (dados.assentoPcdOcupado ? "ocupada" : "livre") + ". " +
-        dados.assentosLivres + " de 12 assentos livres. Atualizado às " + new Date().toLocaleTimeString("pt-BR") + ".";
 }
 
 // Anuncia o status: escreve no alerta (leitor de tela), fala e vibra.
-function anunciarStatus(prefixo) {
+// Com comAssentos = true (botão "Ouvir status"), inclui o resultado real da câmera.
+function anunciarStatus(prefixo, comAssentos) {
     desenharPainel();
-    const frase = (prefixo ? prefixo + " " : "") + frasePrincipal();
+    const frase = (prefixo ? prefixo + " " : "") + frasePrincipal(comAssentos);
     const alerta = pegar("#alerta");
     alerta.textContent = "";
     setTimeout(function() { alerta.textContent = frase; }, 40); // texto novo faz o leitor de tela falar
@@ -1086,7 +1267,6 @@ function anunciarStatus(prefixo) {
 // Escolhe um destino (pela voz, pela lista ou pelo mapa).
 async function escolherDestino(indice) {
     clearInterval(relogioDoTempo);
-    clearInterval(relogioDaCamera);
     numeroDaEscolha = numeroDaEscolha + 1;
     const minhaEscolha = numeroDaEscolha;
     destinoAtual = DESTINOS[indice];
@@ -1109,8 +1289,6 @@ async function escolherDestino(indice) {
         duracao: rota.duracao,
         distancia: rota.distancia,
         segundosAteChegar: Math.min(rota.duracao, 240 + sortear(120)), // simulado: ônibus a 4 a 6 minutos
-        assentoPcdOcupado: false, // simulado: câmera com IA
-        assentosLivres: 2 + sortear(8), // simulado
     };
     dados.segundosIniciais = dados.segundosAteChegar;
     ultimoMinuto = minutosQueFaltam();
@@ -1135,7 +1313,6 @@ async function escolherDestino(indice) {
     }
 
     relogioDoTempo = setInterval(passarTempo, 1000);
-    relogioDaCamera = setInterval(lerCamera, 12000);
     buscarPerto("hoteis");
     buscarParadas();
 }
@@ -1153,20 +1330,6 @@ function passarTempo() {
     } else if (minutosQueFaltam() !== ultimoMinuto) {
         ultimoMinuto = minutosQueFaltam();
         anunciarStatus("");
-    } else {
-        desenharPainel();
-    }
-}
-
-// A cada 12 segundos: nova "leitura" da câmera (simulada).
-function lerCamera() {
-    const estavaOcupado = dados.assentoPcdOcupado;
-    if (Math.random() < 0.3) {
-        dados.assentoPcdOcupado = !dados.assentoPcdOcupado;
-    }
-    dados.assentosLivres = Math.min(12, Math.max(0, dados.assentosLivres + sortear(3) - 1));
-    if (estavaOcupado !== dados.assentoPcdOcupado) {
-        anunciarStatus("Atenção."); // o assento PCD mudou
     } else {
         desenharPainel();
     }
@@ -1312,13 +1475,15 @@ pegar("#botaoTema").onclick = function() { aplicarTema(!document.body.classList.
 // Tema e voz iniciais: o que a pessoa escolheu antes. Se nunca escolheu, o tema segue o do aparelho.
 let temaSalvo = null;
 let vozSalva = null;
-try { temaSalvo = localStorage.getItem("mobintecTema");
+try {
+    temaSalvo = localStorage.getItem("mobintecTema");
     vozSalva = localStorage.getItem("mobintecVoz");
-    velocidadeVoz = Number(localStorage.getItem("mobintecVelocidade")) || 1; } catch (e) {}
+    velocidadeVoz = Number(localStorage.getItem("mobintecVelocidade")) || 1;
+} catch (e) {}
 aplicarTema(temaSalvo ? temaSalvo === "claro" : true, false); // primeira visita: tema claro (design system do projeto)
 definirVoz(vozSalva !== "desligada", false);
 pegar("#botaoAjuda").onclick = function() { avisar(TEXTO_AJUDA); };
-pegar("#botaoOuvirStatus").onclick = function() { if (dados) { anunciarStatus(""); } };
+pegar("#botaoOuvirStatus").onclick = function() { if (dados) { anunciarStatus("", true); } };
 pegar("#botaoOuvirParadas").onclick = function() { if (dados) { avisar(textoParadas()); } };
 pegar("#botaoOuvirHoteis").onclick = function() { if (dados) { avisar(textoPerto()); } };
 
@@ -1328,11 +1493,97 @@ pegar("#formulario").onsubmit = function(evento) {
     responder(pegar("#campoTexto").value);
 };
 
+// Pergunta digitada na aba Assistente.
+pegar("#formularioAba").onsubmit = function(evento) {
+    evento.preventDefault();
+    const campo = pegar("#campoAba");
+    if (campo.value.trim()) { responder(campo.value);
+        campo.value = ""; }
+};
+
+// Assistente flutuante: abre em qualquer tela, com microfone e campo de texto.
+function abrirChat(aberto) {
+    const chat = pegar("#chatFlutuante");
+    chat.hidden = !aberto;
+    pegar("#botaoChatFlutuante").setAttribute("aria-expanded", aberto ? "true" : "false");
+    pegar("#botaoChatFlutuante").hidden = aberto;
+    if (aberto) {
+        if (!pegar("#conversaFlutuante").children.length) {
+            registrarConversa("Assistente", "Olá! Sou a assistente do MOBINTEC. Pode me perguntar qualquer coisa: como usar o site, qual ônibus pegar, se tem assento livre ou o que fazer em Foz do Iguaçu. Fale pelo microfone ou digite.");
+        }
+        pegar("#campoChat").focus();
+    } else {
+        pegar("#botaoChatFlutuante").focus();
+    }
+}
+pegar("#botaoChatFlutuante").onclick = function() { abrirChat(true); };
+pegar("#botaoFecharChat").onclick = function() { abrirChat(false); };
+// Microfone fixo: liga a conversa por voz com a IA em qualquer tela.
+function falarDeQualquerLugar() {
+    const botao = pegar("#botaoFalarSempre");
+    if (!ouvindo && !iniciando) { botao.setAttribute("aria-pressed", "true"); }
+    tocarMicrofone(botao);
+}
+pegar("#botaoFalarSempre").onclick = falarDeQualquerLugar;
+// Atalho no teclado: Alt + V liga ou desliga o microfone, mesmo com o foco num campo.
+document.addEventListener("keydown", function(evento) {
+    if (evento.altKey && (evento.key === "v" || evento.key === "V")) {
+        evento.preventDefault();
+        falarDeQualquerLugar();
+    }
+});
+// ---- Acessibilidade para quem não enxerga os botões ----
+// Botões escondidos que são os primeiros do leitor de tela (aparecem ao receber foco).
+pegar("#atalhoFalar").onclick = falarDeQualquerLugar;
+pegar("#atalhoAssistente").onclick = function() { abrirChat(true); };
+// Alt + A abre ou fecha a assistente.
+document.addEventListener("keydown", function(evento) {
+    if (evento.altKey && (evento.key === "a" || evento.key === "A")) {
+        evento.preventDefault();
+        abrirChat(pegar("#chatFlutuante").hidden);
+    }
+});
+// Espaço ou Enter fora de botões e campos liga o microfone.
+document.addEventListener("keydown", function(evento) {
+    if (evento.altKey || evento.ctrlKey || evento.metaKey) { return; }
+    if (evento.key !== " " && evento.key !== "Enter") { return; }
+    if (evento.target.closest("button, input, select, textarea, a, [contenteditable], [role=button]")) { return; }
+    evento.preventDefault();
+    falarDeQualquerLugar();
+});
+// Toque duplo em qualquer espaço vazio, em qualquer tela, liga o microfone.
+document.addEventListener("dblclick", function(evento) {
+    if (evento.target.closest("button, input, select, textarea, label, a, form")) { return; }
+    if (!pegar("#telaInicio").hidden && tocarEmQualquerLugar) { return; } // o toque simples já liga ali
+    falarDeQualquerLugar();
+});
+// No primeiro toque ou tecla, a página explica em voz alta como falar com a assistente.
+let instrucaoFalada = false;
+
+function falarInstrucaoInicial(evento) {
+    if (instrucaoFalada) { return; }
+    instrucaoFalada = true;
+    if (evento && evento.target && evento.target.closest && evento.target.closest("button, input, select, textarea, a")) { return; }
+    falar("Para falar com a assistente em qualquer tela, toque duas vezes em um espaço vazio, ou aperte Alt mais V. O botão do microfone também fica no canto de baixo, à esquerda.", true);
+}
+document.addEventListener("pointerdown", falarInstrucaoInicial, { once: true });
+document.addEventListener("keydown", falarInstrucaoInicial, { once: true });
+pegar("#botaoMicChat").onclick = function() { tocarMicrofone(pegar("#botaoMicChat")); };
+pegar("#formularioChat").onsubmit = function(evento) {
+    evento.preventDefault();
+    const campo = pegar("#campoChat");
+    if (campo.value.trim()) { responder(campo.value);
+        campo.value = ""; }
+};
+document.addEventListener("keydown", function(evento) {
+    if (evento.key === "Escape" && !pegar("#chatFlutuante").hidden) { abrirChat(false); }
+});
+
 // Na tela inicial, tocar em qualquer lugar liga o microfone (só até o primeiro destino ser entendido).
 let tocarEmQualquerLugar = true;
 document.addEventListener("click", function(evento) {
     const naTelaInicial = !pegar("#telaInicio").hidden;
-    const tocouEmControle = evento.target.closest("button, input, a");
+    const tocouEmControle = evento.target.closest("button, input, select, textarea, label, a, form, #chatFlutuante");
     if (tocarEmQualquerLugar && naTelaInicial && !tocouEmControle) {
         tocarMicrofone(pegar("#botaoMicrofone"));
     }
@@ -1360,6 +1611,657 @@ pegar(".pular").onclick = function(evento) {
     evento.preventDefault();
     pegar("#principal").focus();
 };
+
+/* ---------- 10) Câmera de assentos (leitura real: câmera do ônibus ou do celular) ---------- */
+
+/*
+ * MOBINTEC — leitura REAL de assentos pela câmera.
+ *
+ * Duas fontes:
+ *   1) câmera do ônibus   -> o site só RECEBE a análise: GET /api/cameras/onibus-demo/resultado
+ *      (a placa ESP32 envia as fotos para POST /api/cameras/onibus-demo/captura; este aparelho não abre câmera)
+ *   2) câmera do celular  -> POST /api/analisar
+ *
+ * O resto do script.js só usa:
+ *   CameraMobintec.montarEm(seletor)   mostra o painel em um lugar da página
+ *   CameraMobintec.desmontar()         desliga a câmera e tira o painel da página
+ *   CameraMobintec.iniciar(fonte)      "fixa" (câmera do ônibus) ou "celular": escolhe a fonte e começa
+ *   CameraMobintec.parar(mensagem)     para tudo
+ *   CameraMobintec.textoAssentos()     frase com o resultado REAL (ou aviso de que não há leitura)
+ *   CameraMobintec.ouvir()             fala e escreve o resultado atual
+ *   CameraMobintec.ehMensagemDaCamera(texto)
+ *
+ * Nunca há número sorteado aqui: o texto de assentos vem só do que o backend devolveu,
+ * e só vale por até 15 segundos depois da foto.
+ */
+
+(function() {
+    "use strict";
+
+    if (window.CameraMobintec) {
+        return;
+    }
+
+    const BACKEND = "https://mobintec-backend.onrender.com";
+    const CAMERA_ID = "onibus-demo";
+    const VALIDADE_MS = 15000; // igual ao VALIDADE_S do backend
+    const INTERVALO_CELULAR_MS = 8000; // pausa entre uma análise e a próxima (backend exige no mínimo 5 s)
+    const INTERVALO_FIXA_MS = 4000; // de quanto em quanto tempo consulta a câmera ESP32
+    const PRAZO_ANALISE_MS = 45000;
+    const PRAZO_CONSULTA_MS = 20000; // o Render gratuito pode demorar para acordar
+
+    let modo = "fixa"; // "fixa" = câmera do ônibus (só recebe a análise) ou "celular"
+    let fluxo = null; // fluxo da câmera do celular
+    let controle = null; // AbortController da requisição em andamento
+    let temporizadorFixa = null;
+    let temporizadorAuto = null;
+    let sessao = 0; // muda a cada parar(): ignora respostas atrasadas
+    let ciclo = 0;
+    let automatico = false;
+    let ocupado = false;
+    let abrindo = false;
+    let leitura = null; // { fonte, mensagem, expira }
+    let ultimoTexto = ""; // último texto de assentos gerado
+    let ultimaAnunciada = ""; // último texto de assentos falado em voz alta
+
+    /* ---------- Painel (montado em #slotCameraOpcoes ou #slotCameraOnibus) ---------- */
+
+    const painel = document.createElement("section");
+    painel.className = "camera-painel";
+    painel.setAttribute("aria-labelledby", "tituloCameraMobintec");
+    painel.innerHTML = `
+    <h3 id="tituloCameraMobintec" class="text-xl font-semibold">Leitura dos assentos</h3>
+    <div class="camera-fontes" role="group" aria-label="Fonte da imagem">
+      <button type="button" class="botao" data-fonte="fixa" aria-pressed="true">Câmera do ônibus</button>
+      <button type="button" class="botao" data-fonte="celular" aria-pressed="false">Câmera do celular</button>
+    </div>
+    <video class="camera-video" autoplay muted playsinline hidden aria-label="Prévia da câmera deste aparelho"></video>
+    <p class="camera-aviso-fixa">A câmera fica no ônibus e só envia a análise. Este aparelho não abre a câmera: aqui aparece apenas o resultado.</p>
+    <p class="camera-estado" role="status" aria-live="polite"></p>
+    <div class="camera-acoes">
+      <button type="button" class="botao botao-forte" data-acao="iniciar"></button>
+      <button type="button" class="botao" data-acao="parar" hidden>Parar leitura</button>
+      <button type="button" class="botao" data-acao="ouvir">Ouvir última leitura</button>
+    </div>
+    <p class="camera-nota">O resultado é uma estimativa feita por inteligência artificial, não uma confirmação de lugar livre. A câmera do ônibus é uma câmera de demonstração.</p>`;
+
+    const video = painel.querySelector(".camera-video");
+    const estado = painel.querySelector(".camera-estado");
+    const avisoFixa = painel.querySelector(".camera-aviso-fixa");
+    const botaoIniciar = painel.querySelector('[data-acao="iniciar"]');
+    const botaoParar = painel.querySelector('[data-acao="parar"]');
+    const botaoOuvir = painel.querySelector('[data-acao="ouvir"]');
+    const botoesFonte = painel.querySelectorAll("[data-fonte]");
+
+    function textoInicial() {
+        return modo === "fixa" ?
+            "Toque no botão abaixo para ver a análise da câmera do ônibus." :
+            "Toque no botão abaixo para começar a leitura.";
+    }
+
+    // Atualiza botões e avisos de acordo com a fonte escolhida.
+    function atualizarRotulos() {
+        botoesFonte.forEach(function(botao) {
+            botao.setAttribute("aria-pressed", botao.dataset.fonte === modo ? "true" : "false");
+        });
+        avisoFixa.hidden = modo !== "fixa";
+        botaoIniciar.textContent = modo === "fixa" ?
+            "Ver análise da câmera do ônibus" :
+            "Começar leitura dos assentos";
+        escrever(textoInicial());
+    }
+
+    /* ---------- Texto e fala ---------- */
+
+    function escrever(texto) {
+        if (estado.textContent !== texto) {
+            estado.textContent = texto;
+        }
+    }
+
+    function recente() {
+        return leitura !== null && performance.now() < leitura.expira;
+    }
+
+    // Frase usada pela tela, pela voz e pela assistente. Só existe leitura se o backend confirmou uma foto recente.
+    function textoAssentos() {
+        let texto;
+        if (!recente()) {
+            texto = "Sem leitura atual de assentos. A câmera ainda não fez uma leitura válida. " +
+                "A disponibilidade do assento PCD não foi verificada.";
+        } else {
+            const origem = leitura.fonte === "celular" ?
+                "Análise da câmera do celular." :
+                "Análise da câmera do ônibus.";
+            texto = origem + " " + leitura.mensagem +
+                " A disponibilidade do assento PCD não foi verificada.";
+        }
+        ultimoTexto = texto;
+        return texto;
+    }
+
+    function ehMensagemDaCamera(texto) {
+        return typeof texto === "string" && ultimoTexto !== "" && texto.indexOf(ultimoTexto) !== -1;
+    }
+
+    // Fala e escreve. Sem "forcar", só fala quando o texto mudou (para não repetir a mesma leitura a cada 8 segundos).
+    function anunciar(texto, forcar) {
+        if (!forcar && texto === ultimaAnunciada) {
+            return;
+        }
+        ultimaAnunciada = texto;
+        if (typeof avisar === "function") {
+            avisar(texto);
+        } else {
+            escrever(texto);
+        }
+    }
+
+    function ouvir() {
+        const texto = textoAssentos();
+        escrever(texto);
+        anunciar(texto, true);
+    }
+
+    function cancelarFalaDaCamera() {
+        if (typeof ultimaFala !== "undefined" && ehMensagemDaCamera(ultimaFala) && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+    }
+
+    function limparLeitura() {
+        leitura = null;
+    }
+
+    /* ---------- Parar tudo ---------- */
+
+    function parar(mostrarMensagem) {
+        automatico = false;
+        ciclo += 1;
+        sessao += 1;
+
+        clearTimeout(temporizadorAuto);
+        temporizadorAuto = null;
+        clearTimeout(temporizadorFixa);
+        temporizadorFixa = null;
+
+        if (controle) {
+            controle.abort();
+            controle = null;
+        }
+
+        if (fluxo) {
+            fluxo.getTracks().forEach(function(faixa) { faixa.stop(); });
+            fluxo = null;
+        }
+
+        video.srcObject = null;
+        video.hidden = true;
+
+        ocupado = false;
+        abrindo = false;
+        botaoIniciar.hidden = false;
+        botaoParar.hidden = true;
+
+        limparLeitura();
+        cancelarFalaDaCamera();
+        ultimaAnunciada = "";
+
+        if (mostrarMensagem !== false) {
+            escrever("Leitura parada. Sem leitura atual de assentos.");
+        }
+    }
+
+    /* ---------- Respostas do backend ---------- */
+
+    function mensagemDeErro(status, json) {
+        const detalhe = json && typeof json.detail === "string" ? json.detail : "";
+        if (status === 403) { return detalhe || "A análise pelo celular ainda não foi habilitada no sistema."; }
+        if (status === 429) { return detalhe || "O sistema está ocupado ou atingiu o limite de análises. Aguarde um pouco."; }
+        if (status === 400 || status === 409 || status === 413 || status === 415 || status === 422) {
+            return detalhe || "O sistema não aceitou a foto. Vou tentar com outra.";
+        }
+        if (status === 404) { return "Câmera não cadastrada no sistema."; }
+        return "O sistema de análise está indisponível no momento. Tente novamente em instantes.";
+    }
+
+    async function lerResposta(resposta) {
+        let json = null;
+        try {
+            json = await resposta.json();
+        } catch (erro) {
+            json = null;
+        }
+        if (!resposta.ok) {
+            const falha = new Error(mensagemDeErro(resposta.status, json));
+            falha.status = resposta.status;
+            throw falha;
+        }
+        if (!json) {
+            throw new Error("Não foi possível ler a resposta do sistema agora. Tente novamente.");
+        }
+        return json;
+    }
+
+    function guardarLeitura(json, restante, fonte) {
+        const valida = json.estado === "recente" &&
+            typeof json.mensagem === "string" && json.mensagem.trim() !== "" &&
+            Number.isFinite(restante) && restante > 0;
+
+        if (!valida) {
+            limparLeitura();
+            escrever(json.estado === "expirado" ?
+                "A leitura venceu antes de chegar. Aguardando uma foto nova." :
+                "Não foi possível identificar os assentos agora. Aponte a câmera de novo.");
+            return false;
+        }
+
+        leitura = {
+            fonte: fonte,
+            mensagem: json.mensagem.trim(),
+            expira: performance.now() + Math.min(VALIDADE_MS, restante)
+        };
+
+        const texto = textoAssentos();
+        escrever(texto);
+        anunciar(texto, false);
+        return true;
+    }
+
+    /* ---------- Câmera do celular ---------- */
+
+    function videoPronto() {
+        return !!(fluxo && fluxo.active && video.readyState >= 2 && video.videoWidth && video.videoHeight);
+    }
+
+    async function abrirCamera() {
+        if (abrindo || modo !== "celular") {
+            return;
+        }
+
+        parar(false);
+        const minhaSessao = sessao;
+        abrindo = true;
+        botaoIniciar.hidden = true;
+        botaoParar.hidden = false;
+        escrever("Pedindo permissão da câmera…");
+
+        try {
+            if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("Abra o site por HTTPS no Chrome ou no Safari. A câmera não está disponível neste navegador.");
+            }
+
+            const novoFluxo = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: "environment" }, width: { ideal: 960 }, height: { ideal: 720 } },
+                audio: false
+            });
+
+            if (minhaSessao !== sessao) {
+                novoFluxo.getTracks().forEach(function(faixa) { faixa.stop(); });
+                return;
+            }
+            if (document.hidden) {
+                novoFluxo.getTracks().forEach(function(faixa) { faixa.stop(); });
+                parar(false);
+                return;
+            }
+
+            fluxo = novoFluxo;
+            video.srcObject = fluxo;
+            video.hidden = false;
+            await video.play();
+
+            if (minhaSessao !== sessao) {
+                return;
+            }
+
+            escrever("Câmera aberta. A leitura é automática. Aponte para os assentos e mantenha o celular firme. " +
+                "Para encerrar, toque em Parar leitura.");
+            iniciarAutomatico();
+        } catch (erro) {
+            if (minhaSessao !== sessao) {
+                return;
+            }
+            parar(false);
+            escrever(erro.name === "NotAllowedError" ?
+                "Permissão da câmera negada. Libere a câmera nas configurações do navegador ou toque em Começar leitura dos assentos." :
+                "Não consegui abrir a câmera: " + erro.message);
+        } finally {
+            if (minhaSessao === sessao) {
+                abrindo = false;
+            }
+        }
+    }
+
+    async function capturarFoto() {
+        if (!videoPronto()) {
+            throw new Error("A imagem ainda não está pronta. Aguarde alguns segundos.");
+        }
+
+        const escala = Math.min(1, 960 / Math.max(video.videoWidth, video.videoHeight));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(video.videoWidth * escala));
+        canvas.height = Math.max(1, Math.round(video.videoHeight * escala));
+
+        const contexto = canvas.getContext("2d");
+        if (!contexto) {
+            throw new Error("Não consegui preparar a foto.");
+        }
+        contexto.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const blob = await new Promise(function(resolve) {
+            canvas.toBlob(resolve, "image/jpeg", 0.8);
+        });
+        if (!blob) {
+            throw new Error("Não consegui capturar a foto.");
+        }
+        return blob;
+    }
+
+    // Devolve "ok", "erro", "fatal" (para de tentar) ou "cancelado".
+    async function analisarFoto() {
+        if (ocupado) {
+            return "erro";
+        }
+        if (!videoPronto()) {
+            escrever("A imagem ainda não está pronta. Aguarde alguns segundos.");
+            return "erro";
+        }
+        if (document.hidden) {
+            escrever("Mantenha esta página visível para analisar.");
+            return "erro";
+        }
+
+        ocupado = true;
+        const minhaSessao = sessao;
+        const mostrarPassos = !recente(); // com uma leitura válida na tela, não escreve cada etapa (evita ruído no leitor de tela)
+        const abortador = new AbortController();
+        controle = abortador;
+        const prazo = setTimeout(function() { abortador.abort(); }, PRAZO_ANALISE_MS);
+
+        let resultado = "erro";
+        let mensagemErro = "";
+
+        try {
+            if (mostrarPassos) { escrever("Tirando a foto dos assentos…"); }
+
+            // Horário da captura em UTC, sem milissegundos (mesmo formato da placa ESP32).
+            const capturadoEm = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+            const inicio = performance.now();
+            const blob = await capturarFoto();
+
+            if (minhaSessao !== sessao) {
+                return "cancelado";
+            }
+
+            const requisicaoId = window.crypto && window.crypto.randomUUID ?
+                window.crypto.randomUUID() :
+                Date.now() + "-" + Math.random().toString(36).slice(2);
+
+            const formulario = new FormData();
+            formulario.append("image", blob, "captura.jpg");
+            formulario.append("capturadoEm", capturadoEm);
+            formulario.append("requisicaoId", requisicaoId);
+
+            if (mostrarPassos) { escrever("Analisando a imagem…"); }
+
+            const resposta = await fetch(BACKEND + "/api/analisar", {
+                method: "POST",
+                body: formulario,
+                signal: abortador.signal,
+                cache: "no-store"
+            });
+            const json = await lerResposta(resposta);
+
+            if (minhaSessao !== sessao) {
+                return "cancelado";
+            }
+
+            if (json.capturadoEm !== capturadoEm || json.requisicaoId !== requisicaoId) {
+                throw new Error("A resposta não é da foto atual. Vou tentar de novo.");
+            }
+
+            const idade = performance.now() - inicio;
+            if (idade >= VALIDADE_MS) {
+                mensagemErro = "A análise demorou demais e foi descartada. Vou tentar uma foto nova.";
+                return "erro";
+            }
+
+            const restante = Math.min(VALIDADE_MS - idade, Number(json.validaPorSegundos) * 1000);
+            resultado = guardarLeitura(json, restante, "celular") ? "ok" : "erro";
+        } catch (erro) {
+            if (minhaSessao !== sessao) {
+                return "cancelado";
+            }
+            if (erro.name === "AbortError") {
+                mensagemErro = "O sistema demorou para responder. Vou tentar de novo.";
+            } else if (erro.status) {
+                mensagemErro = erro.message;
+            } else if (erro instanceof TypeError) {
+                mensagemErro = "Sem conexão com o sistema de análise. Verifique a internet.";
+            } else {
+                mensagemErro = erro.message;
+            }
+            resultado = (erro.status === 401 || erro.status === 403 || erro.status === 404) ? "fatal" : "erro";
+        } finally {
+            clearTimeout(prazo);
+            if (controle === abortador) {
+                controle = null;
+            }
+            if (minhaSessao === sessao) {
+                ocupado = false;
+            }
+            if (mensagemErro && resultado !== "fatal" && !recente()) {
+                escrever(mensagemErro);
+            }
+        }
+
+        if (resultado === "fatal") {
+            parar(false);
+            escrever(mensagemErro);
+        }
+        return resultado;
+    }
+
+    function agendarCiclo(meuCiclo, ms) {
+        clearTimeout(temporizadorAuto);
+        temporizadorAuto = setTimeout(function() { executarCiclo(meuCiclo); }, ms);
+    }
+
+    async function executarCiclo(meuCiclo) {
+        if (!automatico || meuCiclo !== ciclo || modo !== "celular" || !fluxo || !fluxo.active || document.hidden) {
+            return;
+        }
+        if (ocupado || !videoPronto()) {
+            agendarCiclo(meuCiclo, 1000);
+            return;
+        }
+
+        const resultado = await analisarFoto();
+
+        if (!automatico || meuCiclo !== ciclo || resultado === "fatal" || resultado === "cancelado") {
+            return;
+        }
+        agendarCiclo(meuCiclo, INTERVALO_CELULAR_MS);
+    }
+
+    function iniciarAutomatico() {
+        clearTimeout(temporizadorAuto);
+        automatico = true;
+        ciclo += 1;
+        agendarCiclo(ciclo, 1000);
+    }
+
+    /* ---------- Câmera ESP32 (consulta o último resultado no backend) ---------- */
+
+    async function consultarFixa(minhaSessao) {
+        if (minhaSessao !== sessao || modo !== "fixa" || document.hidden) {
+            return;
+        }
+
+        const inicio = performance.now();
+        const abortador = new AbortController();
+        controle = abortador;
+        const prazo = setTimeout(function() { abortador.abort(); }, PRAZO_CONSULTA_MS);
+        let continuar = true;
+
+        try {
+            const resposta = await fetch(BACKEND + "/api/cameras/" + CAMERA_ID + "/resultado", {
+                cache: "no-store",
+                signal: abortador.signal
+            });
+            const json = await lerResposta(resposta);
+
+            if (minhaSessao !== sessao) {
+                return;
+            }
+
+            if (json.estado === "sem_leitura") {
+                limparLeitura();
+                escrever("A câmera do ônibus ainda não enviou uma foto válida. Aguarde um instante.");
+            } else {
+                const restante = Number(json.validaPorSegundos) * 1000 - (performance.now() - inicio);
+                guardarLeitura(json, restante, "fixa");
+            }
+        } catch (erro) {
+            if (minhaSessao !== sessao) {
+                return;
+            }
+            limparLeitura();
+            if (erro.status === 404) {
+                continuar = false;
+                parar(false);
+                escrever(erro.message);
+                return;
+            }
+            if (erro.name === "AbortError") {
+                escrever("O sistema demorou para responder. Tentando de novo.");
+            } else if (erro.status) {
+                escrever(erro.message + " Tentando de novo.");
+            } else {
+                escrever("Sem conexão com o sistema. Tentando de novo.");
+            }
+        } finally {
+            clearTimeout(prazo);
+            if (controle === abortador) {
+                controle = null;
+            }
+            if (continuar && minhaSessao === sessao && modo === "fixa") {
+                temporizadorFixa = setTimeout(function() { consultarFixa(minhaSessao); }, INTERVALO_FIXA_MS);
+            }
+        }
+    }
+
+    function iniciarFixa() {
+        parar(false);
+        modo = "fixa";
+        botaoIniciar.hidden = true;
+        botaoParar.hidden = false;
+        escrever("Buscando a análise da câmera do ônibus…");
+        consultarFixa(sessao);
+    }
+
+    /* ---------- Botões do painel ---------- */
+
+    botaoIniciar.onclick = function() {
+        if (modo === "celular") {
+            abrirCamera();
+        } else {
+            iniciarFixa();
+        }
+    };
+
+    botaoParar.onclick = function() {
+        parar(true);
+    };
+
+    botaoOuvir.onclick = ouvir;
+
+    function escolherFonte(fonte) {
+        parar(false);
+        modo = fonte;
+        atualizarRotulos();
+    }
+
+    botoesFonte.forEach(function(botao) {
+        botao.onclick = function() {
+            const escolhido = botao.dataset.fonte;
+            if (escolhido === modo && !fluxo && !temporizadorFixa && !abrindo) {
+                return;
+            }
+            escolherFonte(escolhido);
+        };
+    });
+
+    // Chamado pela voz ou pelo script.js: escolhe a fonte e começa a leitura.
+    function iniciar(fonte) {
+        if (fonte === modo && (fluxo || temporizadorFixa || abrindo)) {
+            return; // já está funcionando
+        }
+        escolherFonte(fonte);
+        if (modo === "celular") {
+            abrirCamera();
+        } else {
+            iniciarFixa();
+        }
+    }
+
+    /* ---------- Segurança: leitura velha não vale ---------- */
+
+    setInterval(function() {
+        if (leitura && !recente()) {
+            limparLeitura();
+            cancelarFalaDaCamera();
+            escrever("A leitura anterior venceu. Aguardando uma foto nova.");
+        }
+    }, 1000);
+
+    // Câmera só fica ligada com a página visível.
+    document.addEventListener("visibilitychange", function() {
+        if (document.hidden && (fluxo || temporizadorFixa || abrindo)) {
+            parar(true);
+        }
+    });
+
+    window.addEventListener("pagehide", function() {
+        parar(false);
+    });
+
+    atualizarRotulos();
+
+    /* ---------- Ligação com o script.js ---------- */
+
+    function montarEm(seletor) {
+        const lugar = document.querySelector(seletor);
+        if (!lugar) {
+            return;
+        }
+        if (painel.parentNode !== lugar) {
+            lugar.appendChild(painel);
+            if (fluxo && video.srcObject) {
+                video.play().catch(function() {}); // mudar o vídeo de lugar pode pausá-lo
+            }
+        }
+    }
+
+    function desmontar() {
+        parar(false);
+        escrever(textoInicial());
+        if (painel.parentNode) {
+            painel.parentNode.removeChild(painel);
+        }
+    }
+
+    window.CameraMobintec = {
+        montarEm: montarEm,
+        desmontar: desmontar,
+        iniciar: iniciar,
+        textoAssentos: textoAssentos,
+        ouvir: ouvir,
+        ehMensagemDaCamera: ehMensagemDaCamera,
+        parar: parar
+    };
+})();
 
 // Começa na tela inicial e fala as boas-vindas (o navegador pode bloquear a fala até o primeiro toque).
 abrirTela("inicio", true);

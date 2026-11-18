@@ -35,17 +35,19 @@
   </script>
   <link rel="stylesheet" href="lib/leaflet/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=37">
 </head>
 
 <body class="font-sans">
+  <button type="button" id="atalhoFalar" class="pular" aria-keyshortcuts="Alt+V">Falar com a assistente por voz. Aperte Enter. Em qualquer tela, toque duas vezes no espaço vazio ou aperte Alt mais V.</button>
+  <button type="button" id="atalhoAssistente" class="pular" aria-keyshortcuts="Alt+A">Abrir a conversa escrita com a assistente. Atalho: Alt mais A.</button>
   <a href="#principal" class="pular">Ir para o conteúdo</a>
 
   <header class="topo">
     <span class="logo" aria-hidden="true">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="3"/><path d="M4 11h16M8 21v-4M16 21v-4"/><circle cx="8" cy="14" r=".6"/><circle cx="16" cy="14" r=".6"/></svg>
     </span>
-    <span><span class="marca">MOBINTEC</span><span class="lema">Ônibus turísticos acessíveis em Foz do Iguaçu</span></span>
+    <span><span class="marca">MOBINTEC</span><span class="lema">Mobilidade, Inovação e Tecnologia · Ônibus turísticos acessíveis em Foz do Iguaçu</span></span>
   </header>
 
   <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
@@ -82,6 +84,8 @@
         <button id="botaoVoz" class="botao" aria-label="Desligar a voz do site. Desligue se você já usa um leitor de tela.">Voz do site: ligada</button>
         <button id="botaoTema" class="botao" aria-label="Trocar para tema escuro">Tema escuro</button>
       </div>
+      <h2 class="text-2xl">Câmera dos assentos</h2>
+      <div id="slotCameraOpcoes"></div>
       <h2 class="text-2xl">Digitar para a assistente</h2>
       <form id="formulario" class="flex gap-3 w-full">
         <input id="campoTexto" class="campo" aria-label="Digite um destino ou uma pergunta" placeholder="Digite um destino ou pergunta" autocomplete="off">
@@ -121,11 +125,8 @@
           <button id="botaoOuvirStatus" class="botao" aria-label="Ouvir o status do ônibus">Ouvir status</button>
         </div>
 
-        <div class="subcaixa">
-          <h3 class="text-xl font-semibold">Câmera interna com IA</h3>
-          <p id="selo" aria-hidden="true" class="selo"></p>
-          <p id="textoCamera" class="text-lg"></p>
-        </div>
+        <!-- Leitura real dos assentos (câmera do ônibus ou do celular): o painel é montado aqui pelo script.js -->
+        <div id="slotCameraOnibus" class="w-full"></div>
 
         <div class="subcaixa">
           <h3 class="text-xl font-semibold">Transporte turístico</h3>
@@ -177,7 +178,11 @@
           <p id="textoResposta" role="status" class="text-lg">Toque no botão e pergunte, por exemplo: tem assento livre?
           </p>
           <button id="botaoPerguntar" class="botao botao-forte" aria-pressed="false"
-            aria-label="Perguntar por voz">Perguntar por voz</button>
+            aria-label="Perguntar por voz"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> Perguntar por voz</button>
+          <form id="formularioAba" class="flex gap-3 w-full mt-3">
+            <input id="campoAba" class="campo" aria-label="Digite sua pergunta para a assistente" placeholder="Ou digite sua pergunta" autocomplete="off">
+            <button class="botao botao-forte" aria-label="Enviar pergunta">Enviar</button>
+          </form>
         </div>
         </div>
       </div>
@@ -218,17 +223,39 @@
     </section>
   </main>
 
+  <!-- MICROFONE FIXO: fala com a IA em qualquer tela (atalho no teclado: Alt + V) -->
+  <button id="botaoFalarSempre" class="falar-sempre" aria-pressed="false" aria-keyshortcuts="Alt+V" aria-label="Falar com a assistente por voz. Atalho: Alt mais V, ou toque duas vezes em qualquer espaço vazio da tela">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+  </button>
+
+  <!-- ASSISTENTE FLUTUANTE: conversa com a IA (voz ou texto) em qualquer tela -->
+  <button id="botaoChatFlutuante" class="chat-abrir" aria-expanded="false" aria-controls="chatFlutuante" aria-label="Abrir a conversa com a assistente">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> <span>Assistente</span>
+  </button>
+  <section id="chatFlutuante" class="chat-flutuante" hidden aria-label="Conversa com a assistente">
+    <div class="chat-topo">
+      <h2 class="text-xl font-semibold">Assistente MOBINTEC</h2>
+      <button id="botaoFecharChat" class="botao chat-fechar" aria-label="Fechar a conversa">✕</button>
+    </div>
+    <ul id="conversaFlutuante" class="conversa chat-lista" aria-live="polite" aria-label="Mensagens da conversa"></ul>
+    <form id="formularioChat" class="chat-form">
+      <button type="button" id="botaoMicChat" class="botao chat-mic" aria-pressed="false" aria-label="Falar com a assistente por áudio"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
+      <input id="campoChat" class="campo" aria-label="Digite sua mensagem" placeholder="Digite ou toque no microfone" autocomplete="off">
+      <button class="botao botao-forte" aria-label="Enviar mensagem">Enviar</button>
+    </form>
+  </section>
+
   <footer class="rodape">
-    Mapa © OpenStreetMap, mapa Esri; rotas OSRM; hotéis OpenStreetMap. Se a assistente de IA estiver ativada, o texto do que você fala é enviado ao Google (Gemini) para gerar a resposta. Na versão gratuita, o Google pode usar esse texto para melhorar seus produtos: não diga dados pessoais. Posição do ônibus e leitura da câmera
-    são simuladas.
+    <p class="mb-2"><strong>MOBINTEC – Mobilidade, Inovação e Tecnologia.</strong> Para passageiros: chegue sozinho ao ponto turístico que escolheu, guiado por voz. Para empresas de turismo: uma plataforma acessível que reúne em um só sistema os ônibus, as rotas, os assentos e as informações de acessibilidade dos seus passeios, e leva seu serviço a um público que hoje fica de fora.</p>
+    Mapa © OpenStreetMap, mapa Esri; rotas OSRM; hotéis OpenStreetMap. Se a assistente de IA estiver ativada, o texto do que você fala é enviado ao Google (Gemini) para gerar a resposta. Na versão gratuita, o Google pode usar esse texto para melhorar seus produtos: não diga dados pessoais. A posição do ônibus, o tempo de chegada e a câmera do ônibus são de demonstração. A leitura dos assentos é apenas uma estimativa feita por inteligência artificial.
   </footer>
 
   <!-- Mapa (Leaflet): tenta a cópia do projeto (pasta lib), depois o unpkg e depois o jsDelivr -->
   <script src="lib/leaflet/leaflet.js"></script>
   <script>window.L || document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>');</script>
   <script>window.L || document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>');</script>
-  <script src="dados.js?v=34"></script>
-  <script src="script.js?v=34" defer></script>
+  <script src="dados.js?v=37"></script>
+  <script src="script.js?v=37" defer></script>
 </body>
 
 </html>

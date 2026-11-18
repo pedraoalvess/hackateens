@@ -691,3 +691,220 @@ body.claro .pino {
     align-self: flex-start;
     max-width: 95%;
 }
+
+
+/* ---------- Painel da câmera de assentos (camera.js) ---------- */
+
+.camera-painel {
+    background: var(--dark);
+    color: var(--on-dark);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.painel .camera-painel {
+    background: var(--dark-2);
+    border-radius: 8px;
+}
+
+.camera-painel h3 {
+    color: var(--on-dark);
+}
+
+.camera-fontes,
+.camera-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+    width: 100%;
+}
+
+.camera-painel .botao {
+    background: var(--dark-2);
+    color: var(--on-dark);
+    border-color: var(--on-dark-soft);
+}
+
+.painel .camera-painel .botao {
+    background: var(--dark);
+}
+
+.camera-painel .botao[aria-pressed="true"],
+.camera-painel .botao-forte,
+.painel .camera-painel .botao[aria-pressed="true"],
+.painel .camera-painel .botao-forte {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-primary);
+}
+
+.camera-painel :focus-visible {
+    outline-color: var(--on-dark);
+}
+
+.camera-video {
+    width: 100%;
+    max-height: 380px;
+    object-fit: contain;
+    background: #111;
+    border-radius: 12px;
+}
+
+.camera-estado {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--on-dark);
+}
+
+.camera-aviso-fixa,
+.camera-nota {
+    margin: 0;
+    font-size: .9rem;
+    color: var(--on-dark-soft);
+}
+
+
+/* ---------- Assistente flutuante (em todas as telas) ---------- */
+
+.chat-abrir {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 3.75rem;
+    padding: .5rem 1.25rem;
+    border-radius: 999px;
+    border: 2px solid var(--primary);
+    background: var(--primary);
+    color: var(--on-primary);
+    font-size: 1.15rem;
+    font-weight: 700;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
+}
+
+.chat-flutuante {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1000;
+    width: min(26rem, calc(100vw - 2rem));
+    height: min(34rem, calc(100vh - 2rem));
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    padding: 1rem;
+    border-radius: 16px;
+    border: 2px solid var(--line);
+    background: var(--canvas);
+    color: var(--ink);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+}
+
+.chat-flutuante[hidden],
+.chat-abrir[hidden] {
+    display: none;
+}
+
+.chat-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+
+.chat-fechar {
+    min-height: 3rem;
+    padding: .25rem 1rem;
+}
+
+.chat-lista {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0;
+}
+
+.chat-form {
+    display: flex;
+    gap: .5rem;
+}
+
+.chat-form .botao {
+    padding: .5rem .9rem;
+}
+
+.chat-mic {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chat-mic[aria-pressed="true"] {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--on-primary);
+}
+
+#botaoPerguntar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+}
+
+
+/* Microfone fixo: fica no canto esquerdo para não cobrir o botão da assistente nem os formulários */
+
+.falar-sempre {
+    position: fixed;
+    left: 1rem;
+    bottom: 1rem;
+    z-index: 1000;
+    width: 3.75rem;
+    height: 3.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 2px solid var(--primary);
+    background: var(--primary);
+    color: var(--on-primary);
+    cursor: pointer;
+}
+
+.falar-sempre:focus-visible {
+    outline: 4px solid var(--primary);
+    outline-offset: 4px;
+}
+
+.falar-sempre[aria-pressed="true"] {
+    animation: pulsarMic 1.2s ease-in-out infinite;
+}
+
+@keyframes pulsarMic {
+    50% {
+        transform: scale(1.12);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .falar-sempre[aria-pressed="true"] {
+        animation: none;
+        outline: 4px solid var(--primary);
+    }
+}
+
+
+/* Espaço no fim da página para os botões fixos não taparem o último botão ou campo */
+
+.rodape {
+    padding-bottom: 6rem !important;
+}

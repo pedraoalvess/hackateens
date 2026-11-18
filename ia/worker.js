@@ -64,8 +64,14 @@ async function perguntarAoWorkersAI(env, sistema, mensagens) {
 
 export default {
   async fetch(request, env) {
+    // Aceita o site oficial e também testes no computador (localhost / arquivo aberto direto).
+    const origem = request.headers.get("Origin") || "";
+    const permitidas = String(env.ORIGEM_PERMITIDA || "*").split(",").map(function (o) { return o.trim(); });
+    const liberada = permitidas.includes("*") || permitidas.includes(origem) ||
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origem) || origem === "null";
     const cabecalhos = {
-      "Access-Control-Allow-Origin": env.ORIGEM_PERMITIDA || "*",
+      "Access-Control-Allow-Origin": liberada ? (origem || "*") : permitidas[0],
+      "Vary": "Origin",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Content-Type": "application/json"
