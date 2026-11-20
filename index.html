@@ -2,260 +2,272 @@
 <html lang="pt-BR">
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d0a0b">
-  <title>MOBINTEC – ônibus turísticos acessíveis</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d0a0b">
+    <title>MOBINTEC – ônibus turísticos acessíveis</title>
 
-  <script>
-    // Para ver erros na tela, abra o site com ?debug no final do endereço.
-    if (location.search.indexOf("debug") !== -1) {
-      window.addEventListener("error", function (e) {
-        alert("Erro: " + e.message + " " + (e.target.src || e.target.href || ""));
-      }, true);
-    }
-  </script>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script>
-    // Cores do projeto: preto e bordô.
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            fundo: "#0d0a0b", cartao: "#1f1519", texto: "#ffffff", borda: "#ffb3c4",
-            bordo: "#8b1f2f", painel: "#3b1522", painel2: "#4e1f2e", ok: "#5de08a"
-          }
+    <script>
+        // Para ver erros na tela, abra o site com ?debug no final do endereço.
+        if (location.search.indexOf("debug") !== -1) {
+            window.addEventListener("error", function(e) {
+                alert("Erro: " + e.message + " " + (e.target.src || e.target.href || ""));
+            }, true);
         }
-      }
-    };
-  </script>
-  <link rel="stylesheet" href="lib/leaflet/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=37">
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script>
+        // Cores do projeto: preto e bordô.
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fundo: "#0d0a0b",
+                        cartao: "#1f1519",
+                        texto: "#ffffff",
+                        borda: "#ffb3c4",
+                        bordo: "#8b1f2f",
+                        painel: "#3b1522",
+                        painel2: "#4e1f2e",
+                        ok: "#5de08a"
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="lib/leaflet/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="style.css?v=38">
 </head>
 
 <body class="font-sans">
-  <button type="button" id="atalhoFalar" class="pular" aria-keyshortcuts="Alt+V">Falar com a assistente por voz. Aperte Enter. Em qualquer tela, toque duas vezes no espaço vazio ou aperte Alt mais V.</button>
-  <button type="button" id="atalhoAssistente" class="pular" aria-keyshortcuts="Alt+A">Abrir a conversa escrita com a assistente. Atalho: Alt mais A.</button>
-  <a href="#principal" class="pular">Ir para o conteúdo</a>
+    <button type="button" id="atalhoFalar" class="pular" aria-keyshortcuts="Alt+V">Falar com a assistente por voz. Aperte Enter. Em qualquer tela, toque duas vezes no espaço vazio ou aperte Alt mais V.</button>
+    <button type="button" id="atalhoAssistente" class="pular" aria-keyshortcuts="Alt+A">Abrir a conversa escrita com a assistente. Atalho: Alt mais A.</button>
+    <a href="#principal" class="pular">Ir para o conteúdo</a>
 
-  <header class="topo">
-    <span class="logo" aria-hidden="true">
+    <header class="topo">
+        <span class="logo" aria-hidden="true">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="3"/><path d="M4 11h16M8 21v-4M16 21v-4"/><circle cx="8" cy="14" r=".6"/><circle cx="16" cy="14" r=".6"/></svg>
     </span>
-    <span><span class="marca">MOBINTEC</span><span class="lema">Mobilidade, Inovação e Tecnologia · Ônibus turísticos acessíveis em Foz do Iguaçu</span></span>
-  </header>
+        <span><span class="marca">MOBINTEC</span><span class="lema">Mobilidade, Inovação e Tecnologia · Ônibus turísticos acessíveis em Foz do Iguaçu</span></span>
+    </header>
 
-  <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
+    <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
 
-    <!-- TELA 2: COMANDO DE VOZ (microfone e bolhas dos destinos) -->
-    <section id="telaInicio" aria-labelledby="tituloInicio" class="flex flex-col items-center gap-6 text-center">
-      <p id="aviso" role="alert" hidden class="caixa w-full"></p>
-      <h1 id="tituloInicio" tabindex="-1" class="font-serif text-3xl md:text-4xl">MOBINTEC: para onde você quer ir?</h1>
+        <!-- TELA 2: COMANDO DE VOZ (microfone e bolhas dos destinos) -->
+        <section id="telaInicio" aria-labelledby="tituloInicio" class="flex flex-col items-center gap-6 text-center">
+            <p id="aviso" role="alert" hidden class="caixa w-full"></p>
+            <h1 id="tituloInicio" tabindex="-1" class="font-serif text-3xl md:text-4xl">MOBINTEC: para onde você quer ir?</h1>
 
-      <h2 class="sr-only">Toque em qualquer lugar e fale. Ou toque em uma das bolhas.</h2>
-      <div id="bolhas" class="bolhas">
-        <div id="anel" class="anel">
-          <span class="onda" aria-hidden="true"></span>
-          <span class="onda" aria-hidden="true"></span>
-          <span class="onda" aria-hidden="true"></span>
-          <button id="botaoMicrofone" class="microfone" aria-pressed="false" aria-label="Falar com a assistente">
+            <h2 class="sr-only">Toque em qualquer lugar e fale. Ou toque em uma das bolhas.</h2>
+            <div id="bolhas" class="bolhas">
+                <div id="anel" class="anel">
+                    <span class="onda" aria-hidden="true"></span>
+                    <span class="onda" aria-hidden="true"></span>
+                    <span class="onda" aria-hidden="true"></span>
+                    <button id="botaoMicrofone" class="microfone" aria-pressed="false" aria-label="Falar com a assistente">
             <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
           </button>
-        </div>
-      </div>
+                </div>
+            </div>
 
-      <p id="textoEstado" role="status" class="text-2xl font-semibold">Toque em qualquer lugar e fale</p>
-      <p id="textoOuvido" hidden></p>
-      <button id="botaoOpcoes" class="botao" aria-label="Abrir as opções: repetir, ajuda, voz do site, tema e digitar">Opções</button>
-    </section>
+            <p id="textoEstado" role="status" class="text-2xl font-semibold">Toque em qualquer lugar e fale</p>
+            <p id="textoOuvido" hidden></p>
+            <button id="botaoOpcoes" class="botao" aria-label="Abrir as opções: repetir, ajuda, voz do site, tema e digitar">Opções</button>
+        </section>
 
-    <!-- OPÇÕES: repetir, ajuda, voz do site, tema, digitar e a conversa -->
-    <section id="telaOpcoes" aria-labelledby="tituloOpcoes" hidden aria-hidden="true" class="flex flex-col gap-6">
-      <button id="botaoVoltarOpcoes" class="botao self-start" aria-label="Voltar à conversa">Voltar</button>
-      <h1 id="tituloOpcoes" tabindex="-1" class="font-serif text-4xl">Opções</h1>
-      <div class="flex flex-wrap gap-3">
-        <button id="botaoRepetir" class="botao" aria-label="Repetir a última mensagem">Repetir</button>
-        <button id="botaoAjuda" class="botao" aria-label="Ouvir os comandos de voz">Ajuda</button>
-        <button id="botaoVoz" class="botao" aria-label="Desligar a voz do site. Desligue se você já usa um leitor de tela.">Voz do site: ligada</button>
-        <button id="botaoTema" class="botao" aria-label="Trocar para tema escuro">Tema escuro</button>
-      </div>
-      <h2 class="text-2xl">Câmera dos assentos</h2>
-      <div id="slotCameraOpcoes"></div>
-      <h2 class="text-2xl">Digitar para a assistente</h2>
-      <form id="formulario" class="flex gap-3 w-full">
-        <input id="campoTexto" class="campo" aria-label="Digite um destino ou uma pergunta" placeholder="Digite um destino ou pergunta" autocomplete="off">
-        <button class="botao botao-forte" aria-label="Enviar">Enviar</button>
-      </form>
-      <h2 class="text-2xl">Conversa recente</h2>
-      <ul id="conversa" class="conversa" aria-label="Conversa recente"></ul>
-    </section>
+        <!-- OPÇÕES: repetir, ajuda, voz do site, tema, digitar e a conversa -->
+        <section id="telaOpcoes" aria-labelledby="tituloOpcoes" hidden aria-hidden="true" class="flex flex-col gap-6">
+            <button id="botaoVoltarOpcoes" class="botao self-start" aria-label="Voltar à conversa">Voltar</button>
+            <h1 id="tituloOpcoes" tabindex="-1" class="font-serif text-4xl">Opções</h1>
+            <div class="flex flex-wrap gap-3">
+                <button id="botaoRepetir" class="botao" aria-label="Repetir a última mensagem">Repetir</button>
+                <button id="botaoAjuda" class="botao" aria-label="Ouvir os comandos de voz">Ajuda</button>
+                <button id="botaoVoz" class="botao" aria-label="Desligar a voz do site. Desligue se você já usa um leitor de tela.">Voz do site: ligada</button>
+                <button id="botaoTema" class="botao" aria-label="Trocar para tema escuro">Tema escuro</button>
+            </div>
+            <h2 class="text-2xl">Câmera dos assentos</h2>
+            <div id="slotCameraOpcoes"></div>
+            <h2 class="text-2xl">Digitar para a assistente</h2>
+            <form id="formulario" class="flex gap-3 w-full">
+                <input id="campoTexto" class="campo" aria-label="Digite um destino ou uma pergunta" placeholder="Digite um destino ou pergunta" autocomplete="off">
+                <button class="botao botao-forte" aria-label="Enviar">Enviar</button>
+            </form>
+            <h2 class="text-2xl">Conversa recente</h2>
+            <ul id="conversa" class="conversa" aria-label="Conversa recente"></ul>
+        </section>
 
-    <!-- TELA 2: ÔNIBUS TURÍSTICOS (painel, destinos e mapa) -->
-    <section id="telaLista" aria-labelledby="tituloLista" hidden aria-hidden="true" class="flex flex-col gap-6">
-      <div class="flex flex-wrap gap-3">
-        <button id="botaoVoltar" class="botao" aria-label="Voltar ao início">Voltar ao início</button>
-        <button id="botaoAbrirMapa" class="botao" aria-label="Abrir o mapa e a minha localização">Abrir o mapa</button>
-      </div>
-      <h1 id="tituloLista" tabindex="-1" class="font-serif text-4xl">Ônibus turísticos de Foz do Iguaçu</h1>
+        <!-- TELA 2: ÔNIBUS TURÍSTICOS (painel, destinos e mapa) -->
+        <section id="telaLista" aria-labelledby="tituloLista" hidden aria-hidden="true" class="flex flex-col gap-6">
+            <div class="flex flex-wrap gap-3">
+                <button id="botaoVoltar" class="botao" aria-label="Voltar ao início">Voltar ao início</button>
+                <button id="botaoAbrirMapa" class="botao" aria-label="Abrir o mapa e a minha localização">Abrir o mapa</button>
+            </div>
+            <h1 id="tituloLista" tabindex="-1" class="font-serif text-4xl">Ônibus turísticos de Foz do Iguaçu</h1>
 
-      <!-- Painel de acompanhamento: aparece depois de escolher um destino -->
-      <div id="painel" class="painel" hidden aria-hidden="true">
-        <h2 id="tituloPainel" tabindex="-1" class="font-serif text-3xl"></h2>
+            <!-- Painel de acompanhamento: aparece depois de escolher um destino -->
+            <div id="painel" class="painel" hidden aria-hidden="true">
+                <h2 id="tituloPainel" tabindex="-1" class="font-serif text-3xl"></h2>
 
-        <!-- Alerta: os leitores de tela leem na hora que o texto muda -->
-        <div id="alerta" role="alert" aria-live="assertive" aria-atomic="true" class="alerta"></div>
+                <!-- Alerta: os leitores de tela leem na hora que o texto muda -->
+                <div id="alerta" role="alert" aria-live="assertive" aria-atomic="true" class="alerta"></div>
 
-        <div class="flex flex-wrap gap-2" role="group" aria-label="Partes do painel">
-          <button class="botao botao-aba" data-aba="Onibus" aria-current="true" aria-label="Ver as informações do ônibus">Ônibus</button>
-          <button class="botao botao-aba" data-aba="Rota" aria-current="false" aria-label="Ver a rota e a localização">Rota</button>
-          <button class="botao botao-aba" data-aba="Perto" aria-current="false" aria-label="Ver pontos de referência próximos">Perto</button>
-          <button class="botao botao-aba" data-aba="Assistente" aria-current="false" aria-label="Falar com a assistente">Assistente</button>
-        </div>
+                <div class="flex flex-wrap gap-2" role="group" aria-label="Partes do painel">
+                    <button class="botao botao-aba" data-aba="Onibus" aria-current="true" aria-label="Ver as informações do ônibus">Ônibus</button>
+                    <button class="botao botao-aba" data-aba="Rota" aria-current="false" aria-label="Ver a rota e a localização">Rota</button>
+                    <button class="botao botao-aba" data-aba="Perto" aria-current="false" aria-label="Ver pontos de referência próximos">Perto</button>
+                    <button class="botao botao-aba" data-aba="Assistente" aria-current="false" aria-label="Falar com a assistente">Assistente</button>
+                </div>
 
-        <div id="abaOnibus" class="aba">
-        <div class="subcaixa">
-          <h3 class="text-xl font-semibold">Chegada estimada</h3>
-          <p id="tempo" aria-hidden="true" class="font-serif text-6xl"></p>
-          <div class="progresso" aria-hidden="true"><div id="barra" class="barra"></div></div>
-          <button id="botaoOuvirStatus" class="botao" aria-label="Ouvir o status do ônibus">Ouvir status</button>
-        </div>
+                <div id="abaOnibus" class="aba">
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Chegada estimada</h3>
+                        <p id="tempo" aria-hidden="true" class="font-serif text-6xl"></p>
+                        <div class="progresso" aria-hidden="true">
+                            <div id="barra" class="barra"></div>
+                        </div>
+                        <button id="botaoOuvirStatus" class="botao" aria-label="Ouvir o status do ônibus">Ouvir status</button>
+                    </div>
 
-        <!-- Leitura real dos assentos (câmera do ônibus ou do celular): o painel é montado aqui pelo script.js -->
-        <div id="slotCameraOnibus" class="w-full"></div>
+                    <!-- Leitura real dos assentos (câmera do ônibus ou do celular): o painel é montado aqui pelo script.js -->
+                    <div id="slotCameraOnibus" class="w-full"></div>
 
-        <div class="subcaixa">
-          <h3 class="text-xl font-semibold">Transporte turístico</h3>
-          <p id="textoTransporte" class="text-lg"></p>
-        </div>
-        <div class="subcaixa">
-          <h3 class="text-xl font-semibold">Sobre o destino e acessibilidade</h3>
-          <p id="textoDestino" class="text-lg"></p>
-          <p id="textoAcessibilidade" class="text-lg"></p>
-          <p id="textoConfirmar" class="text-lg"></p>
-        </div>
-        </div>
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Transporte turístico</h3>
+                        <p id="textoTransporte" class="text-lg"></p>
+                    </div>
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Sobre o destino e acessibilidade</h3>
+                        <p id="textoDestino" class="text-lg"></p>
+                        <p id="textoAcessibilidade" class="text-lg"></p>
+                        <p id="textoConfirmar" class="text-lg"></p>
+                    </div>
+                </div>
 
-        <div id="abaRota" class="aba" hidden>
-        <div class="subcaixa">
-          <h3 class="text-xl font-semibold">Rota do ônibus</h3>
-          <p id="textoRota" class="text-lg"></p>
-          <a id="linkMaps" class="botao inline-block" target="_blank" rel="noopener"
-            aria-label="Abrir no Google Maps o caminho a pé até o ponto de embarque">Como chegar ao embarque (Google
+                <div id="abaRota" class="aba" hidden>
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Rota do ônibus</h3>
+                        <p id="textoRota" class="text-lg"></p>
+                        <a id="linkMaps" class="botao inline-block" target="_blank" rel="noopener" aria-label="Abrir no Google Maps o caminho a pé até o ponto de embarque">Como chegar ao embarque (Google
             Maps)</a>
-        </div>
-        <div class="subcaixa">
-          <h3 class="text-xl font-semibold">Paradas da rota</h3>
-          <p id="textoParadas" class="text-lg"></p>
-          <ol id="listaParadas" class="list-decimal pl-6 text-lg"></ol>
-          <button id="botaoOuvirParadas" class="botao" aria-label="Ouvir as paradas da rota">Ouvir paradas</button>
-        </div>
+                    </div>
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Paradas da rota</h3>
+                        <p id="textoParadas" class="text-lg"></p>
+                        <ol id="listaParadas" class="list-decimal pl-6 text-lg"></ol>
+                        <button id="botaoOuvirParadas" class="botao" aria-label="Ouvir as paradas da rota">Ouvir paradas</button>
+                    </div>
 
-        </div>
+                </div>
 
-        <div id="abaPerto" class="aba" hidden>
-        <div class="subcaixa">
-          <h3 class="text-xl font-semibold">Lugares perto</h3>
-          <div class="flex flex-wrap gap-2" role="group" aria-label="Tipo de lugar">
-            <button class="botao botao-cat" data-cat="hoteis" aria-current="true" aria-label="Ver hotéis perto">Hotéis</button>
-            <button class="botao botao-cat" data-cat="restaurantes" aria-current="false" aria-label="Ver restaurantes perto">Restaurantes</button>
-            <button class="botao botao-cat" data-cat="atracoes" aria-current="false" aria-label="Ver pontos turísticos perto">Pontos turísticos</button>
-          </div>
-          <p id="textoPerto" class="text-lg"></p>
-          <ul id="listaHoteis" class="list-disc pl-6 text-lg"></ul>
-          <button id="botaoOuvirHoteis" class="botao" aria-label="Ouvir a lista de lugares perto">Ouvir a lista</button>
-        </div>
+                <div id="abaPerto" class="aba" hidden>
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Lugares perto</h3>
+                        <div class="flex flex-wrap gap-2" role="group" aria-label="Tipo de lugar">
+                            <button class="botao botao-cat" data-cat="hoteis" aria-current="true" aria-label="Ver hotéis perto">Hotéis</button>
+                            <button class="botao botao-cat" data-cat="restaurantes" aria-current="false" aria-label="Ver restaurantes perto">Restaurantes</button>
+                            <button class="botao botao-cat" data-cat="atracoes" aria-current="false" aria-label="Ver pontos turísticos perto">Pontos turísticos</button>
+                        </div>
+                        <p id="textoPerto" class="text-lg"></p>
+                        <ul id="listaHoteis" class="list-disc pl-6 text-lg"></ul>
+                        <button id="botaoOuvirHoteis" class="botao" aria-label="Ouvir a lista de lugares perto">Ouvir a lista</button>
+                    </div>
 
-        </div>
+                </div>
 
-        <div id="abaAssistente" class="aba" hidden>
-        <div class="subcaixa">
-          <h3 class="text-xl font-semibold">Pergunte à assistente</h3>
-          <p id="textoResposta" role="status" class="text-lg">Toque no botão e pergunte, por exemplo: tem assento livre?
-          </p>
-          <button id="botaoPerguntar" class="botao botao-forte" aria-pressed="false"
-            aria-label="Perguntar por voz"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> Perguntar por voz</button>
-          <form id="formularioAba" class="flex gap-3 w-full mt-3">
-            <input id="campoAba" class="campo" aria-label="Digite sua pergunta para a assistente" placeholder="Ou digite sua pergunta" autocomplete="off">
-            <button class="botao botao-forte" aria-label="Enviar pergunta">Enviar</button>
-          </form>
-        </div>
-        </div>
-      </div>
+                <div id="abaAssistente" class="aba" hidden>
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Pergunte à assistente</h3>
+                        <p id="textoResposta" role="status" class="text-lg">Toque no botão e pergunte, por exemplo: tem assento livre?
+                        </p>
+                        <button id="botaoPerguntar" class="botao botao-forte" aria-pressed="false" aria-label="Perguntar por voz"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> Perguntar por voz</button>
+                        <form id="formularioAba" class="flex gap-3 w-full mt-3">
+                            <input id="campoAba" class="campo" aria-label="Digite sua pergunta para a assistente" placeholder="Ou digite sua pergunta" autocomplete="off">
+                            <button class="botao botao-forte" aria-label="Enviar pergunta">Enviar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
 
-      <h2 class="text-2xl font-semibold">Escolha um ônibus</h2>
-      <ul id="cartoes" class="flex flex-col gap-4"></ul>
+            <h2 class="text-2xl font-semibold">Escolha um ônibus</h2>
+            <ul id="cartoes" class="flex flex-col gap-4"></ul>
 
-      <h2 class="text-2xl">Mapa da rota</h2>
-      <div id="slotMapaOnibus"></div>
+            <h2 class="text-2xl">Mapa da rota</h2>
+            <div id="slotMapaOnibus"></div>
 
-      
-    </section>
-  
-    <!-- TELA 3: MAPA E LOCALIZAÇÃO EM TEMPO REAL -->
-    <section id="telaMapa" aria-labelledby="tituloMapa" hidden aria-hidden="true" class="flex flex-col gap-6">
-      <button id="botaoVoltarMapa" class="botao self-start" aria-label="Voltar aos ônibus">Voltar aos ônibus</button>
-      <h1 id="tituloMapa" tabindex="-1" class="font-serif text-4xl">Mapa e minha localização</h1>
-      <div class="caixa flex flex-col gap-3 items-start">
-        <p id="textoLocal" role="status" class="text-xl">Localização desligada. O ponto de embarque é no Centro de Foz.</p>
-        <button id="botaoLocal" class="botao botao-forte" aria-label="Ativar ou desligar a minha localização em tempo real">Ativar minha localização</button>
-      </div>
-      <div class="caixa flex flex-col gap-3 items-start">
-        <h2 class="text-2xl">Lugares perto de você</h2>
-        <div class="flex flex-wrap gap-2" role="group" aria-label="Tipo de lugar">
-          <button class="botao botao-cat" data-cat="hoteis" aria-current="false" aria-label="Ver hotéis perto">Hotéis</button>
-          <button class="botao botao-cat" data-cat="restaurantes" aria-current="false" aria-label="Ver restaurantes perto">Restaurantes</button>
-          <button class="botao botao-cat" data-cat="atracoes" aria-current="false" aria-label="Ver pontos turísticos perto">Pontos turísticos</button>
-        </div>
-        <ul id="listaPertoMapa" class="list-disc pl-6 text-lg"></ul>
-      </div>
-      <!-- O mapa é só visual: tudo o que ele mostra também está em texto. O mesmo mapa aparece na tela do ônibus e na tela do mapa. -->
-      <div id="slotMapaTela">
-        <div id="blocoMapa">
-          <div id="mapa" aria-hidden="true"></div>
-          <p id="mensagemMapa" role="status"></p>
-        </div>
-      </div>
-    </section>
-  </main>
 
-  <!-- MICROFONE FIXO: fala com a IA em qualquer tela (atalho no teclado: Alt + V) -->
-  <button id="botaoFalarSempre" class="falar-sempre" aria-pressed="false" aria-keyshortcuts="Alt+V" aria-label="Falar com a assistente por voz. Atalho: Alt mais V, ou toque duas vezes em qualquer espaço vazio da tela">
+        </section>
+
+        <!-- TELA 3: MAPA E LOCALIZAÇÃO EM TEMPO REAL -->
+        <section id="telaMapa" aria-labelledby="tituloMapa" hidden aria-hidden="true" class="flex flex-col gap-6">
+            <button id="botaoVoltarMapa" class="botao self-start" aria-label="Voltar aos ônibus">Voltar aos ônibus</button>
+            <h1 id="tituloMapa" tabindex="-1" class="font-serif text-4xl">Mapa e minha localização</h1>
+            <div class="caixa flex flex-col gap-3 items-start">
+                <p id="textoLocal" role="status" class="text-xl">Localização desligada. O ponto de embarque é no Centro de Foz.</p>
+                <button id="botaoLocal" class="botao botao-forte" aria-label="Ativar ou desligar a minha localização em tempo real">Ativar minha localização</button>
+            </div>
+            <div class="caixa flex flex-col gap-3 items-start">
+                <h2 class="text-2xl">Lugares perto de você</h2>
+                <div class="flex flex-wrap gap-2" role="group" aria-label="Tipo de lugar">
+                    <button class="botao botao-cat" data-cat="hoteis" aria-current="false" aria-label="Ver hotéis perto">Hotéis</button>
+                    <button class="botao botao-cat" data-cat="restaurantes" aria-current="false" aria-label="Ver restaurantes perto">Restaurantes</button>
+                    <button class="botao botao-cat" data-cat="atracoes" aria-current="false" aria-label="Ver pontos turísticos perto">Pontos turísticos</button>
+                </div>
+                <ul id="listaPertoMapa" class="list-disc pl-6 text-lg"></ul>
+            </div>
+            <!-- O mapa é só visual: tudo o que ele mostra também está em texto. O mesmo mapa aparece na tela do ônibus e na tela do mapa. -->
+            <div id="slotMapaTela">
+                <div id="blocoMapa">
+                    <div id="mapa" aria-hidden="true"></div>
+                    <p id="mensagemMapa" role="status"></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MICROFONE FIXO: fala com a IA em qualquer tela (atalho no teclado: Alt + V) -->
+    <button id="botaoFalarSempre" class="falar-sempre" aria-pressed="false" aria-keyshortcuts="Alt+V" aria-label="Falar com a assistente por voz. Atalho: Alt mais V, ou toque duas vezes em qualquer espaço vazio da tela">
     <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
   </button>
 
-  <!-- ASSISTENTE FLUTUANTE: conversa com a IA (voz ou texto) em qualquer tela -->
-  <button id="botaoChatFlutuante" class="chat-abrir" aria-expanded="false" aria-controls="chatFlutuante" aria-label="Abrir a conversa com a assistente">
+    <!-- ASSISTENTE FLUTUANTE: conversa com a IA (voz ou texto) em qualquer tela -->
+    <button id="botaoChatFlutuante" class="chat-abrir" aria-expanded="false" aria-controls="chatFlutuante" aria-label="Abrir a conversa com a assistente">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> <span>Assistente</span>
   </button>
-  <section id="chatFlutuante" class="chat-flutuante" hidden aria-label="Conversa com a assistente">
-    <div class="chat-topo">
-      <h2 class="text-xl font-semibold">Assistente MOBINTEC</h2>
-      <button id="botaoFecharChat" class="botao chat-fechar" aria-label="Fechar a conversa">✕</button>
-    </div>
-    <ul id="conversaFlutuante" class="conversa chat-lista" aria-live="polite" aria-label="Mensagens da conversa"></ul>
-    <form id="formularioChat" class="chat-form">
-      <button type="button" id="botaoMicChat" class="botao chat-mic" aria-pressed="false" aria-label="Falar com a assistente por áudio"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
-      <input id="campoChat" class="campo" aria-label="Digite sua mensagem" placeholder="Digite ou toque no microfone" autocomplete="off">
-      <button class="botao botao-forte" aria-label="Enviar mensagem">Enviar</button>
-    </form>
-  </section>
+    <section id="chatFlutuante" class="chat-flutuante" hidden aria-label="Conversa com a assistente">
+        <div class="chat-topo">
+            <h2 class="text-xl font-semibold">Assistente MOBINTEC</h2>
+            <button id="botaoFecharChat" class="botao chat-fechar" aria-label="Fechar a conversa">✕</button>
+        </div>
+        <ul id="conversaFlutuante" class="conversa chat-lista" aria-live="polite" aria-label="Mensagens da conversa"></ul>
+        <form id="formularioChat" class="chat-form">
+            <button type="button" id="botaoMicChat" class="botao chat-mic" aria-pressed="false" aria-label="Falar com a assistente por áudio"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg></button>
+            <input id="campoChat" class="campo" aria-label="Digite sua mensagem" placeholder="Digite ou toque no microfone" autocomplete="off">
+            <button class="botao botao-forte" aria-label="Enviar mensagem">Enviar</button>
+        </form>
+    </section>
 
-  <footer class="rodape">
-    <p class="mb-2"><strong>MOBINTEC – Mobilidade, Inovação e Tecnologia.</strong> Para passageiros: chegue sozinho ao ponto turístico que escolheu, guiado por voz. Para empresas de turismo: uma plataforma acessível que reúne em um só sistema os ônibus, as rotas, os assentos e as informações de acessibilidade dos seus passeios, e leva seu serviço a um público que hoje fica de fora.</p>
-    Mapa © OpenStreetMap, mapa Esri; rotas OSRM; hotéis OpenStreetMap. Se a assistente de IA estiver ativada, o texto do que você fala é enviado ao Google (Gemini) para gerar a resposta. Na versão gratuita, o Google pode usar esse texto para melhorar seus produtos: não diga dados pessoais. A posição do ônibus, o tempo de chegada e a câmera do ônibus são de demonstração. A leitura dos assentos é apenas uma estimativa feita por inteligência artificial.
-  </footer>
+    <footer class="rodape">
+        <p class="mb-2"><strong>MOBINTEC – Mobilidade, Inovação e Tecnologia.</strong> Para passageiros: chegue sozinho ao ponto turístico que escolheu, guiado por voz. Para empresas de turismo: uma plataforma acessível que reúne em um só sistema os ônibus, as rotas,
+            os assentos e as informações de acessibilidade dos seus passeios, e leva seu serviço a um público que hoje fica de fora.</p>
+        Mapa © OpenStreetMap, mapa Esri; rotas OSRM; hotéis OpenStreetMap. Se a assistente de IA estiver ativada, o texto do que você fala é enviado ao Google (Gemini) para gerar a resposta. Na versão gratuita, o Google pode usar esse texto para melhorar seus
+        produtos: não diga dados pessoais. A posição do ônibus, o tempo de chegada e a câmera do ônibus são de demonstração. A leitura dos assentos é apenas uma estimativa feita por inteligência artificial.
+    </footer>
 
-  <!-- Mapa (Leaflet): tenta a cópia do projeto (pasta lib), depois o unpkg e depois o jsDelivr -->
-  <script src="lib/leaflet/leaflet.js"></script>
-  <script>window.L || document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>');</script>
-  <script>window.L || document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>');</script>
-  <script src="dados.js?v=37"></script>
-  <script src="script.js?v=37" defer></script>
+    <!-- Mapa (Leaflet): tenta a cópia do projeto (pasta lib), depois o unpkg e depois o jsDelivr -->
+    <script src="lib/leaflet/leaflet.js"></script>
+    <script>
+        window.L || document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>');
+    </script>
+    <script>
+        window.L || document.write('<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>');
+    </script>
+    <script src="dados.js?v=38"></script>
+    <script src="script.js?v=38" defer></script>
 </body>
 
 </html>
