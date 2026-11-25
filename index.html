@@ -135,7 +135,15 @@
             <div id="painel" class="painel" hidden aria-hidden="true">
                 <h2 id="tituloPainel" tabindex="-1" class="font-serif text-3xl"></h2>
                 <div id="alerta" role="alert" aria-live="assertive" aria-atomic="true" class="alerta"></div>
-
+                              <div class="barra-pergunta">
+                    <button type="button" id="botaoPerguntarPainel" class="botao botao-forte">🎤 Perguntar por voz</button>
+                    <form id="formularioPainel">
+                        <label for="campoPainel" class="pular">Digite sua pergunta sobre este ônibus</label>
+                        <input id="campoPainel" class="campo" placeholder="Ou digite: onde embarco? tem assento livre?" autocomplete="off">
+                        <button class="botao">Enviar</button>
+                    </form>
+                    <p id="ecoPergunta" class="eco" role="status" aria-live="polite"></p>
+                </div>
                 <div class="flex flex-wrap gap-2" role="group">
                     <button class="botao botao-aba" data-aba="Onibus" aria-current="true">Ônibus</button>
                     <button class="botao botao-aba" data-aba="Rota" aria-current="false">Rota</button>
@@ -227,8 +235,9 @@
     </main>
 
     <!-- BOTÃO FLUTUANTE -->
-    <button id="botaoFalarSempre" class="falar-sempre" aria-pressed="false" aria-label="Falar com a assistente">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+     <button id="botaoFalarSempre" class="falar-sempre" aria-pressed="false" aria-label="Perguntar por voz para a assistente">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+        <span>Perguntar</span>
     </button>
 
     <button id="botaoChatFlutuante" class="chat-abrir" aria-expanded="false" aria-label="Abrir assistente">
