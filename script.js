@@ -1857,9 +1857,10 @@ window.addEventListener("popstate", function() {
   abrirTela(tela, false, true);
 });
 
-pegar(".pular").onclick = function(evento) {
+pegar("a.pular").onclick = function(evento) {
   evento.preventDefault();
   pegar("#principal").focus();
+};
 };
 
 abrirTela("inicio", true);
