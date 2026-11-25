@@ -956,3 +956,198 @@ body{ padding-bottom:100px; }
 .rodape {
     padding-bottom: 6rem !important;
 }
+/* ============================================================
+   BOTÕES - Animações e melhorias visuais
+   ============================================================ */
+
+/* Base para todos os botões */
+.botao{
+  position:relative;
+  overflow:hidden;
+  transition:
+    transform .18s cubic-bezier(.4,0,.2,1),
+    background-color .2s ease,
+    color .2s ease,
+    box-shadow .2s ease,
+    border-color .2s ease;
+  will-change:transform;
+}
+
+/* Efeito de brilho ao passar o mouse */
+.botao::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
+  transform:translateX(-100%);
+  transition:transform .6s ease;
+  pointer-events:none;
+}
+
+/* HOVER — levanta, brilha e muda a cor */
+.botao:hover{
+  transform:translateY(-2px);
+  box-shadow:0 6px 18px rgba(255,179,196,.25);
+  border-color:#ffb3c4;
+}
+.botao:hover::before{
+  transform:translateX(100%);
+}
+
+/* FOCUS — acessibilidade para navegação por teclado */
+.botao:focus-visible{
+  outline:3px solid #5de08a;
+  outline-offset:3px;
+  transform:translateY(-2px);
+}
+
+/* CLICK — efeito de "pressionar" */
+.botao:active{
+  transform:translateY(1px) scale(.97);
+  box-shadow:0 2px 6px rgba(0,0,0,.3);
+  transition-duration:.08s;
+}
+
+/* ============================================================
+   Botão FORTE (primário / ação principal)
+   ============================================================ */
+.botao-forte{
+  background:linear-gradient(135deg,#8b1f2f 0%,#a52840 100%);
+  color:#fff;
+  border:2px solid #ffb3c4;
+  font-weight:700;
+  letter-spacing:.02em;
+}
+.botao-forte:hover{
+  background:linear-gradient(135deg,#a52840 0%,#c03050 100%);
+  box-shadow:0 8px 22px rgba(139,31,47,.5);
+}
+.botao-forte:active{
+  background:linear-gradient(135deg,#6b1520 0%,#8b1f2f 100%);
+}
+
+/* ============================================================
+   Botões de ABA (Ônibus, Rota, Perto, Assistente)
+   ============================================================ */
+.botao-aba{
+  position:relative;
+}
+.botao-aba[aria-current="true"]{
+  background:#8b1f2f;
+  color:#fff;
+  border-color:#ffb3c4;
+  box-shadow:0 0 0 2px rgba(255,179,196,.3);
+}
+.botao-aba:hover{
+  background:#4e1f2e;
+}
+.botao-aba[aria-current="true"]:hover{
+  background:#a52840;
+}
+
+/* ============================================================
+   Botões de CATEGORIA (Hotéis, Restaurantes, Pontos turísticos)
+   ============================================================ */
+.botao-cat{
+  font-size:.95rem;
+}
+.botao-cat[aria-current="true"]{
+  background:#8b1f2f;
+  color:#fff;
+  border-color:#ffb3c4;
+}
+
+/* ============================================================
+   Botões de MODO (tela de escolha: Visual / Acessível)
+   ============================================================ */
+.botao-modo{
+  background:#1f1519;
+  color:#fff;
+  cursor:pointer;
+  transition:
+    transform .25s cubic-bezier(.4,0,.2,1),
+    background-color .25s ease,
+    border-color .25s ease,
+    box-shadow .25s ease;
+}
+.botao-modo:hover{
+  transform:translateY(-6px) scale(1.02);
+  background:#2a1a20;
+  box-shadow:0 12px 30px rgba(255,179,196,.3);
+}
+.botao-modo:active{
+  transform:translateY(0) scale(.98);
+}
+.botao-modo:focus-visible{
+  outline:3px solid #5de08a;
+  outline-offset:4px;
+}
+
+/* Ícones grandes dos botões de modo — pulsação suave */
+.botao-modo .text-6xl{
+  display:inline-block;
+  transition:transform .3s ease;
+}
+.botao-modo:hover .text-6xl{
+  transform:scale(1.15) rotate(-5deg);
+}
+
+/* ============================================================
+   Microfone grande (modo acessível)
+   ============================================================ */
+.microfone-grande{
+  width:180px; height:180px;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, #a52840, #6b1520);
+  border:4px solid #ffb3c4;
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  transition:
+    transform .2s ease,
+    box-shadow .3s ease,
+    border-color .2s ease;
+}
+.microfone-grande:hover{
+  transform:scale(1.05);
+  box-shadow:0 0 40px rgba(255,179,196,.5);
+  border-color:#5de08a;
+}
+.microfone-grande:active{
+  transform:scale(.95);
+}
+.microfone-grande[aria-pressed="true"]{
+  background:radial-gradient(circle at 30% 30%, #5de08a, #2a8a4a);
+  border-color:#fff;
+  animation:pulsar 1.5s infinite;
+}
+
+@keyframes pulsar{
+  0%,100%{ box-shadow:0 0 0 0 rgba(93,224,138,.6); }
+  50%{ box-shadow:0 0 0 20px rgba(93,224,138,0); }
+}
+
+/* ============================================================
+   Botão flutuante "Perguntar"
+   ============================================================ */
+.falar-sempre:hover{
+  transform:translateY(-3px) scale(1.03);
+  box-shadow:0 10px 28px rgba(139,31,47,.6);
+}
+.falar-sempre:active{
+  transform:translateY(1px) scale(.97);
+}
+
+/* ============================================================
+   Respeita pessoas que desativam animações no sistema
+   ============================================================ */
+@media (prefers-reduced-motion: reduce){
+  .botao, .botao-modo, .microfone-grande, .falar-sempre{
+    transition:none !important;
+    animation:none !important;
+  }
+  .botao::before{ display:none; }
+  .botao:hover, .botao-modo:hover, .microfone-grande:hover{
+    transform:none;
+  }
+}
