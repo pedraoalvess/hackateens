@@ -153,18 +153,40 @@ body .font-serif {
 
 /* Link "Ir para o conteúdo": só aparece quando recebe o foco */
 
+/* Link "Ir para o conteúdo" e atalhos: invisível, mas acessível para leitores de tela */
 .pular {
     position: absolute;
-    left: -999px;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    /* Garante que fique totalmente fora da tela sem causar barra de rolagem */
+    left: -10000px; 
+    top: auto;
 }
 
+/* Quando a pessoa aperta TAB no teclado, o botão aparece bonitão no topo */
 .pular:focus {
-    left: 8px;
-    top: 8px;
+    position: fixed; /* Fixed garante que fique no topo mesmo com rolagem */
+    top: 12px;
+    left: 12px;
+    width: auto;
+    height: auto;
+    padding: 16px 24px;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
     background: var(--ink);
     color: var(--canvas);
-    padding: 12px;
-    z-index: 50;
+    border-radius: 12px;
+    font-weight: 700;
+    z-index: 9999; /* Garante que fique por cima de TUDO */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 
