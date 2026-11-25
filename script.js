@@ -29,7 +29,7 @@ function embarqueAtual() {
 /* ---------- 2) Dados ---------- */
 const VELOCIDADE_TESTE = 5;
 const URL_DA_IA = "https://mobintec-ia.pdeoliveiraalves840.workers.dev/";
-const BOAS_VINDAS = "Bem-vindo ao Mobintec. Escolha o modo de uso: visual ou acessível.";
+const BOAS_VINDAS = "Bem-vindo ao Mobintec. Escolha como você quer usar: modo visual, com mapa e botões na tela, ou modo acessível, apenas com voz e microfone. Diga o nome do modo ou toque no botão.";
 const TEXTO_AJUDA = "Comandos: quero ir para as cataratas, onde eu embarco, tem gratuidade, abre o mapa, repetir, mais devagar, desligar a voz, trocar destino, ligar localização, quanto tempo falta, qual a distância, abrir google maps, falar operadora.";
 
 let modoAtual = 'visual';
@@ -497,6 +497,19 @@ function executarAcao(resposta) {
 /* ---------- 8) Responder comandos de voz ---------- */
 function responder(texto) {
   registrarConversa("Você", texto);
+    // BLOQUEIO: na tela de escolha, só aceita comandos de modo
+  const telaEscolha = pegar("#telaEscolhaModo");
+  if (telaEscolha && !telaEscolha.hidden) {
+    const tModo = semAcento(texto);
+    if (/\b(visual|tela|mapa|botao|ver|verdadeiro|completo)\b/.test(tModo)) {
+      escolherModo('visual'); return;
+    }
+    if (/\b(acessivel|cego|voz|audio|somente|ouvinte|deficiente|baixa visao)\b/.test(tModo)) {
+      escolherModo('acessivel'); return;
+    }
+    avisar("Primeiro escolha um modo. Diga: modo visual, ou modo acessível.");
+    return;
+  }
     const eco = pegar("#ecoPergunta"); if (eco) eco.textContent = "Você perguntou: " + texto.trim();
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = '"' + texto.trim() + '"';
   const ouvidoAcessivel = pegar("#textoOuvidoAcessivel"); if (ouvidoAcessivel) ouvidoAcessivel.textContent = '"' + texto.trim() + '"';
@@ -1085,4 +1098,4 @@ if (linkPular) {
 
 // Inicia na tela de escolha de modo
 mostrar(pegar("#telaEscolhaModo"), true);
-falar(BOAS_VINDAS);
+setTimeout(() => falar(BOAS_VINDAS), 600);
