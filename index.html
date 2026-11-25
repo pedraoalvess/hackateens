@@ -40,21 +40,19 @@
 
     <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
         
-        <!-- TELA DE ESCOLHA DE MODO (NOVA!) -->
+        <!-- TELA DE ESCOLHA DE MODO -->
         <section id="telaEscolhaModo" aria-labelledby="tituloEscolhaModo" class="flex flex-col items-center gap-8 text-center">
             <p id="avisoModo" role="alert" hidden class="caixa w-full"></p>
             <h1 id="tituloEscolhaModo" tabindex="-1" class="font-serif text-3xl md:text-4xl">Como você quer usar o MOBINTEC?</h1>
             <p class="text-xl">Escolha o modo que funciona melhor para você.</p>
             
             <div class="flex flex-col md:flex-row gap-6 w-full max-w-3xl">
-                <!-- Botão Modo Visual -->
                 <button id="botaoModoVisual" class="botao-modo flex-1 p-8 rounded-2xl border-4 border-borda hover:border-ok transition-all" aria-label="Modo Visual: site completo com mapa e botões">
                     <div class="text-6xl mb-4">👁️</div>
                     <h2 class="text-2xl font-bold mb-2">Modo Visual</h2>
                     <p class="text-lg">Site completo com mapa, botões e informações na tela. Ideal para quem pode ver.</p>
                 </button>
                 
-                <!-- Botão Modo Acessível -->
                 <button id="botaoModoAcessivel" class="botao-modo flex-1 p-8 rounded-2xl border-4 border-borda hover:border-ok transition-all" aria-label="Modo Acessível: apenas voz e microfone, guiado por áudio">
                     <div class="text-6xl mb-4">🎤</div>
                     <h2 class="text-2xl font-bold mb-2">Modo Acessível</h2>
@@ -84,7 +82,7 @@
             <button id="botaoOpcoes" class="botao" aria-label="Abrir as opções">Opções</button>
         </section>
 
-        <!-- TELA MODO ACESSÍVEL (NOVA!) -->
+        <!-- TELA MODO ACESSÍVEL -->
         <section id="telaAcessivel" aria-labelledby="tituloAcessivel" class="flex flex-col items-center justify-center gap-8 text-center min-h-screen" hidden>
             <h1 id="tituloAcessivel" tabindex="-1" class="font-serif text-4xl">Modo Acessível</h1>
             <p id="textoAcessivel" role="status" class="text-2xl max-w-2xl">A assistente vai guiar você por voz. Toque no microfone e fale.</p>
@@ -228,7 +226,7 @@
         </section>
     </main>
 
-    <!-- BOTÃO FLUTUANTE (sempre visível) -->
+    <!-- BOTÃO FLUTUANTE -->
     <button id="botaoFalarSempre" class="falar-sempre" aria-pressed="false" aria-label="Falar com a assistente">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
     </button>
