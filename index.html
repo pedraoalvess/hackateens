@@ -22,14 +22,13 @@
             }
         };
     </script>
-    <!-- Leaflet via CDN (resolve o erro 404 local) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=39">
+    <link rel="stylesheet" href="style.css?v=40">
 </head>
 
 <body class="font-sans">
-    <button type="button" id="atalhoFalar" class="pular" aria-keyshortcuts="Alt+V">Falar com a assistente por voz. Aperte Enter. Em qualquer tela, toque duas vezes no espaço vazio ou aperte Alt mais V.</button>
-    <button type="button" id="atalhoAssistente" class="pular" aria-keyshortcuts="Alt+A">Abrir a conversa escrita com a assistente. Atalho: Alt mais A.</button>
+    <button type="button" id="atalhoFalar" class="pular" aria-keyshortcuts="Alt+V">Falar com a assistente. Aperte Enter.</button>
+    <button type="button" id="atalhoAssistente" class="pular" aria-keyshortcuts="Alt+A">Abrir conversa escrita. Alt mais A.</button>
     <a href="#principal" class="pular">Ir para o conteúdo</a>
 
     <header class="topo">
@@ -40,8 +39,34 @@
     </header>
 
     <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
-        <!-- TELA INÍCIO -->
-        <section id="telaInicio" aria-labelledby="tituloInicio" class="flex flex-col items-center gap-6 text-center">
+        
+        <!-- TELA DE ESCOLHA DE MODO (NOVA!) -->
+        <section id="telaEscolhaModo" aria-labelledby="tituloEscolhaModo" class="flex flex-col items-center gap-8 text-center">
+            <p id="avisoModo" role="alert" hidden class="caixa w-full"></p>
+            <h1 id="tituloEscolhaModo" tabindex="-1" class="font-serif text-3xl md:text-4xl">Como você quer usar o MOBINTEC?</h1>
+            <p class="text-xl">Escolha o modo que funciona melhor para você.</p>
+            
+            <div class="flex flex-col md:flex-row gap-6 w-full max-w-3xl">
+                <!-- Botão Modo Visual -->
+                <button id="botaoModoVisual" class="botao-modo flex-1 p-8 rounded-2xl border-4 border-borda hover:border-ok transition-all" aria-label="Modo Visual: site completo com mapa e botões">
+                    <div class="text-6xl mb-4">👁️</div>
+                    <h2 class="text-2xl font-bold mb-2">Modo Visual</h2>
+                    <p class="text-lg">Site completo com mapa, botões e informações na tela. Ideal para quem pode ver.</p>
+                </button>
+                
+                <!-- Botão Modo Acessível -->
+                <button id="botaoModoAcessivel" class="botao-modo flex-1 p-8 rounded-2xl border-4 border-borda hover:border-ok transition-all" aria-label="Modo Acessível: apenas voz e microfone, guiado por áudio">
+                    <div class="text-6xl mb-4">🎤</div>
+                    <h2 class="text-2xl font-bold mb-2">Modo Acessível</h2>
+                    <p class="text-lg">Apenas voz e microfone. A assistente guia você por áudio. Ideal para pessoas cegas ou com baixa visão.</p>
+                </button>
+            </div>
+            
+            <p class="text-muted text-sm">Você também pode falar: "modo visual" ou "modo acessível"</p>
+        </section>
+
+        <!-- TELA INÍCIO (Modo Visual) -->
+        <section id="telaInicio" aria-labelledby="tituloInicio" class="flex flex-col items-center gap-6 text-center" hidden>
             <p id="aviso" role="alert" hidden class="caixa w-full"></p>
             <h1 id="tituloInicio" tabindex="-1" class="font-serif text-3xl md:text-4xl">MOBINTEC: para onde você quer ir?</h1>
             <div id="bolhas" class="bolhas">
@@ -57,6 +82,25 @@
             <p id="textoEstado" role="status" class="text-2xl font-semibold">Toque em qualquer lugar e fale</p>
             <p id="textoOuvido" hidden></p>
             <button id="botaoOpcoes" class="botao" aria-label="Abrir as opções">Opções</button>
+        </section>
+
+        <!-- TELA MODO ACESSÍVEL (NOVA!) -->
+        <section id="telaAcessivel" aria-labelledby="tituloAcessivel" class="flex flex-col items-center justify-center gap-8 text-center min-h-screen" hidden>
+            <h1 id="tituloAcessivel" tabindex="-1" class="font-serif text-4xl">Modo Acessível</h1>
+            <p id="textoAcessivel" role="status" class="text-2xl max-w-2xl">A assistente vai guiar você por voz. Toque no microfone e fale.</p>
+            
+            <div id="anelAcessivel" class="anel">
+                <span class="onda" aria-hidden="true"></span>
+                <span class="onda" aria-hidden="true"></span>
+                <span class="onda" aria-hidden="true"></span>
+                <button id="botaoMicrofoneAcessivel" class="microfone microfone-grande" aria-pressed="false" aria-label="Falar com a assistente">
+                    <svg width="140" height="140" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+                </button>
+            </div>
+            
+            <p id="textoOuvidoAcessivel" class="text-xl text-muted" hidden></p>
+            
+            <button id="botaoVoltarModo" class="botao">Voltar para escolha de modo</button>
         </section>
 
         <!-- TELA OPÇÕES -->
@@ -76,7 +120,6 @@
             </form>
             <ul id="conversa" class="conversa" aria-label="Conversa recente"></ul>
             
-            <!-- Mensagem de Sustentabilidade no Rodapé das Opções -->
             <p class="text-sm text-muted mt-6 pt-4 border-t border-hair">
                 <strong>Visão Sustentável:</strong> O turismo acessível movimenta mais de R$ 1,2 bilhão/ano no Brasil. 
                 O MOBINTEC conecta esse público a operadoras locais, gerando renda inclusiva e reduzindo a pegada de carbono ao incentivar o transporte público.
@@ -185,7 +228,7 @@
         </section>
     </main>
 
-    <!-- BOTÕES FLUTUANTES -->
+    <!-- BOTÃO FLUTUANTE (sempre visível) -->
     <button id="botaoFalarSempre" class="falar-sempre" aria-pressed="false" aria-label="Falar com a assistente">
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
     </button>
@@ -212,11 +255,10 @@
         <p>Mapa © OpenStreetMap. A posição do ônibus e a câmera são de demonstração.</p>
     </footer>
 
-    <!-- SCRIPTS (Ordem Corrigida e Leaflet via CDN) -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="dados.js?v=39"></script>
+    <script src="dados.js?v=40"></script>
     <script src="idiomas.js"></script>
-   <script src="camera.js"></script>
-<script src="script.js?v=39"></script>
+    <script src="camera.js"></script>
+    <script src="script.js?v=40"></script>
 </body>
 </html>
