@@ -749,6 +749,29 @@ function responder(texto) {
 
   if (destinoPendente) {
     const t = semAcento(texto.trim());
+      // COMANDO PARA MUDAR O IDIOMA
+  if (/\b(mudar idioma|change language|cambiar idioma)\b/.test(t)) {
+    if (/\b(ingles|english|inglés)\b/.test(t)) { mudarIdioma("en"); return; }
+    if (/\b(espanhol|spanish|español)\b/.test(t)) { mudarIdioma("es"); return; }
+    if (/\b(portugues|portuguese|português)\b/.test(t)) { mudarIdioma("pt"); return; }
+  }
+
+  // DETECÇÃO AUTOMÁTICA (se a pessoa já começar a falar em inglês ou espanhol)
+  const idiomaDetectado = detectarIdioma(texto);
+  if (idiomaDetectado !== idiomaAtual) {
+    const palavrasDetectadas = t.split(/\s+/).filter(function(palavra) {
+      const palavrasIdioma = idiomaDetectado === "en" ? 
+        ["waterfall", "waterfalls", "bird", "birds", "park", "hotel", "restaurant", "help", "where", "when", "how", "what", "which", "free", "seat", "seats", "bus", "map"] :
+        idiomaDetectado === "es" ?
+        ["catarata", "cataratas", "parque", "aves", "pajaros", "hotel", "restaurante", "ayuda", "donde", "cuando", "como", "que", "cual", "gratis", "asiento", "asientos", "autobus", "mapa"] :
+        [];
+      return palavrasIdioma.includes(palavra);
+    }).length;
+    
+    if (palavrasDetectadas >= 2) {
+      mudarIdioma(idiomaDetectado);
+    }
+  }
     const numero = parseInt(t);
     if (!isNaN(numero) && numero >= 1 && numero <= destinoPendente.embarques.length) {
       escolherEmbarque(destinoPendente, numero - 1);
