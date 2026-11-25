@@ -86,6 +86,55 @@ function vibrar(padrao) { if (navigator.vibrate) navigator.vibrate(padrao); }
 function pararAcompanhamento() {
   clearInterval(relogioDoTempo); numeroDaEscolha++; destinoAtual = null; dados = null;
   const painel = pegar("#painel"); if (painel) mostrar(painel, false);
+  // Volta a mostrar todos os destinos
+  mostrarTodosDestinos();
+}
+// Mostra apenas o destino escolhido na tela (esconde os outros cartões)
+function mostrarApenasDestinoEscolhido(destino) {
+  const cartoes = document.querySelectorAll("#cartoes .cartao");
+  cartoes.forEach((cartao, i) => {
+    if (DESTINOS[i] === destino) {
+      cartao.style.display = "";
+      // Se o destino tem múltiplos embarques e ainda não escolheu, adiciona botões visuais
+      if (destino.embarques.length > 1 && !destino.embarqueEscolhido) {
+        let botoesEmbarque = cartao.querySelector(".botoes-embarque");
+        if (!botoesEmbarque) {
+          botoesEmbarque = document.createElement("div");
+          botoesEmbarque.className = "botoes-embarque";
+          botoesEmbarque.style.display = "flex";
+          botoesEmbarque.style.flexWrap = "wrap";
+          botoesEmbarque.style.gap = "0.5rem";
+          botoesEmbarque.style.marginTop = "1rem";
+          
+          destino.embarques.forEach((emb, idx) => {
+            const btn = document.createElement("button");
+            btn.className = "botao botao-forte";
+            btn.style.flex = "1";
+            btn.style.minWidth = "200px";
+            btn.textContent = (idx + 1) + ". " + emb.nome + (emb.gratuidade ? " (Gratuidade PCD)" : "");
+            btn.setAttribute("aria-label", "Escolher " + emb.nome);
+            btn.onclick = () => escolherEmbarque(destino, idx);
+            botoesEmbarque.appendChild(btn);
+          });
+          
+          cartao.appendChild(botoesEmbarque);
+        }
+      }
+    } else {
+      cartao.style.display = "none";
+    }
+  });
+}
+
+// Volta a mostrar todos os destinos (quando volta ao início)
+function mostrarTodosDestinos() {
+  const cartoes = document.querySelectorAll("#cartoes .cartao");
+  cartoes.forEach(cartao => {
+    cartao.style.display = "";
+    // Remove os botões de embarque se existirem
+    const botoes = cartao.querySelector(".botoes-embarque");
+    if (botoes) botoes.remove();
+  });
 }
 function voltar() {
   const alvo = pegar("#telaMapa") && pegar("#telaMapa").hidden ? "inicio" : "lista";
@@ -338,12 +387,28 @@ function escolherEmbarque(destino, indice) {
 }
 function iniciarAcompanhamento(destino) {
   const emb = destino.embarqueEscolhido;
-  let p = "Você escolheu " + destino.nome + ". Embarque em " + emb.nome + ". ";
+  let p = "Você escolheu " + destino.nome + ". ";
+  
+  // Se ainda não escolheu o embarque, mostra as opções
+  if (!emb) {
+    p += "Para ir a " + destino.nome + ", você tem " + destino.embarques.length + " formas. ";
+    p += "Diga o número da opção, ou toque no botão na tela.";
+    destinoPendente = destino;
+    abrirTela("lista");
+    mostrarApenasDestinoEscolhido(destino);
+    setTimeout(() => avisar(p), 300);
+    return;
+  }
+  
+  p += "Embarque em " + emb.nome + ". ";
   if (emb.gratuidade) p += "Gratuidade para PCD. ";
   if (emb.sustentabilidade) p += emb.sustentabilidade + " ";
   if (posicaoUsuario) p += "Você está a " + formatarDistancia(distanciaEntre(posicaoUsuario, emb.posicao)) + " do embarque. ";
   p += proximoHorarioDe(emb).texto;
-  abrirTela("lista"); escolherDestinoComEmbarque(DESTINOS.indexOf(destino));
+  
+  abrirTela("lista");
+  mostrarApenasDestinoEscolhido(destino);
+  escolherDestinoComEmbarque(DESTINOS.indexOf(destino));
   setTimeout(() => avisar(p), 500);
 }
 function executarAcao(resposta) {
