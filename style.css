@@ -957,7 +957,7 @@ body{ padding-bottom:100px; }
     padding-bottom: 6rem !important;
 }
 /* ============================================================
-   BOTÕES - Animações e melhorias visuais
+   BOTÕES - Sistema Completo com Animações
    ============================================================ */
 
 /* Base para todos os botões */
@@ -978,123 +978,30 @@ body{ padding-bottom:100px; }
   content:"";
   position:absolute;
   inset:0;
-  background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
-  transform:translateX(-100%);
-  transition:transform .6s ease;
-  pointer-events:none;
-}
-
-/* HOVER — levanta, brilha e muda a cor */
-.botao:hover{
-  transform:translateY(-2px);
-  box-shadow:0 6px 18px rgba(255,179,196,.25);
-  border-color:#ffb3c4;
-}
-.botao:hover::before{
-  transform:translateX(100%);
-}
-
-/* FOCUS — acessibilidade para navegação por teclado */
-.botao:focus-visible{
-  outline:3px solid #5de08a;
-  outline-offset:3px;
-  transform:translateY(-2px);
-}
-
-/* CLICK — efeito de "pressionar" */
-.botao:active{
-  transform:translateY(1px) scale(.97);
-  box-shadow:0 2px 6px rgba(0,0,0,.3);
-  transition-duration:.08s;
-}
-
-/* ============================================================
-   Botão FORTE (primário / ação principal)
-   ============================================================ */
-.botao-forte{
-  background:linear-gradient(135deg,#8b1f2f 0%,#a52840 100%);
-  color:#fff;
-  border:2px solid #ffb3c4;
-  font-weight:700;
-  letter-spacing:.02em;
-}
-.botao-forte:hover{
-  background:linear-gradient(135deg,#a52840 0%,#c03050 100%);
-  box-shadow:0 8px 22px rgba(139,31,47,.5);
-}
-.botao-forte:active{
-  background:linear-gradient(135deg,#6b1520 0%,#8b1f2f 100%);
-}
-
-/* ============================================================
-   Botões de ABA (Ônibus, Rota, Perto, Assistente)
-   ============================================================ */
-.botao-aba{
-  position:relative;
-}
-.botao-aba[aria-current="true"]{
-  background:#8b1f2f;
-  color:#fff;
-  border-color:#ffb3c4;
-  box-shadow:0 0 0 2px rgba(255,179,196,.3);
-}
-.botao-aba:hover{
-  background:#4e1f2e;
-}
-.botao-aba[aria-current="true"]:hover{
-  background:#a52840;
-}
-
-/* ============================================================
-   Botões de CATEGORIA (Hotéis, Restaurantes, Pontos turísticos)
-   ============================================================ */
-.botao-cat{
-  font-size:.95rem;
-}
-.botao-cat[aria-current="true"]{
-  background:#8b1f2f;
-  color:#fff;
-  border-color:#ffb3c4;
-}
-/* ============================================================
-   BOTÕES - Paleta marrom/bordô do site
-   ============================================================ */
-
-.botao{
-  position:relative;
-  overflow:hidden;
-  transition:
-    transform .18s cubic-bezier(.4,0,.2,1),
-    background-color .2s ease,
-    color .2s ease,
-    box-shadow .2s ease;
-  will-change:transform;
-}
-
-.botao::before{
-  content:"";
-  position:absolute;
-  inset:0;
   background:linear-gradient(120deg, transparent 30%, rgba(255,255,255,.12) 50%, transparent 70%);
   transform:translateX(-100%);
   transition:transform .6s ease;
   pointer-events:none;
 }
 
+/* HOVER - levanta e brilha */
 .botao:hover{
   transform:translateY(-2px);
   box-shadow:0 6px 18px rgba(0,0,0,.4);
 }
+
 .botao:hover::before{
   transform:translateX(100%);
 }
 
+/* FOCUS - acessibilidade */
 .botao:focus-visible{
   outline:2px solid rgba(255,179,196,.6);
   outline-offset:2px;
   box-shadow:0 0 0 4px rgba(139,31,47,.3);
 }
 
+/* CLICK - afunda */
 .botao:active{
   transform:translateY(1px) scale(.97);
   box-shadow:0 2px 6px rgba(0,0,0,.3);
@@ -1109,26 +1016,46 @@ body{ padding-bottom:100px; }
   color:#fff;
   border:1px solid rgba(255,179,196,.3);
   font-weight:600;
+  letter-spacing:.02em;
 }
+
 .botao-forte:hover{
   background:linear-gradient(135deg,#a52840 0%,#8b1f2f 100%);
   box-shadow:0 8px 22px rgba(139,31,47,.5);
 }
 
+.botao-forte:active{
+  background:linear-gradient(135deg,#6b1520 0%,#4e1018 100%);
+}
+
 /* ============================================================
-   Botões de ABA
+   Botões de ABA (Ônibus, Rota, Perto, Assistente)
    ============================================================ */
 .botao-aba[aria-current="true"]{
   background:#8b1f2f;
   color:#fff;
   box-shadow:inset 0 -2px 0 rgba(255,179,196,.4);
 }
+
 .botao-aba:hover{
   background:#4e1f2e;
 }
 
+.botao-aba[aria-current="true"]:hover{
+  background:#a52840;
+}
+
 /* ============================================================
-   Botões de MODO (tela de escolha)
+   Botões de CATEGORIA (Hotéis, Restaurantes, Pontos turísticos)
+   ============================================================ */
+.botao-cat[aria-current="true"]{
+  background:#8b1f2f;
+  color:#fff;
+  border-color:rgba(255,179,196,.4);
+}
+
+/* ============================================================
+   Botões de MODO (tela de escolha: Visual / Acessível)
    ============================================================ */
 .botao-modo{
   background:linear-gradient(135deg,#3b1522 0%,#2a0f18 100%);
@@ -1137,16 +1064,20 @@ body{ padding-bottom:100px; }
   transition:
     transform .25s cubic-bezier(.4,0,.2,1),
     background-color .25s ease,
+    border-color .25s ease,
     box-shadow .25s ease;
 }
+
 .botao-modo:hover{
   transform:translateY(-6px) scale(1.02);
   background:linear-gradient(135deg,#4e1f2e 0%,#3b1522 100%);
   box-shadow:0 12px 30px rgba(0,0,0,.5);
 }
+
 .botao-modo:active{
   transform:translateY(0) scale(.98);
 }
+
 .botao-modo:focus-visible{
   outline:2px solid rgba(255,179,196,.6);
   outline-offset:3px;
@@ -1154,11 +1085,12 @@ body{ padding-bottom:100px; }
 }
 
 .botao-modo h2{
-  color:#fff;
+  color:#fff !important;
   text-shadow:0 2px 4px rgba(0,0,0,.5);
 }
+
 .botao-modo p{
-  color:rgba(255,255,255,.85);
+  color:rgba(255,255,255,.85) !important;
 }
 
 .botao-modo .text-6xl{
@@ -1166,6 +1098,7 @@ body{ padding-bottom:100px; }
   transition:transform .3s ease;
   filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));
 }
+
 .botao-modo:hover .text-6xl{
   transform:scale(1.15) rotate(-5deg);
 }
@@ -1174,24 +1107,32 @@ body{ padding-bottom:100px; }
    Microfone grande (modo acessível)
    ============================================================ */
 .microfone-grande{
-  width:180px; height:180px;
+  width:180px;
+  height:180px;
   border-radius:50%;
   background:radial-gradient(circle at 30% 30%, #8b1f2f, #4e1f2e);
   border:3px solid rgba(255,179,196,.4);
   color:#fff;
-  display:flex; align-items:center; justify-content:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   cursor:pointer;
   transition:
     transform .2s ease,
-    box-shadow .3s ease;
+    box-shadow .3s ease,
+    border-color .2s ease;
 }
+
 .microfone-grande:hover{
   transform:scale(1.05);
   box-shadow:0 0 40px rgba(139,31,47,.6);
+  border-color:rgba(255,179,196,.6);
 }
+
 .microfone-grande:active{
   transform:scale(.95);
 }
+
 .microfone-grande[aria-pressed="true"]{
   background:radial-gradient(circle at 30% 30%, #5de08a, #2a8a4a);
   border-color:rgba(93,224,138,.6);
@@ -1204,17 +1145,24 @@ body{ padding-bottom:100px; }
 }
 
 /* ============================================================
-   Botão flutuante "Perguntar" - CORRIGIDO
+   Botão flutuante "Perguntar" (canto esquerdo)
    ============================================================ */
 .falar-sempre{
-  position:fixed; left:16px; bottom:16px; z-index:9999;
-  display:flex !important; align-items:center; gap:.6rem;
-  min-height:56px; padding:0 20px 0 16px;
+  position:fixed;
+  left:16px;
+  bottom:16px;
+  z-index:9999;
+  display:flex !important;
+  align-items:center;
+  gap:.6rem;
+  min-height:56px;
+  padding:0 20px 0 16px;
   border-radius:999px;
   background:linear-gradient(135deg,#8b1f2f 0%,#6b1520 100%);
   color:#fff;
   border:1px solid rgba(255,179,196,.3);
-  font-size:1rem; font-weight:600;
+  font-size:1rem;
+  font-weight:600;
   box-shadow:0 6px 20px rgba(0,0,0,.5);
   cursor:pointer;
   transition:
@@ -1222,35 +1170,153 @@ body{ padding-bottom:100px; }
     box-shadow .2s ease,
     background .2s ease;
 }
+
 .falar-sempre span{
   white-space:nowrap;
   line-height:1;
 }
+
 .falar-sempre[aria-pressed="true"]{
   background:linear-gradient(135deg,#5de08a 0%,#2a8a4a 100%);
   color:#0d0a0b;
 }
+
 .falar-sempre:hover{
   transform:translateY(-3px) scale(1.03);
   box-shadow:0 10px 28px rgba(139,31,47,.6);
 }
+
 .falar-sempre:active{
   transform:translateY(1px) scale(.97);
 }
 
+/* ============================================================
+   Botão "Assistente" (canto direito) - COM ANIMAÇÃO
+   ============================================================ */
 .chat-abrir{
-  right:16px; left:auto !important; bottom:16px; z-index:9998;
+  position:fixed;
+  right:16px;
+  left:auto !important;
+  bottom:16px;
+  z-index:9998;
+  display:flex !important;
+  align-items:center;
+  gap:.5rem;
+  min-height:56px;
+  padding:0 20px 0 16px;
+  border-radius:999px;
+  background:linear-gradient(135deg,#4e1f2e 0%,#3b1522 100%);
+  color:#fff;
+  border:1px solid rgba(255,179,196,.3);
+  font-size:1rem;
+  font-weight:600;
+  box-shadow:0 6px 20px rgba(0,0,0,.5);
+  cursor:pointer;
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease,
+    background .2s ease;
 }
 
-body{ padding-bottom:100px; }
+.chat-abrir span{
+  white-space:nowrap;
+  line-height:1;
+}
 
+.chat-abrir:hover{
+  transform:translateY(-3px) scale(1.03);
+  background:linear-gradient(135deg,#5a2838 0%,#4e1f2e 100%);
+  box-shadow:0 10px 28px rgba(78,31,46,.6);
+}
+
+.chat-abrir:active{
+  transform:translateY(1px) scale(.97);
+}
+
+.chat-abrir:focus-visible{
+  outline:2px solid rgba(255,179,196,.6);
+  outline-offset:2px;
+}
+
+/* Animação de pulso suave quando não está sendo usado */
+.chat-abrir:not([aria-expanded="true"]){
+  animation:pulse-sutil 3s ease-in-out infinite;
+}
+
+@keyframes pulse-sutil{
+  0%,100%{ box-shadow:0 6px 20px rgba(0,0,0,.5); }
+  50%{ box-shadow:0 6px 20px rgba(0,0,0,.5), 0 0 0 8px rgba(255,179,196,.15); }
+}
+
+/* Quando está aberto, muda a cor */
+.chat-abrir[aria-expanded="true"]{
+  background:linear-gradient(135deg,#8b1f2f 0%,#6b1520 100%);
+  animation:none;
+}
+
+/* ============================================================
+   Barra de pergunta dentro do painel
+   ============================================================ */
+.barra-pergunta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.6rem;
+  align-items:center;
+  padding:1rem;
+  border:2px solid rgba(255,179,196,.3);
+  border-radius:14px;
+  background:rgba(139,31,47,.12);
+  margin-bottom:1rem;
+}
+
+.barra-pergunta form{
+  display:flex;
+  gap:.5rem;
+  flex:1;
+  min-width:240px;
+}
+
+.barra-pergunta .campo{
+  flex:1;
+}
+
+.barra-pergunta .eco{
+  width:100%;
+  margin:0;
+  font-size:1rem;
+  opacity:.95;
+  color:rgba(255,255,255,.8);
+}
+
+/* ============================================================
+   Espaçamento e layout
+   ============================================================ */
+body{
+  padding-bottom:100px;
+}
+
+/* ============================================================
+   Acessibilidade - respeita preferências do usuário
+   ============================================================ */
 @media (prefers-reduced-motion: reduce){
-  .botao, .botao-modo, .microfone-grande, .falar-sempre{
+  .botao,
+  .botao-modo,
+  .microfone-grande,
+  .falar-sempre,
+  .chat-abrir{
     transition:none !important;
     animation:none !important;
   }
-  .botao::before{ display:none; }
-  .botao:hover, .botao-modo:hover, .microfone-grande:hover{
+  
+  .botao::before{
+    display:none;
+  }
+  
+  .botao:hover,
+  .botao-modo:hover,
+  .microfone-grande:hover,
+  .falar-sempre:hover,
+  .chat-abrir:hover{
     transform:none;
   }
 }
