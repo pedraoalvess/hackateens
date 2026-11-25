@@ -369,12 +369,27 @@ function mostrarTodosDestinos() {
 
 function mostrarOpcoesDeEmbarque(destino) {
   const embarques = destino.embarques;
-  if (embarques.length === 1) { destino.embarqueEscolhido = embarques[0]; iniciarAcompanhamento(destino); return; }
-  let t = "Para ir a " + destino.nome + ", você tem " + embarques.length + " formas. Vou explicar. ";
+  
+  // PRIMEIRO: Esconde todos os outros destinos
+  mostrarApenasDestinoEscolhido(destino);
+  
+  // DEPOIS: Abre a tela
+  abrirTela("lista");
+  
+  // Aí sim fala as opções
+  if (embarques.length === 1) { 
+    destino.embarqueEscolhido = embarques[0]; 
+    iniciarAcompanhamento(destino); 
+    return; 
+  }
+  
+  let t = "Para ir a " + destino.nome + ", você tem " + embarques.length + " formas. ";
   embarques.forEach((emb, i) => t += explicarEmbarque(emb, i + 1) + " ");
   t += embarques.length === 2 ? "Diga 1 para " + embarques[0].nome + ", ou 2 para " + embarques[1].nome + "." : "Diga o número da opção.";
   if (embarques[0].gratuidade) t += " Lembre-se: a opção " + embarques[0].nome + " tem gratuidade.";
-  destinoPendente = destino; avisar(t);
+  
+  destinoPendente = destino; 
+  avisar(t);
 }
 let destinoPendente = null;
 function escolherEmbarque(destino, indice) {
