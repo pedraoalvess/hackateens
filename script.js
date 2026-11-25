@@ -71,6 +71,7 @@ function registrarConversa(quem, texto) {
   while (lista.children.length > 6) lista.removeChild(lista.firstChild);
 }
 function avisar(texto, aoTerminar) {
+  const ecoA = pegar("#ecoPergunta"); if (ecoA) ecoA.textContent = texto;
   const estado = pegar("#textoEstado");
   const estadoAcessivel = pegar("#textoAcessivel");
   const resposta = pegar("#textoResposta");
@@ -240,7 +241,7 @@ function pararMicrofone() {
   ouvindo = false; iniciando = false;
   const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
-  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar"].forEach(id => { const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); });
+["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel"].forEach(id => { const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); });
   const micChat = document.getElementById("botaoMicChat"); if (micChat) micChat.setAttribute("aria-pressed", "false");
   const micFixo = document.getElementById("botaoFalarSempre"); if (micFixo) micFixo.setAttribute("aria-pressed", "false");
 }
@@ -496,6 +497,7 @@ function executarAcao(resposta) {
 /* ---------- 8) Responder comandos de voz ---------- */
 function responder(texto) {
   registrarConversa("Você", texto);
+    const eco = pegar("#ecoPergunta"); if (eco) eco.textContent = "Você perguntou: " + texto.trim();
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = '"' + texto.trim() + '"';
   const ouvidoAcessivel = pegar("#textoOuvidoAcessivel"); if (ouvidoAcessivel) ouvidoAcessivel.textContent = '"' + texto.trim() + '"';
   
@@ -969,6 +971,12 @@ adicionarEvento("#botaoModoAcessivel", "click", () => escolherModo('acessivel'))
 adicionarEvento("#botaoMicrofone", "click", () => tocarMicrofone(pegar("#botaoMicrofone")));
 adicionarEvento("#botaoMicrofoneAcessivel", "click", () => tocarMicrofone(pegar("#botaoMicrofoneAcessivel")));
 adicionarEvento("#botaoPerguntar", "click", () => tocarMicrofone(pegar("#botaoPerguntar")));
+adicionarEvento("#botaoPerguntarPainel", "click", () => tocarMicrofone(pegar("#botaoPerguntarPainel")));
+adicionarEvento("#formularioPainel", "submit", e => {
+  e.preventDefault();
+  const c = pegar("#campoPainel");
+  if (c && c.value.trim()) { responder(c.value); c.value = ""; }
+});
 
 document.querySelectorAll(".botao-aba").forEach(botao => {
   botao.addEventListener("click", () => {
