@@ -744,7 +744,8 @@ function executarAcao(resposta) {
 
 function responder(texto) {
   registrarConversa("Você", texto);
-  pegar("#textoOuvido").textContent = """ + texto.trim() + """;
+  // CORREÇÃO: Aspas normais em vez de curvas
+  pegar("#textoOuvido").textContent = '"' + texto.trim() + '"';
 
   if (destinoPendente) {
     const t = semAcento(texto.trim());
@@ -1039,6 +1040,7 @@ function mudarVelocidade(nova) {
   try { localStorage.setItem("mobintecVelocidade", velocidadeVoz); } catch (e) {}
   falar("Velocidade da voz alterada.");
 }
+
 /* ---------- 8) Localização em tempo real ---------- */
 let idLocal = null;
 let posicaoUsuario = null;
