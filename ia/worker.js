@@ -1,32 +1,27 @@
 // Função da assistente de IA do MOBINTEC.
-// Usa o Gemini (Google AI Studio, versão gratuita). A chave fica guardada AQUI, no servidor.
-// Se o Gemini estiver ocupado, tenta de novo, depois um modelo reserva e, por último, o Workers AI da Cloudflare.
+// Usa o Gemini (Google AI Studio). A chave fica guardada AQUI, no servidor.
+// Fallback: Gemini principal -> Gemini Lite -> Workers AI da Cloudflare.
 
-const SISTEMA =
+const SISTEMA = 
   "Você é a assistente do MOBINTEC, um site de ônibus turísticos em Foz do Iguaçu feito para pessoas com deficiência visual. " +
-  "Responda sempre em português do Brasil, em no máximo 3 frases curtas e simples, pensando que será ouvido em voz alta (sem listas, sem símbolos, sem emojis). " +
-  "Para tempo de chegada, assento, rota, hotéis, acessibilidade, paradas e onde descer use APENAS os dados do contexto; " +
-  "se o dado não estiver lá ou estiver marcado como 'A confirmar', diga que ainda não foi confirmado. " +
-  "Nunca invente horários, paradas nem condições de acessibilidade. " +
-  "Quando perguntarem sobre horários, use o campo 'proximoHorario' do contexto, que já calcula automaticamente o próximo ônibus baseado na hora atual. " +
-  "Quando perguntarem sobre paradas ou onde descer, use os campos 'paradas' e 'ondeDescer' do contexto do embarque escolhido. " +
-  "Quando perguntarem sobre gratuidade, use o campo 'gratuidade' do contexto. Se for true, avise que tem gratuidade para PCD com cartão BPC/LOAS. " +
-  "Sobre turismo em geral, ajude com cuidado e avise que a informação pode estar desatualizada. " +
-  "Você conhece os destinos em 'todosOsDestinos' e pode compará-los. " +
-  "Responda SEMPRE e SOMENTE com um JSON neste formato: {\"resposta\": \"texto curto para ser falado\", \"acao\": \"nenhuma\", \"destino\": \"\"}. " +
-  "Use 'acao' só quando a pessoa pedir claramente: " +
-  "'abrir_onibus' (quer ir ou acompanhar o ônibus; coloque em 'destino' o nome exato de um destino), " +
-  "'abrir_mapa', 'ligar_localizacao', 'ler_paradas', 'ler_acessibilidade', 'ler_transporte', " +
-  "'ler_embarque' (para falar rota, paradas e onde descer), " +
-  "'trocar_embarque' (para mostrar outras opções de embarque) ou 'voltar'. " +
-  "Em qualquer outro caso use 'nenhuma'. " +
-  "Quando usar uma ação, diga na 'resposta' o que vai fazer, em uma frase. " +
-  "Quando 'lugaresPerto' estiver no contexto, recomende um ou dois lugares dessa lista e diga a distância; " +
-  "nunca cite lugares que não estejam na lista. " +
-  "Faça no máximo uma pergunta por vez. Em emergência, oriente ligar para 192 (SAMU) ou 193 (Bombeiros).";
+  "Responda SEMPRE no mesmo idioma em que o usuário fez a pergunta (português, inglês ou espanhol). " +
+  "Use no máximo 3 frases curtas e simples, pois será ouvido em voz alta (sem listas, sem símbolos, sem emojis). " +
+  "Regras de Ouro: " +
+  "1. Para horários, use APENAS o campo 'proximoHorario' do contexto. Nunca invente horários. " +
+  "2. Para paradas e desembarque, use os campos 'paradas' e 'ondeDescer' do contexto. " +
+  "3. Para gratuidade, verifique o campo 'gratuidade'. Se for true, avise que há gratuidade para PCD com cartão BPC/LOAS. " +
+  "4. Se um dado estiver marcado como 'A confirmar' ou não existir no contexto, diga que ainda não foi confirmado. " +
+  "5. Sobre turismo em geral, ajude com cuidado e avise que a informação pode estar desatualizada. " +
+  "Ações permitidas (use APENAS estas): 'abrir_onibus', 'abrir_mapa', 'ligar_localizacao', 'ler_paradas', 'ler_acessibilidade', 'ler_transporte', 'ler_embarque', 'trocar_embarque', 'voltar'. " +
+  "Use uma ação apenas quando o usuário pedir claramente. Quando usar uma ação, diga na 'resposta' o que vai fazer em uma frase. " +
+  "Se o usuário só perguntar sobre um lugar, converse e ofereça abrir o ônibus, sem usar ação. " +
+  "Quando 'lugaresPerto' estiver no contexto, recomende 1 ou 2 lugares dessa lista com a distância e use a ação 'abrir_mapa'. " +
+  "Em emergência, oriente ligar para 192 (SAMU) ou 193 (Bombeiros). " +
+  "Responda SEMPRE e SOMENTE com um JSON neste formato exato: {\"resposta\": \"texto curto para ser falado\", \"acao\": \"nome_da_acao_ou_nenhuma\", \"destino\": \"nome_exato_do_destino_ou_vazio\"}";
 
 const ENDERECO_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/";
 
+// Ações que o site pode executar. A IA só pode retornar estas.
 const ACOES = [
   "abrir_onibus", "abrir_mapa", "ligar_localizacao", "ler_paradas",
   "ler_acessibilidade", "ler_transporte", "ler_embarque", "trocar_embarque", "voltar"
@@ -92,6 +87,7 @@ export default {
     };
     if (request.method === "OPTIONS") { return new Response(null, { headers: cabecalhos }); }
     if (request.method !== "POST") { return new Response(JSON.stringify({ erro: "use POST" }), { status: 405, headers: cabecalhos }); }
+    
     try {
       const { pergunta, historico, contexto } = await request.json();
       if (typeof pergunta !== "string" || !pergunta.trim() || pergunta.length > 300) { throw new Error("pergunta inválida"); }
@@ -102,7 +98,7 @@ export default {
       while (mensagens.length && mensagens[0].role !== "user") { mensagens.shift(); }
       mensagens.push({ role: "user", content: pergunta.trim() });
       
-      const sistema = SISTEMA + "\n\nContexto atual do site: " + JSON.stringify(contexto || {}).slice(0, 4000);
+      const sistemaCompleto = SISTEMA + "\n\nContexto atual do site: " + JSON.stringify(contexto || {}).slice(0, 4000);
       let texto = "";
       let ultimoErro = null;
       
@@ -111,7 +107,7 @@ export default {
         const tentativas = i === 0 ? 2 : 1;
         for (let t = 0; t < tentativas && !texto; t++) {
           try {
-            texto = await perguntarAoGemini(modelos[i], env, sistema, mensagens);
+            texto = await perguntarAoGemini(modelos[i], env, sistemaCompleto, mensagens);
           } catch (erro) {
             ultimoErro = erro;
             if (!erro.temporario) { break; }
@@ -121,9 +117,10 @@ export default {
       }
       
       if (!texto && env.AI) {
-        try { texto = await perguntarAoWorkersAI(env, sistema, mensagens); } catch (erro) { ultimoErro = erro; }
+        try { texto = await perguntarAoWorkersAI(env, sistemaCompleto, mensagens); } catch (erro) { ultimoErro = erro; }
       }
       if (!texto) { throw ultimoErro || new Error("sem texto"); }
+      
       return new Response(JSON.stringify(lerRespostaDaIA(texto)), { headers: cabecalhos });
     } catch (erro) {
       return new Response(JSON.stringify({ erro: "falha", detalhe: String(erro.message || erro).slice(0, 200) }), { status: 500, headers: cabecalhos });
