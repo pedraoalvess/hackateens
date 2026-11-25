@@ -1844,7 +1844,7 @@ document.addEventListener("click", function(evento) {
 });
 
 const navegador = navigator.userAgent;
-if (/Instagram|FBAN|FBAV|FB_IAB|WhatsApp|TikTok|; wv)/i.test(navegador)) {
+if (/(Instagram|FBAN|FBAV|FB_IAB|WhatsApp|TikTok|; wv)/i.test(navegador)) {
   mostrar(pegar("#aviso"), true);
   pegar("#aviso").textContent = "Você abriu o site dentro de outro aplicativo (como Instagram ou WhatsApp), onde a voz não funciona. Toque nos três pontinhos e escolha 'Abrir no navegador'.";
 } else if (!ReconhecimentoDoNavegador) {
