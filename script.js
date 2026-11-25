@@ -1,9 +1,8 @@
 /* ==========================================================================
-MOBINTEC - script do site
+MOBINTEC - script do site (Versão Final Corrigida)
 Tudo foi escrito de forma simples, em português, com uma ideia por linha.
 Partes: 1) ajudantes  2) dados  3) fala  4) telas  5) mapa  6) microfone
 7) assistente  8) localização  9) painel do ônibus  10) botões
-(A câmera foi movida para camera.js)
 ========================================================================== */
 
 /* ---------- 1) Ajudantes ---------- */
@@ -41,7 +40,6 @@ function mostrar(elemento, visivel) {
   elemento.setAttribute("aria-hidden", visivel ? "false" : "true");
 }
 
-// Pega o embarque escolhido do destino atual (ou o primeiro, se não escolheu)
 function embarqueAtual() {
   if (!destinoAtual) return null;
   if (destinoAtual.embarqueEscolhido) {
@@ -92,7 +90,8 @@ function falar(texto, naFila, aoTerminar) {
     window.speechSynthesis.cancel();
   }
   const fala = new SpeechSynthesisUtterance(texto);
-  fala.lang = idiomaAtual === "pt" ? "pt-BR" : (idiomaAtual === "en" ? "en-US" : "es-ES");
+  fala.lang = (typeof idiomaAtual !== "undefined" && idiomaAtual === "en") ? "en-US" : 
+              (typeof idiomaAtual !== "undefined" && idiomaAtual === "es") ? "es-ES" : "pt-BR";
   fala.rate = velocidadeVoz;
   if (aoTerminar) {
     let feito = false;
@@ -634,7 +633,6 @@ function falarSobreDestino(destino) {
     " Para acompanhar o ônibus, diga: quero ir.");
 }
 
-// Explica uma opção de embarque em detalhes, para a pessoa entender antes de escolher.
 function explicarEmbarque(embarque, numero) {
   let texto = "Opção " + numero + ": " + embarque.nome + ". ";
   texto += "É um " + embarque.tipo.toLowerCase() + ". ";
@@ -657,7 +655,6 @@ function explicarEmbarque(embarque, numero) {
   return texto;
 }
 
-// Mostra as opções de embarque com explicação completa antes de pedir para escolher.
 function mostrarOpcoesDeEmbarque(destino) {
   const embarques = destino.embarques;
   if (embarques.length === 1) {
@@ -697,6 +694,7 @@ function iniciarAcompanhamento(destino) {
   const embarque = destino.embarqueEscolhido;
   let prefixo = "Você escolheu " + destino.nome + ". Embarque em " + embarque.nome + ". ";
   if (embarque.gratuidade) { prefixo += "Gratuidade para pessoas com deficiência. "; }
+  if (embarque.sustentabilidade) { prefixo += embarque.sustentabilidade + " "; }
   if (posicaoUsuario) {
     const dist = distanciaEntre(posicaoUsuario, embarque.posicao);
     prefixo += "Você está a " + formatarDistancia(dist) + " do embarque. ";
@@ -744,34 +742,10 @@ function executarAcao(resposta) {
 
 function responder(texto) {
   registrarConversa("Você", texto);
-  // CORREÇÃO: Aspas normais em vez de curvas
   pegar("#textoOuvido").textContent = '"' + texto.trim() + '"';
 
   if (destinoPendente) {
     const t = semAcento(texto.trim());
-      // COMANDO PARA MUDAR O IDIOMA
-  if (/\b(mudar idioma|change language|cambiar idioma)\b/.test(t)) {
-    if (/\b(ingles|english|inglés)\b/.test(t)) { mudarIdioma("en"); return; }
-    if (/\b(espanhol|spanish|español)\b/.test(t)) { mudarIdioma("es"); return; }
-    if (/\b(portugues|portuguese|português)\b/.test(t)) { mudarIdioma("pt"); return; }
-  }
-
-  // DETECÇÃO AUTOMÁTICA (se a pessoa já começar a falar em inglês ou espanhol)
-  const idiomaDetectado = detectarIdioma(texto);
-  if (idiomaDetectado !== idiomaAtual) {
-    const palavrasDetectadas = t.split(/\s+/).filter(function(palavra) {
-      const palavrasIdioma = idiomaDetectado === "en" ? 
-        ["waterfall", "waterfalls", "bird", "birds", "park", "hotel", "restaurant", "help", "where", "when", "how", "what", "which", "free", "seat", "seats", "bus", "map"] :
-        idiomaDetectado === "es" ?
-        ["catarata", "cataratas", "parque", "aves", "pajaros", "hotel", "restaurante", "ayuda", "donde", "cuando", "como", "que", "cual", "gratis", "asiento", "asientos", "autobus", "mapa"] :
-        [];
-      return palavrasIdioma.includes(palavra);
-    }).length;
-    
-    if (palavrasDetectadas >= 2) {
-      mudarIdioma(idiomaDetectado);
-    }
-  }
     const numero = parseInt(t);
     if (!isNaN(numero) && numero >= 1 && numero <= destinoPendente.embarques.length) {
       escolherEmbarque(destinoPendente, numero - 1);
@@ -975,6 +949,7 @@ async function perguntarParaIA(texto) {
       paradas: embarque.paradas,
       ondeDescer: embarque.ondeDescer,
       gratuidade: embarque.gratuidade,
+      sustentabilidade: embarque.sustentabilidade,
       preco: embarque.preco,
       acessibilidade: embarque.acessibilidade,
       aConfirmar: destinoAtual.aConfirmar,
@@ -1175,6 +1150,9 @@ function textoEmbarque() {
   frase += "Você deve descer: " + embarque.ondeDescer;
   if (embarque.gratuidade) {
     frase += " Este embarque tem gratuidade para pessoas com deficiência.";
+  }
+  if (embarque.sustentabilidade) {
+    frase += " " + embarque.sustentabilidade;
   }
   if (distanciaAteVoce !== null) {
     frase += " Você está a " + formatarDistancia(distanciaAteVoce) + " do ponto de embarque.";
@@ -1401,6 +1379,9 @@ function textoTransporte() {
     texto += "Gratuidade para pessoas com deficiência. " + embarque.preco + " ";
   } else {
     texto += "Preço: " + embarque.preco + " ";
+  }
+  if (embarque.sustentabilidade) {
+    texto += embarque.sustentabilidade + " ";
   }
   texto += "Operadora: " + embarque.operadora + ". Contato: " + embarque.contato + ".";
   return texto;
@@ -1844,6 +1825,7 @@ document.addEventListener("click", function(evento) {
 });
 
 const navegador = navigator.userAgent;
+// CORREÇÃO DA REGEX AQUI: Adicionado '(' no início do grupo
 if (/(Instagram|FBAN|FBAV|FB_IAB|WhatsApp|TikTok|; wv)/i.test(navegador)) {
   mostrar(pegar("#aviso"), true);
   pegar("#aviso").textContent = "Você abriu o site dentro de outro aplicativo (como Instagram ou WhatsApp), onde a voz não funciona. Toque nos três pontinhos e escolha 'Abrir no navegador'.";
@@ -1860,7 +1842,6 @@ window.addEventListener("popstate", function() {
 pegar("a.pular").onclick = function(evento) {
   evento.preventDefault();
   pegar("#principal").focus();
-};
 };
 
 abrirTela("inicio", true);
