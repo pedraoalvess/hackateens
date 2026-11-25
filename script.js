@@ -92,7 +92,7 @@ function falar(texto, naFila, aoTerminar) {
     window.speechSynthesis.cancel();
   }
   const fala = new SpeechSynthesisUtterance(texto);
-  fala.lang = "pt-BR";
+  fala.lang = idiomaAtual === "pt" ? "pt-BR" : (idiomaAtual === "en" ? "en-US" : "es-ES");
   fala.rate = velocidadeVoz;
   if (aoTerminar) {
     let feito = false;
