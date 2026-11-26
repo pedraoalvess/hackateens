@@ -498,7 +498,15 @@ function responder(texto) {
   registrarConversa("Você", texto);
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = '"' + texto.trim() + '"';
   const ouvidoAcessivel = pegar("#textoOuvidoAcessivel"); if (ouvidoAcessivel) ouvidoAcessivel.textContent = '"' + texto.trim() + '"';
-  const eco = pegar("#ecoPergunta"); if (eco) eco.textContent = "Você perguntou: " + texto.trim();
+  
+  // Atualiza a barra de pergunta no painel e limpa o campo de texto
+  const eco = pegar("#ecoPergunta"); 
+  if (eco) {
+    eco.textContent = "💬 Você perguntou: \"" + texto.trim() + "\"";
+    eco.style.display = "block"; // Garante que apareça
+  }
+  const campoPainel = pegar("#campoPainel");
+  if (campoPainel) campoPainel.value = ""; // Limpa o campo após enviar
   
   // BLOQUEIO: na tela de escolha, só aceita comandos de modo
   const telaEscolha = pegar("#telaEscolhaModo");
@@ -513,6 +521,7 @@ function responder(texto) {
     avisar("Primeiro escolha um modo. Diga: modo visual, ou modo acessível.");
     return;
   }
+  // ... (o resto da função responder continua igual, não apague o que vem depois)
   
   if (destinoPendente) {
     const t = semAcento(texto.trim()), num = parseInt(t);
@@ -658,8 +667,14 @@ async function perguntarParaIA(texto) {
     clearTimeout(prazo); const json = await res.json();
     if (!res.ok || !json.resposta) throw new Error(json.detalhe || json.erro || "sem resposta");
     conversa.push({ role: "user", content: texto }); conversa.push({ role: "assistant", content: json.resposta }); conversa = conversa.slice(-10);
-    avisar(json.resposta, () => {
-      const ecoA = pegar("#ecoPergunta"); if (ecoA) ecoA.textContent = json.resposta;
+      avisar(json.resposta, () => {
+      // Atualiza a barra de pergunta com a resposta da IA
+      const ecoA = pegar("#ecoPergunta"); 
+      if (ecoA) {
+        ecoA.textContent = "🤖 Resposta: " + json.resposta;
+        ecoA.style.display = "block";
+      }
+      
       if (json.acao === "abrir_mapa" && categoria && !posicaoUsuario && !destinoAtual) categoriaPendente = categoria;
       executarAcao(json);
       if (modoConversa && botaoDaConversa && (!json.acao || json.acao === "nenhuma")) setTimeout(() => { if (modoConversa && !ouvindo && !iniciando) tocarMicrofone(botaoDaConversa, true); }, 400);
