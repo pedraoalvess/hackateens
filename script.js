@@ -252,7 +252,9 @@ function pararMicrofone() {
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
   const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.remove("ouvindo");
   const textoMicAssistente = pegar("#textoMicAssistente"); if (textoMicAssistente) textoMicAssistente.textContent = "Toque para falar";
-  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicChat"].forEach(id => { const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); });
+  const botaoVozTopo = pegar("#botaoVozTopo"); if (botaoVozTopo) botaoVozTopo.setAttribute("aria-pressed", "false");
+  const textoVozTopo = pegar("#textoVozTopo"); if (textoVozTopo) textoVozTopo.textContent = "Toque aqui para fazer uma pergunta";
+   ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicChat"].forEach(id => { const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); });
 }
 let modoConversa = false, botaoDaConversa = null;
 function tocarMicrofone(botao, automatico) {
@@ -276,7 +278,9 @@ function ouvirComNavegador(botao) {
     if (botao) botao.setAttribute("aria-pressed", "true");
     const estado = pegar("#textoEstado"); if (estado) estado.textContent = "Ouvindo… fale agora.";
     const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… fale agora.";
-  };
+    const botaoVozTopo = pegar("#botaoVozTopo"); if (botaoVozTopo) botaoVozTopo.setAttribute("aria-pressed", "true");
+    const textoVozTopo = pegar("#textoVozTopo"); if (textoVozTopo) textoVozTopo.textContent = "Ouvindo… pode falar";
+                };
   este.onresult = evento => {
     if (este !== reconhecimento || entendeu) return;
     let texto = ""; for (const r of evento.results) texto += " " + r[0].transcript;
@@ -297,6 +301,8 @@ function ouvirComNavegador(botao) {
   este.onend = () => {
     if (este !== reconhecimento) return; const estava = ouvindo; pararMicrofone();
     if (estava) { apitar(440); if (!entendeu) avisar("Não entendi. Toque e diga, por exemplo, Cataratas."); }
+    const botaoVozTopo = pegar("#botaoVozTopo"); if (botaoVozTopo) botaoVozTopo.setAttribute("aria-pressed", "false");
+    const textoVozTopo = pegar("#textoVozTopo"); if (textoVozTopo) textoVozTopo.textContent = "Toque aqui para fazer uma pergunta";
   };
   setTimeout(() => { if (este === reconhecimento && iniciando) { iniciando = false; avisar("Microfone demorou."); } }, 10000);
   try { este.start(); } catch (e) { iniciando = false; avisar("Não consegui ligar o microfone."); }
@@ -950,6 +956,7 @@ adicionarEvento("#botaoMicrofone", "click", () => tocarMicrofone(pegar("#botaoMi
 adicionarEvento("#botaoMicrofoneAcessivel", "click", () => tocarMicrofone(pegar("#botaoMicrofoneAcessivel")));
 adicionarEvento("#botaoPerguntar", "click", () => tocarMicrofone(pegar("#botaoPerguntar")));
 adicionarEvento("#botaoPerguntarPainel", "click", () => tocarMicrofone(pegar("#botaoPerguntarPainel")));
+adicionarEvento("#botaoVozTopo", "click", () => tocarMicrofone(pegar("#botaoVozTopo")));
 
 document.querySelectorAll(".botao-aba").forEach(botao => {
   botao.addEventListener("click", () => {
