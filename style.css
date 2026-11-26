@@ -486,3 +486,205 @@ body.modo-acessivel #telaAcessivel {
     justify-content: center;
     min-height: 70vh;
 }
+/* ==========================================================================
+   ASSISTENTE INTEGRADA - Botão único + painel completo
+   ========================================================================== */
+
+.assistente-unico {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1000;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 999px;
+    border: 3px solid var(--accent);
+    background: var(--primary);
+    color: var(--on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 8px 24px var(--glow);
+    transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+.assistente-unico:hover {
+    transform: scale(1.08);
+    box-shadow: 0 12px 32px var(--glow);
+    background: #a52840;
+}
+
+.assistente-unico:active {
+    transform: scale(.95);
+    transition-duration: .08s;
+}
+
+.assistente-unico[aria-expanded="true"] {
+    background: var(--dark-2);
+    border-color: var(--on-dark-soft);
+}
+
+.assistente-unico:not([aria-expanded="true"]) {
+    animation: pulse-assistente 3s ease-in-out infinite;
+}
+
+@keyframes pulse-assistente {
+    0%, 100% { box-shadow: 0 8px 24px var(--glow); }
+    50% { box-shadow: 0 8px 24px var(--glow), 0 0 0 8px var(--ring); }
+}
+
+.assistente-painel {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 7rem;
+    z-index: 999;
+    width: min(24rem, calc(100vw - 2rem));
+    max-height: min(38rem, calc(100vh - 9rem));
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    padding: 1.25rem;
+    border-radius: 20px;
+    border: 2px solid var(--primary);
+    background: var(--dark);
+    color: var(--on-dark);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, .5);
+}
+
+.assistente-painel[hidden] { display: none; }
+
+.assistente-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding-bottom: .75rem;
+    border-bottom: 1px solid var(--hair);
+}
+
+.assistente-topo h2 {
+    color: var(--on-dark);
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.assistente-mic-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+    padding: 1rem 0;
+}
+
+.anel-assistente {
+    position: relative;
+    width: 7rem;
+    height: 7rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.microfone-assistente {
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 999px;
+    border: 0;
+    background: var(--primary);
+    color: var(--on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .3s ease, background-color .2s ease;
+    box-shadow: 0 0 0 4px var(--ring), 0 8px 20px var(--glow);
+}
+
+.microfone-assistente:hover { transform: scale(1.05); }
+.microfone-assistente:active { transform: scale(.95); transition-duration: .08s; }
+
+.microfone-assistente[aria-pressed="true"] {
+    background: #5de08a;
+    color: #0d0a0b;
+    animation: pulsarMicAssistente 1.2s ease-in-out infinite;
+}
+
+@keyframes pulsarMicAssistente {
+    50% { transform: scale(1.08); }
+}
+
+.onda-assistente {
+    position: absolute;
+    width: 5.5rem;
+    height: 5.5rem;
+    border-radius: 999px;
+    border: 3px solid var(--accent);
+    opacity: 0;
+}
+
+.anel-assistente.ouvindo .onda-assistente {
+    animation: pulsarOnda 2s ease-out infinite;
+}
+
+.anel-assistente.ouvindo .onda-assistente:nth-child(2) { animation-delay: .6s; }
+.anel-assistente.ouvindo .onda-assistente:nth-child(3) { animation-delay: 1.2s; }
+
+@keyframes pulsarOnda {
+    from { transform: scale(1); opacity: .7; }
+    to { transform: scale(1.8); opacity: 0; }
+}
+
+.texto-mic-assistente {
+    color: var(--on-dark-soft);
+    font-size: .95rem;
+    margin: 0;
+    text-align: center;
+}
+
+.assistente-painel .chat-lista {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0;
+    padding: .5rem;
+    background: var(--dark-2);
+    border-radius: 12px;
+    max-height: 14rem;
+}
+
+.assistente-painel .conversa li {
+    background: var(--card);
+    color: var(--on-dark);
+}
+
+.assistente-painel .conversa .voce {
+    background: var(--primary);
+    color: var(--on-primary);
+}
+
+.assistente-painel .chat-form {
+    display: flex;
+    gap: .5rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--hair);
+}
+
+.assistente-painel .campo {
+    flex: 1;
+    background: var(--canvas);
+    color: var(--ink);
+}
+
+@media (max-width: 480px) {
+    .assistente-painel {
+        right: .75rem;
+        left: .75rem;
+        bottom: 6rem;
+        width: auto;
+    }
+    .assistente-unico {
+        right: 1rem;
+        bottom: 1rem;
+    }
+}
