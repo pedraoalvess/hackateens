@@ -235,11 +235,7 @@
         </section>
     </main>
 
-    <!-- BOTÕES FLUTUANTES -->
-    <button id="botaoFalarSempre" class="falar-sempre" aria-pressed="false" aria-label="Perguntar por voz para a assistente">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
-        <span>Perguntar</span>
-    </button>
+    
 
     <button id="botaoChatFlutuante" class="chat-abrir" aria-expanded="false" aria-label="Abrir assistente">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> <span>Assistente</span>
@@ -248,7 +244,11 @@
     <section id="chatFlutuante" class="chat-flutuante" hidden aria-label="Conversa com a assistente">
         <div class="chat-topo">
             <h2 class="text-xl font-semibold">Assistente MOBINTEC</h2>
-            <button id="botaoFecharChat" class="botao chat-fechar">✕</button>
+        <!-- SUBSTITUA O BOTÃO DA DIREITA POR ESTE -->
+<button id="botaoChatFlutuante" class="chat-abrir" aria-expanded="false" aria-label="Abrir assistente de voz">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> 
+    <span>Falar com a Assistente</span>
+</button>
         </div>
         <ul id="conversaFlutuante" class="conversa chat-lista" aria-live="polite"></ul>
         <form id="formularioChat" class="chat-form">
