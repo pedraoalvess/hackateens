@@ -245,7 +245,10 @@ function pararMicrofone() {
   ouvindo = false; iniciando = false;
   const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
-  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel"].forEach(id => {
+const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
+const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
+
+["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicrofoneTopo"].forEach(id => {
     const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false");
   });
 }
@@ -298,6 +301,8 @@ function ouvirComNavegador(botao) {
   este.onend = () => {
     if (este !== reconhecimento) return; const estava = ouvindo; pararMicrofone();
     if (estava) { apitar(440); if (!entendeu) avisar("Não entendi. Toque e diga, por exemplo, Cataratas."); }
+     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
+const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
   };
 
   setTimeout(() => { if (este === reconhecimento && iniciando) { iniciando = false; avisar("Microfone demorou."); } }, 10000);
@@ -927,6 +932,7 @@ adicionarEvento("#botaoMicrofone", "click", () => tocarMicrofone(pegar("#botaoMi
 adicionarEvento("#botaoMicrofoneAcessivel", "click", () => tocarMicrofone(pegar("#botaoMicrofoneAcessivel")));
 adicionarEvento("#botaoPerguntar", "click", () => tocarMicrofone(pegar("#botaoPerguntar")));
 adicionarEvento("#botaoPerguntarPainel", "click", () => tocarMicrofone(pegar("#botaoPerguntarPainel")));
+adicionarEvento("#botaoMicrofoneTopo", "click", () => tocarMicrofone(pegar("#botaoMicrofoneTopo")));
 
 document.querySelectorAll(".botao-aba").forEach(botao => {
   botao.addEventListener("click", () => {
