@@ -151,9 +151,22 @@
                     <button class="botao botao-aba" data-aba="Assistente" aria-current="false">Assistente</button>
                 </div>
 
-                <div id="abaOnibus" class="aba">
-                    <div class="subcaixa">
-                        <h3 class="text-xl font-semibold">Chegada estimada</h3>
+             <div id="abaOnibus" class="aba">
+    <!-- NOVO: Microfone no topo da aba Ônibus -->
+    <div class="microfone-topo-aba">
+        <div id="anelTopo" class="anel-topo">
+            <span class="onda-topo" aria-hidden="true"></span>
+            <span class="onda-topo" aria-hidden="true"></span>
+            <span class="onda-topo" aria-hidden="true"></span>
+            <button id="botaoMicrofoneTopo" class="microfone-topo" aria-pressed="false" aria-label="Perguntar sobre este ônibus">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+            </button>
+        </div>
+        <p id="textoTopo" class="texto-topo">Toque para perguntar sobre este ônibus</p>
+    </div>
+    
+    <div class="subcaixa">
+        <h3 class="text-xl font-semibold">Chegada estimada</h3>
                         <p id="tempo" class="font-serif text-6xl"></p>
                         <div class="progresso"><div id="barra" class="barra"></div></div>
                         <button id="botaoOuvirStatus" class="botao">Ouvir status</button>
