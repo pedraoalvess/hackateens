@@ -472,3 +472,103 @@ body.claro .caixa{background:#fff;border-color:#ffb3c4}
   .chat-flutuante{width:calc(100vw - 32px);right:16px;left:16px}
   .falar-sempre, .chat-abrir{height:50px;padding:0 16px;font-size:.95rem}
 }
+/* ==========================================================================
+   TELA DE ESCOLHA DE MODO (Estilo Original do Projeto)
+   ========================================================================== */
+
+.tela-escolha {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.tela-escolha .texto-explicativo {
+    font-size: 1.25rem;
+    color: var(--body);
+}
+
+.container-modos {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 48rem;
+}
+
+@media (min-width: 768px) {
+    .container-modos {
+        flex-direction: row;
+    }
+}
+
+.botao-modo {
+    flex: 1;
+    background: var(--card);
+    border: 3px solid var(--primary);
+    border-radius: 16px;
+    padding: 2rem;
+    cursor: pointer;
+    text-align: center;
+    color: var(--ink);
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+
+.botao-modo:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 10px 24px var(--glow);
+}
+
+.botao-modo:active {
+    transform: translateY(0) scale(.98);
+}
+
+.botao-modo h2 {
+    color: var(--ink);
+    margin: 1rem 0 .5rem;
+    font-size: 1.5rem;
+}
+
+.botao-modo p {
+    color: var(--body);
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+.botao-modo .icone-modo {
+    font-size: 4rem;
+    display: inline-block;
+    transition: transform .3s ease;
+}
+
+.botao-modo:hover .icone-modo {
+    transform: scale(1.15);
+}
+
+.tela-escolha .texto-ajuda {
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+/* Microfone grande para modo acessível */
+.microfone-grande {
+    width: 14rem;
+    height: 14rem;
+}
+
+/* Animação sutil no botão Assistente */
+.chat-abrir:not([aria-expanded="true"]) {
+    animation: pulse-sutil 3s ease-in-out infinite;
+}
+
+@keyframes pulse-sutil {
+    0%, 100% { box-shadow: 0 6px 20px rgba(0, 0, 0, .25); }
+    50% { box-shadow: 0 6px 20px rgba(0, 0, 0, .25), 0 0 0 6px var(--ring); }
+}
+
+.chat-abrir[aria-expanded="true"] {
+    animation: none;
+}
