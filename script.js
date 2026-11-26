@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MOBINTEC - script do site (Versão Final - Assistente Integrada)
+   MOBINTEC - script do site (Versão Final - Sem Chat Flutuante, Microfone Unificado)
    ========================================================================== */
 
 /* ---------- 1) Ajudantes ---------- */
@@ -61,22 +61,17 @@ function falar(texto, naFila, aoTerminar) {
   }
   window.speechSynthesis.speak(fala);
 }
+
 function registrarConversa(quem, texto) {
   const lista = pegar("#conversa");
-  const listaChat = pegar("#conversaFlutuante");
+  if (!lista) return;
   const item = document.createElement("li");
   item.className = quem === "Você" ? "voce" : "assistente";
   item.textContent = quem + ": " + texto;
-  if (lista) {
-    const itemClone = item.cloneNode(true);
-    lista.appendChild(itemClone);
-    while (lista.children.length > 6) lista.removeChild(lista.firstChild);
-  }
-  if (listaChat) {
-    listaChat.appendChild(item);
-    listaChat.scrollTop = listaChat.scrollHeight;
-  }
+  lista.appendChild(item);
+  while (lista.children.length > 6) lista.removeChild(lista.firstChild);
 }
+
 function avisar(texto, aoTerminar) {
   const estado = pegar("#textoEstado");
   const estadoAcessivel = pegar("#textoAcessivel");
@@ -87,6 +82,7 @@ function avisar(texto, aoTerminar) {
   registrarConversa("Assistente", texto);
   falar(texto, false, aoTerminar);
 }
+
 function apitar(frequencia) {
   try {
     const audio = new (window.AudioContext || window.webkitAudioContext)();
@@ -240,23 +236,30 @@ function aplicarTema(claro, anunciar) {
 const ReconhecimentoDoNavegador = window.SpeechRecognition || window.webkitSpeechRecognition;
 let usarModeloProprio = !ReconhecimentoDoNavegador, reconhecimento = null, ouvindo = false, iniciando = false, entendeu = false;
 let gravador = null, fluxoDoMicrofone = null, gravando = false, processando = false, gravacaoCancelada = false, transcritor = null;
+
 function destacarBolha(destino) {
   document.querySelectorAll(".bolha").forEach((b, i) => { b.classList.toggle("ativa", DESTINOS[i] === destino); b.classList.toggle("apagada", DESTINOS[i] !== destino); });
 }
 function limparBolhas() { document.querySelectorAll(".bolha").forEach(b => b.classList.remove("ativa", "apagada")); }
+
 function pararMicrofone() {
   if (reconhecimento && (ouvindo || iniciando)) { try { reconhecimento.abort(); } catch (e) {} }
   if (gravando) { gravacaoCancelada = true; gravador.stop(); }
   ouvindo = false; iniciando = false;
+  
   const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
   const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.remove("ouvindo");
   const textoMicAssistente = pegar("#textoMicAssistente"); if (textoMicAssistente) textoMicAssistente.textContent = "Toque para falar";
+  
   const botaoVozTopo = pegar("#botaoVozTopo"); if (botaoVozTopo) botaoVozTopo.setAttribute("aria-pressed", "false");
   const textoVozTopo = pegar("#textoVozTopo"); if (textoVozTopo) textoVozTopo.textContent = "Toque aqui para fazer uma pergunta";
-   ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicChat"].forEach(id => { const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); });
+  
+  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicChat"].forEach(id => { 
+    const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); 
+  });
 }
-let modoConversa = false, botaoDaConversa = null;
+
 function tocarMicrofone(botao, automatico) {
   if (!botao) return;
   if (!automatico) { if (ouvindo) modoConversa = false; else { modoConversa = true; botaoDaConversa = botao; } }
@@ -266,14 +269,15 @@ function tocarMicrofone(botao, automatico) {
   limparBolhas();
   if (usarModeloProprio) ouvirComModeloProprio(botao); else ouvirComNavegador(botao);
 }
-  
-  if (usarModeloProprio) ouvirComModeloProprio(botao); else ouvirComNavegador(botao);
-}
+
 function ouvirComNavegador(botao) {
   const este = new ReconhecimentoDoNavegador(); reconhecimento = este; este.lang = "pt-BR"; este.interimResults = true; entendeu = false; iniciando = true;
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = "";
   const ouvidoAcessivel = pegar("#textoOuvidoAcessivel"); if (ouvidoAcessivel) ouvidoAcessivel.textContent = "";
-  este.onstart = () => { if (este !== reconhecimento) return; iniciando = false; ouvindo = true; apitar(880);
+  
+  este.onstart = () => { 
+    if (este !== reconhecimento) return; 
+    iniciando = false; ouvindo = true; apitar(880);
     const anel = pegar("#anel"); if (anel) anel.classList.add("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.add("ouvindo");
     const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.add("ouvindo");
@@ -283,7 +287,8 @@ function ouvirComNavegador(botao) {
     const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… fale agora.";
     const botaoVozTopo = pegar("#botaoVozTopo"); if (botaoVozTopo) botaoVozTopo.setAttribute("aria-pressed", "true");
     const textoVozTopo = pegar("#textoVozTopo"); if (textoVozTopo) textoVozTopo.textContent = "Ouvindo… pode falar";
-                };
+  };
+  
   este.onresult = evento => {
     if (este !== reconhecimento || entendeu) return;
     let texto = ""; for (const r of evento.results) texto += " " + r[0].transcript;
@@ -295,21 +300,25 @@ function ouvirComNavegador(botao) {
       responder(texto);
     }
   };
+  
   este.onerror = evento => {
     if (este !== reconhecimento) return; iniciando = false;
     if (evento.error === "network" || evento.error === "service-not-allowed") { entendeu = true; usarModeloProprio = true; avisar("Voz do navegador indisponível. Usando voz do site."); ouvirComModeloProprio(botao); }
     else if (evento.error === "not-allowed") { entendeu = true; avisar("Permissão do microfone negada."); }
     else if (evento.error === "no-speech") { entendeu = true; modoConversa = false; avisar("Não ouvi nada."); }
   };
+  
   este.onend = () => {
     if (este !== reconhecimento) return; const estava = ouvindo; pararMicrofone();
     if (estava) { apitar(440); if (!entendeu) avisar("Não entendi. Toque e diga, por exemplo, Cataratas."); }
     const botaoVozTopo = pegar("#botaoVozTopo"); if (botaoVozTopo) botaoVozTopo.setAttribute("aria-pressed", "false");
     const textoVozTopo = pegar("#textoVozTopo"); if (textoVozTopo) textoVozTopo.textContent = "Toque aqui para fazer uma pergunta";
   };
+  
   setTimeout(() => { if (este === reconhecimento && iniciando) { iniciando = false; avisar("Microfone demorou."); } }, 10000);
   try { este.start(); } catch (e) { iniciando = false; avisar("Não consegui ligar o microfone."); }
 }
+
 async function ouvirComModeloProprio(botao) {
   if (gravando) { gravador.stop(); return; } if (processando) return;
   try { fluxoDoMicrofone = await navigator.mediaDevices.getUserMedia({ audio: true }); }
@@ -346,6 +355,7 @@ async function ouvirComModeloProprio(botao) {
   const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… toque de novo para terminar.";
   setTimeout(() => { if (esteGravador.state === "recording") esteGravador.stop(); }, 6000);
 }
+
 async function carregarModelo() {
   if (transcritor) return transcritor;
   const bib = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/dist/transformers.web.min.js");
@@ -532,9 +542,7 @@ function responder(texto) {
   }
   const cmdCam = comandoDeCamera(texto); if (cmdCam) { executarComandoDeCamera(cmdCam); return; }
   const tNav = semAcento(texto);
-  if (/\b(assistente|ia|chat)\b/.test(tNav) && /\b(falar|conversar|abrir|quero|chamar)\b/.test(tNav) && pegar("#chatFlutuante") && pegar("#chatFlutuante").hidden) { abrirChat(true); avisar("Assistente aberta."); return; }
-  if (/\b(fechar|sair)\b/.test(tNav) && /\b(assistente|chat)\b/.test(tNav)) { abrirChat(false); avisar("Assistente fechada."); return; }
-  if (/\b(voltar|inicio)\b/.test(tNav) && /\b(pontos?|destinos?|inicio)\b/.test(tNav)) { abrirChat(false); voltar(); avisar("Voltando."); return; }
+  if (/\b(voltar|inicio)\b/.test(tNav) && /\b(pontos?|destinos?|inicio)\b/.test(tNav)) { voltar(); avisar("Voltando."); return; }
   const t = semAcento(texto);
   
   if (/\b(trocar|mudar|alterar)\b/.test(t) && /\b(destino|ponto|lugar)\b/.test(t)) { pararAcompanhamento(); abrirTela("inicio"); avisar("Voltando para escolher outro destino."); return; }
@@ -575,7 +583,7 @@ function responder(texto) {
     if (destinoAtual) { const emb = embarqueAtual(); avisar("Para " + destinoAtual.nome + ", embarque em " + emb.nome + ": " + proximoHorarioDe(emb).texto); }
     else avisar("Escolha um destino primeiro."); return;
   }
-  if (URL_DA_IA && pegar("#chatFlutuante") && !pegar("#chatFlutuante").hidden) { perguntarParaIA(texto); return; }
+  
   const destino = acharDestino(texto);
   if (destino) {
     const pedido = categoriaNoTexto(texto); if (pedido) { pedirPertoDe(destino, pedido); return; }
@@ -964,7 +972,7 @@ adicionarEvento("#botaoVozTopo", "click", () => tocarMicrofone(pegar("#botaoVozT
 document.querySelectorAll(".botao-aba").forEach(botao => {
   botao.addEventListener("click", () => {
     if (!dados) return; mostrarAba(botao.dataset.aba);
-    const falas = { Onibus: frasePrincipal, Rota: textoRota, Perto: textoPerto, Assistente: () => "Pergunte pelo botão flutuante no canto direito." };
+    const falas = { Onibus: frasePrincipal, Rota: textoRota, Perto: textoPerto, Assistente: () => "Use o microfone no topo da página para fazer perguntas." };
     avisar(falas[botao.dataset.aba]());
   });
 });
@@ -1000,45 +1008,36 @@ adicionarEvento("#formulario", "submit", e => { e.preventDefault(); responder(pe
 adicionarEvento("#formularioAba", "submit", e => { e.preventDefault(); const c = pegar("#campoAba"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
 adicionarEvento("#formularioPainel", "submit", e => { e.preventDefault(); const c = pegar("#campoPainel"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
 
-function abrirChat(aberto) {
-  const chat = pegar("#chatFlutuante"); if (!chat) return;
-  chat.hidden = !aberto;
-  const btnChat = pegar("#botaoAssistenteUnico");
-  if (btnChat) { 
-    btnChat.setAttribute("aria-expanded", aberto ? "true" : "false"); 
-  }
-  
-  if (aberto) {
-    if (!pegar("#conversaFlutuante").children.length) {
-      registrarConversa("Assistente", "Olá! Sou a assistente do MOBINTEC. Toque no microfone ou digite sua pergunta.");
-    }
-    const campo = pegar("#campoChat"); if (campo) campo.focus();
-  } else { 
-    if (btnChat) btnChat.focus(); 
-    pararMicrofone();
-  }
-}
-
-document.addEventListener("keydown", e => { if (e.altKey && (e.key === "v" || e.key === "V")) { e.preventDefault(); abrirChat(true); setTimeout(() => { const mic = pegar("#botaoMicChat"); if (mic) Microfone(mic, true); }, 300); } });
+// Atalhos de teclado agora ativam apenas o microfone principal
 document.addEventListener("keydown", e => {
-  if (e.altKey && (e.key === "a" || e.key === "A")) { e.preventDefault(); abrirChat(pegar("#chatFlutuante") ? pegar("#chatFlutuante").hidden : true); }
+  if (e.altKey && (e.key === "v" || e.key === "V")) {
+    e.preventDefault();
+    const mic = pegar("#botaoMicrofone");
+    if (mic) tocarMicrofone(mic);
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.altKey && (e.key === "a" || e.key === "A")) {
+    e.preventDefault();
+    const mic = pegar("#botaoMicrofone");
+    if (mic) tocarMicrofone(mic);
+  }
 });
 
 let instrucaoFalada = false;
 function falarInstrucaoInicial(e) {
   if (instrucaoFalada) return; instrucaoFalada = true;
   if (e && e.target && e.target.closest && e.target.closest("button, input, select, textarea, a")) return;
-  falar("Para falar com a assistente, toque no botão do microfone no canto inferior direito, ou aperte Alt + V.", true);
+  falar("Para falar com a assistente, toque no botão do microfone no topo da página, ou aperte Alt + V.", true);
 }
 document.addEventListener("pointerdown", falarInstrucaoInicial, { once: true });
 document.addEventListener("keydown", falarInstrucaoInicial, { once: true });
-document.addEventListener("keydown", e => { const chat = pegar("#chatFlutuante"); if (e.key === "Escape" && chat && !chat.hidden) abrirChat(false); });
 
 let tocarEmQualquerLugar = true;
 document.addEventListener("click", e => {
   const inicio = pegar("#telaInicio");
   const naTelaInicial = inicio && !inicio.hidden;
-  const tocou = e.target.closest("button, input, select, textarea, label, a, form, #chatFlutuante, .assistente-unico, .assistente-painel");
+  const tocou = e.target.closest("button, input, select, textarea, label, a, form, #botaoVozTopo");
   if (tocarEmQualquerLugar && naTelaInicial && !tocou) tocarMicrofone(pegar("#botaoMicrofone"));
 });
 
@@ -1068,5 +1067,3 @@ mostrar(pegar("#telaMapa"), false);
 
 mostrar(pegar("#telaEscolhaModo"), true);
 setTimeout(() => falar(BOAS_VINDAS), 600);
-/* ==========================================================================
-
