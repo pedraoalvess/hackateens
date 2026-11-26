@@ -1031,10 +1031,22 @@ function abrirChat(aberto) {
   chat.hidden = !aberto;
   const btnChat = pegar("#botaoChatFlutuante");
   if (btnChat) { btnChat.setAttribute("aria-expanded", aberto ? "true" : "false"); btnChat.hidden = aberto; }
+  
   if (aberto) {
-    if (!pegar("#conversaFlutuante").children.length) registrarConversa("Assistente", "Olá! Sou a assistente do MOBINTEC. Pergunte: onde embarcar, gratuidade, próximo horário, assentos livres.");
+    if (!pegar("#conversaFlutuante").children.length) registrarConversa("Assistente", "Olá! Sou a assistente do MOBINTEC. Pode perguntar sobre embarque, horários, acessibilidade ou assentos.");
+    
     const campo = pegar("#campoChat"); if (campo) campo.focus();
-  } else { if (btnChat) btnChat.focus(); }
+    
+    // NOVO: Ao abrir o chat, já ativa o microfone automaticamente!
+    setTimeout(() => {
+        const micChat = pegar("#botaoMicChat");
+        if (micChat) tocarMicrofone(micChat, true);
+    }, 500);
+    
+  } else { 
+    if (btnChat) btnChat.focus(); 
+    pararMicrofone(); // Garante que o mic desliga se fechar o chat
+  }
 }
 adicionarEvento("#botaoChatFlutuante", "click", () => abrirChat(true));
 adicionarEvento("#botaoFecharChat", "click", () => abrirChat(false));
