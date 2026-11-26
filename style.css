@@ -688,3 +688,113 @@ body.modo-acessivel #telaAcessivel {
         bottom: 1rem;
     }
 }
+
+/* ==========================================================================
+   AJUSTES FINAIS: Cores Bordô, Mobile e Microfone no Topo
+   ========================================================================== */
+
+/* 1. Mudar bordas rosas para BORDÔ sofisticado */
+:root {
+    --line: #8b1f2f !important;      /* Bordas agora são bordô */
+    --accent: #8b1f2f !important;    /* Destaques em bordô */
+}
+body.claro {
+    --line: #8b1f2f !important;
+    --accent: #8b1f2f !important;
+}
+
+/* 2. Garantir que o botão velho da esquerda SUMA de vez */
+.falar-sempre {
+    display: none !important;
+}
+
+/* 3. Nova Barra de Voz no Topo (Acessível e Elegante) */
+.barra-voz-topo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    margin: 1rem auto;
+    max-width: 56rem;
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 16px;
+}
+
+.botao-voz-topo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary);
+    color: var(--on-primary);
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.botao-voz-topo:hover {
+    transform: scale(1.05);
+    background: #a52840;
+}
+
+.botao-voz-topo[aria-pressed="true"] {
+    background: #5de08a;
+    color: #0d0a0b;
+    animation: pulsarMic 1.2s ease-in-out infinite;
+}
+
+.texto-voz-topo {
+    color: var(--muted);
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* 4. Melhorias de Layout para MOBILE */
+@media (max-width: 768px) {
+    /* Cabeçalho empilhado no mobile */
+    .topo {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+    
+    /* Barra de voz ocupa largura total no mobile */
+    .barra-voz-topo {
+        margin: 0.5rem;
+        padding: 0.75rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .botao-voz-topo {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Painel e cartões com menos padding no mobile */
+    .painel, .cartao, .subcaixa {
+        padding: 1rem;
+    }
+
+    /* Ajuste do botão flutuante da assistente para não cobrir conteúdo no mobile */
+    .assistente-unico {
+        right: 1rem;
+        bottom: 1rem;
+        width: 4rem;
+        height: 4rem;
+    }
+    
+    .assistente-painel {
+        right: 0.5rem;
+        left: 0.5rem;
+        bottom: 6rem;
+        width: auto;
+        max-height: 60vh;
+    }
+}
