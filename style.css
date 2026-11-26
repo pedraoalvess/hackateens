@@ -1019,3 +1019,97 @@ body.claro .rodape {
     .topo { flex-direction: column; text-align: center; gap: 0.5rem; padding: 1rem; }
     .painel, .cartao, .subcaixa { padding: 1rem; }
 }
+/* ==========================================================================
+   MICROFONE NO TOPO DA ABA ÔNIBUS
+   ========================================================================== */
+
+.microfone-topo-aba {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem 1rem;
+    background: var(--dark-2);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.anel-topo {
+    position: relative;
+    width: 8rem;
+    height: 8rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.microfone-topo {
+    width: 6.5rem;
+    height: 6.5rem;
+    border-radius: 999px;
+    border: 0;
+    background: var(--primary);
+    color: var(--on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .3s ease, background-color .2s ease;
+    box-shadow: 0 0 0 4px var(--ring), 0 8px 20px var(--glow);
+}
+
+.microfone-topo:hover {
+    transform: scale(1.05);
+}
+
+.microfone-topo:active {
+    transform: scale(.95);
+    transition-duration: .08s;
+}
+
+.microfone-topo[aria-pressed="true"] {
+    background: #5de08a;
+    color: #0d0a0b;
+    animation: pulsarMicTopo 1.2s ease-in-out infinite;
+}
+
+@keyframes pulsarMicTopo {
+    50% { transform: scale(1.08); }
+}
+
+.onda-topo {
+    position: absolute;
+    width: 6.5rem;
+    height: 6.5rem;
+    border-radius: 999px;
+    border: 3px solid var(--accent);
+    opacity: 0;
+}
+
+.anel-topo.ouvindo .onda-topo {
+    animation: pulsarOndaTopo 2s ease-out infinite;
+}
+
+.anel-topo.ouvindo .onda-topo:nth-child(2) { animation-delay: .6s; }
+.anel-topo.ouvindo .onda-topo:nth-child(3) { animation-delay: 1.2s; }
+
+@keyframes pulsarOndaTopo {
+    from { transform: scale(1); opacity: .7; }
+    to { transform: scale(1.6); opacity: 0; }
+}
+
+.texto-topo {
+    color: var(--on-dark-soft);
+    font-size: 1rem;
+    margin: 0;
+    text-align: center;
+}
+
+/* Mobile: microfone menor */
+@media (max-width: 768px) {
+    .anel-topo { width: 6rem; height: 6rem; }
+    .microfone-topo { width: 5rem; height: 5rem; }
+    .microfone-topo svg { width: 36px; height: 36px; }
+    .onda-topo { width: 5rem; height: 5rem; }
+}
