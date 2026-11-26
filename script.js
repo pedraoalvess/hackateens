@@ -1074,3 +1074,19 @@ mostrar(pegar("#telaMapa"), false);
 
 mostrar(pegar("#telaEscolhaModo"), true);
 setTimeout(() => falar(BOAS_VINDAS), 600);
+/* ==========================================================================
+   REMOVER CHAT FLUTUANTE
+   ========================================================================== */
+
+/* Esconde completamente o chat e o botão dele */
+.chat-flutuante,
+.assistente-painel,
+.assistente-unico,
+.chat-abrir,
+.falar-sempre,
+#botaoChatFlutuante,
+#botaoAssistenteUnico {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
