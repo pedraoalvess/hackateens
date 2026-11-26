@@ -58,6 +58,28 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
   const botaoOuvir = painel.querySelector('[data-acao="ouvir"]');
   const botoesFonte = painel.querySelectorAll('[data-fonte]');
   
+  // NOVO: Filtro para limpar a linguagem repetitiva e estranha da IA
+  function limparMensagemIA(texto) {
+    if (!texto) return "";
+    let limpo = texto;
+    
+    // 1. Troca "candidato a livre" por "possível assento livre"
+    limpo = limpo.replace(/candidato a livre/gi, "possível assento livre");
+    
+    // 2. Remove repetições de avisos de erro espalhados pelo texto
+    limpo = limpo.replace(/(?:a análise pode estar errada|pode estar errado|pode conter erros|sujeito a falhas|não é garantia|lembre-se que pode haver erros)/gi, "");
+    
+    // 3. Limpa espaços duplos, vírgulas sobrando e quebras de linha extras
+    limpo = limpo.replace(/\s+/g, " ").replace(/,\s*,/g, ",").trim();
+    
+    // 4. Adiciona um único aviso discreto e profissional no final
+    if (limpo.length > 0) {
+      limpo += " (A análise é estimada por IA e pode conter imprecisões.)";
+    }
+    
+    return limpo;
+  }
+
   function textoInicial() {
     return modo === 'fixa' ?
       'Toque no botão abaixo para ver a análise da câmera do ônibus.' :
@@ -170,16 +192,22 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
     const valida = json.estado === 'recente' &&
       typeof json.mensagem === 'string' && json.mensagem.trim() !== '' &&
       Number.isFinite(restante) && restante > 0;
+      
     if (!valida) {
       limparLeitura();
       escrever('Fazendo nova análise...');
       return false;
     }
+    
+    // APLICA O FILTRO DE LIMPEZA NA MENSAGEM DA IA
+    const mensagemLimpa = limparMensagemIA(json.mensagem);
+    
     leitura = {
       fonte: fonte,
-      mensagem: json.mensagem.trim(),
+      mensagem: mensagemLimpa,
       expira: performance.now() + Math.min(VALIDADE_MS, restante)
     };
+    
     const texto = textoAssentos();
     escrever(texto);
     anunciar(texto, false);
