@@ -132,7 +132,34 @@ body h1, body h2, body .font-serif {
     cursor: pointer; transition: transform .18s ease, background-color .2s ease, box-shadow .2s ease;
 }
 .botao:active { filter: brightness(.9); transform: translateY(1px) scale(.97); transition-duration: .08s; }
-.botao:hover { transform: translateY(-2px); background: var(--dark); box-shadow: 0 6px 16px rgba(0,0,0,.3); }
+.botao:hover {
+    transform: translateY(-2px);
+    background: var(--dark);
+    color: var(--ink) !important; /* Garante que o texto fique visível */
+    box-shadow: 0 6px 16px rgba(0,0,0,.3);
+    border-color: var(--accent); /* Borda mais clara no hover */
+}
+
+.botao-forte:hover {
+    background: #a52840;
+    color: var(--on-primary) !important; /* Texto branco sempre visível */
+    box-shadow: 0 8px 20px var(--glow);
+    border-color: var(--accent);
+}
+
+.botao-modo:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 10px 24px var(--glow);
+}
+
+.botao-modo:hover h2 {
+    color: var(--ink) !important; /* Título sempre visível */
+}
+
+.botao-modo:hover p {
+    color: var(--body) !important; /* Descrição sempre visível */
+}
 
 .botao-forte {
     background: var(--primary); border-color: var(--primary);
@@ -439,4 +466,21 @@ body.claro .pino { border-color: #141413; }
 
 .eco-pergunta:not(:empty) {
     display: block;
+}
+/* ==========================================================================
+   MODO ACESSÍVEL: Esconde textos desnecessários (só voz guia)
+   ========================================================================== */
+
+/* Esconde textos explicativos no modo acessível */
+body.modo-acessivel .texto-explicativo,
+body.modo-acessivel .texto-ajuda,
+body.modo-acessivel #textoAcessivel,
+body.modo-acessivel #textoOuvidoAcessivel {
+    display: none !important;
+}
+
+/* Mantém apenas o título, microfone e botão voltar visíveis */
+body.modo-acessivel #telaAcessivel {
+    justify-content: center;
+    min-height: 70vh;
 }
