@@ -1,8 +1,7 @@
 /* ==========================================================================
-   MOBINTEC - script completo (microfone topo funcionando)
+   MOBINTEC - script completo
    ========================================================================== */
 
-/* ---------- 1) Ajudantes ---------- */
 function pegar(seletor) { return document.querySelector(seletor); }
 function semAcento(texto) { return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function sortear(max) { return Math.floor(Math.random() * max); }
@@ -26,7 +25,6 @@ function embarqueAtual() {
   return destinoAtual.embarqueEscolhido || destinoAtual.embarques[0];
 }
 
-/* ---------- 2) Dados ---------- */
 const VELOCIDADE_TESTE = 5;
 const URL_DA_IA = "https://mobintec-ia.pdeoliveiraalves840.workers.dev/";
 const BOAS_VINDAS = "Bem-vindo ao Mobintec. Escolha como você quer usar: modo visual, com mapa e botões na tela, ou modo acessível, apenas com voz e microfone. Toque no botão do modo que você preferir.";
@@ -45,7 +43,6 @@ function acharDestino(texto) {
   return null;
 }
 
-/* ---------- 3) Fala ---------- */
 let ultimaFala = "", velocidadeVoz = 1, vozLigada = true;
 function falar(texto, naFila, aoTerminar) {
   ultimaFala = texto;
@@ -89,7 +86,6 @@ function apitar(frequencia) {
 }
 function vibrar(padrao) { if (navigator.vibrate) navigator.vibrate(padrao); }
 
-/* ---------- 4) Telas e Modo ---------- */
 function pararAcompanhamento() {
   clearInterval(relogioDoTempo); numeroDaEscolha++; destinoAtual = null; dados = null;
   const painel = pegar("#painel"); if (painel) mostrar(painel, false);
@@ -145,7 +141,7 @@ function abrirTela(nome, silencioso, semHistorico) {
   if (nome === "lista") {
     colocarMapaEm("#slotMapaOnibus"); criarMapa(); desenharRotaNoMapa();
     const titulo = pegar("#tituloLista"); if (titulo) titulo.focus();
-    if (!silencioso) falar("Ônibus turísticos. Escolha um destino.");
+    if (!silencioso) falar("Ônibus turísticos. Escolha um destino ou toque no microfone e fale.");
   } else if (nome === "opcoes") {
     const titulo = pegar("#tituloOpcoes"); if (titulo) titulo.focus(); if (!silencioso) falar("Opções.");
   } else if (nome === "mapa") {
@@ -164,7 +160,6 @@ function abrirTela(nome, silencioso, semHistorico) {
   window.scrollTo(0, 0);
 }
 
-/* ---------- 5) Mapa ---------- */
 let mapa = null, camada = null, marcadorOnibus = null, marcadorVoce = null, camadaPerto = null, distanciaAteVoce = null;
 function criarPino(texto, corFundo, corTexto, tamanho) {
   return L.divIcon({ className: "", iconSize: [tamanho, tamanho], iconAnchor: [tamanho / 2, tamanho / 2],
@@ -228,7 +223,6 @@ function aplicarTema(claro, anunciar) {
   if (anunciar) avisar(claro ? "Tema claro." : "Tema escuro.");
 }
 
-/* ---------- 6) Microfone ---------- */
 const ReconhecimentoDoNavegador = window.SpeechRecognition || window.webkitSpeechRecognition;
 let usarModeloProprio = !ReconhecimentoDoNavegador, reconhecimento = null, ouvindo = false, iniciando = false, entendeu = false;
 let gravador = null, fluxoDoMicrofone = null, gravando = false, processando = false, gravacaoCancelada = false, transcritor = null;
@@ -245,7 +239,7 @@ function pararMicrofone() {
   const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
   const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
-  const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
+  const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para escolher um ônibus por voz";
   ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicrofoneTopo"].forEach(id => {
     const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false");
   });
@@ -302,7 +296,7 @@ function ouvirComNavegador(botao) {
     if (este !== reconhecimento) return; const estava = ouvindo; pararMicrofone();
     if (estava) { apitar(440); if (!entendeu) avisar("Não entendi. Toque e diga, por exemplo, Cataratas."); }
     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
-    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
+    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para escolher um ônibus por voz";
   };
 
   setTimeout(() => { if (este === reconhecimento && iniciando) { iniciando = false; avisar("Microfone demorou."); } }, 10000);
@@ -320,7 +314,7 @@ async function ouvirComModeloProprio(botao) {
     const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
-    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
+    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para escolher um ônibus por voz";
     if (botao) botao.setAttribute("aria-pressed", "false");
     if (gravacaoCancelada) return; apitar(440); processando = true; avisar("Entendendo…");
     try {
@@ -355,7 +349,6 @@ async function carregarModelo() {
   return transcritor;
 }
 
-/* ---------- 7) Assistente / destinos ---------- */
 function querIrAoDestino(texto) { return /quero ir|vou para|ir para|ir ao|me leva|acompanhar|onibus|rota|abrir|vamos/.test(semAcento(texto)); }
 function comandoDeCamera(texto) {
   const t = semAcento(texto);
@@ -488,7 +481,6 @@ function executarAcao(resposta) {
   }
 }
 
-/* ---------- 8) Responder comandos ---------- */
 function responder(texto) {
   registrarConversa("Você", texto);
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = '"' + texto.trim() + '"';
@@ -496,7 +488,6 @@ function responder(texto) {
 
   const eco = pegar("#ecoPergunta");
   if (eco) { eco.textContent = "💬 Você perguntou: \"" + texto.trim() + "\""; eco.style.display = "block"; }
-  const campoPainel = pegar("#campoPainel"); if (campoPainel) campoPainel.value = "";
 
   const telaEscolha = pegar("#telaEscolhaModo");
   if (telaEscolha && !telaEscolha.hidden) {
@@ -504,6 +495,31 @@ function responder(texto) {
     if (/\b(visual|tela|mapa|botao|ver|verdadeiro|completo)\b/.test(tModo)) { escolherModo('visual'); return; }
     if (/\b(acessivel|cego|voz|audio|somente|ouvinte|deficiente|baixa visao)\b/.test(tModo)) { escolherModo('acessivel'); return; }
     avisar("Primeiro escolha um modo. Toque em modo visual ou modo acessível."); return;
+  }
+
+  // NOVO: Se está na tela de lista e não tem destino escolhido, interpretar como escolha de ônibus
+  const telaLista = pegar("#telaLista");
+  if (telaLista && !telaLista.hidden && !destinoAtual) {
+    const t = semAcento(texto);
+    
+    // Tenta interpretar como número (1, 2, 3...)
+    const num = parseInt(t);
+    if (!isNaN(num) && num >= 1 && num <= DESTINOS.length) {
+      escolherDestino(num - 1);
+      return;
+    }
+    
+    // Tenta achar o destino pelo nome
+    const destino = acharDestino(texto);
+    if (destino) {
+      escolherDestino(DESTINOS.indexOf(destino));
+      return;
+    }
+    
+    // Se não achou, avisa
+    const listaNomes = DESTINOS.map((d, i) => (i + 1) + " para " + d.nome).join(", ");
+    avisar("Não entendi. Diga o número ou nome do destino. Opções: " + listaNomes + ".");
+    return;
   }
 
   if (destinoPendente) {
@@ -628,7 +644,6 @@ async function perguntarParaIA(texto) {
   }
 }
 
-/* ---------- 9) Localização ---------- */
 let idLocal = null, posicaoUsuario = null, ultimoLimiar = null, ultimaDistanciaMostrada = null, centralizouNaPessoa = false;
 function mostrarVoceNoMapa() {
   if (!mapa || !posicaoUsuario) return;
@@ -696,7 +711,6 @@ function falarLocalizacao() {
   avisar(f);
 }
 
-/* ---------- 10) Painel ---------- */
 let destinoAtual = null, dados = null, relogioDoTempo = null, numeroDaEscolha = 0, ultimoMinuto = 0;
 function minutosQueFaltam() { return Math.max(1, Math.ceil(dados.segundosAteChegar / 60)); }
 function textoAcessibilidade() { if (!destinoAtual) return "Escolha um destino."; const emb = embarqueAtual(); return "Acessibilidade do embarque " + emb.nome + ". " + emb.acessibilidade; }
@@ -907,7 +921,6 @@ async function pedirPerto(categoria, ficarNaTela) {
   const achou = await buscarPerto(categoria); if (achou) avisar(textoPerto());
 }
 
-/* ---------- 11) Botões e inicialização ---------- */
 function adicionarEvento(seletor, evento, funcao) {
   const el = document.querySelector(seletor);
   if (el) el.addEventListener(evento, funcao);
@@ -977,11 +990,12 @@ adicionarEvento("#botaoOuvirHoteis", "click", () => { if (dados) avisar(textoPer
 
 adicionarEvento("#formulario", "submit", e => { e.preventDefault(); const c = pegar("#campoTexto"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
 adicionarEvento("#formularioAba", "submit", e => { e.preventDefault(); const c = pegar("#campoAba"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
-adicionarEvento("#formularioPainel", "submit", e => { e.preventDefault(); const c = pegar("#campoPainel"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
 
 function microfoneDaTela() {
   const acessivel = pegar("#telaAcessivel");
   if (acessivel && !acessivel.hidden) return pegar("#botaoMicrofoneAcessivel");
+  const lista = pegar("#telaLista");
+  if (lista && !lista.hidden) return pegar("#botaoMicrofoneTopo");
   const inicio = pegar("#telaInicio");
   if (inicio && !inicio.hidden) return pegar("#botaoMicrofone");
   return pegar("#botaoPerguntarPainel") || pegar("#botaoMicrofone");
@@ -1002,13 +1016,21 @@ function falarInstrucaoInicial(e) {
 document.addEventListener("pointerdown", falarInstrucaoInicial, { once: true });
 document.addEventListener("keydown", falarInstrucaoInicial, { once: true });
 
+// TOCAR EM QUALQUER LUGAR ATIVA O MICROFONE (exceto na tela de escolha)
 let tocarEmQualquerLugar = true;
 document.addEventListener("click", e => {
-  const inicio = pegar("#telaInicio");
-  const acessivel = pegar("#telaAcessivel");
-  const naTelaCerta = (inicio && !inicio.hidden) || (acessivel && !acessivel.hidden);
-  const tocou = e.target.closest("button, input, select, textarea, label, a, form");
-  if (tocarEmQualquerLugar && naTelaCerta && !tocou) tocarMicrofone(microfoneDaTela());
+  const escolha = pegar("#telaEscolhaModo");
+  if (escolha && !escolha.hidden) return;
+  
+  const tocou = e.target.closest("button, input, select, textarea, label, a, form, [role=button], [contenteditable]");
+  if (tocou) return;
+  
+  if (ouvindo || iniciando) return;
+  
+  if (tocarEmQualquerLugar) {
+    const mic = microfoneDaTela();
+    if (mic) tocarMicrofone(mic);
+  }
 });
 
 const navegador = navigator.userAgent;
