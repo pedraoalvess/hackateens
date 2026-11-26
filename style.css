@@ -814,3 +814,127 @@ body.claro {
     visibility: hidden !important;
     pointer-events: none !important;
 }
+/* ==========================================================================
+   AJUSTES FINAIS: Cores Bordô, Mobile, Footer e Barra de Voz no Topo
+   ========================================================================== */
+
+/* 1. Mudar bordas rosas para BORDÔ sofisticado */
+:root {
+    --line: #8b1f2f !important;
+    --accent: #8b1f2f !important;
+}
+body.claro {
+    --line: #8b1f2f !important;
+    --accent: #8b1f2f !important;
+}
+
+/* 2. Esconder TODOS os botões e chats flutuantes antigos */
+.falar-sempre,
+.chat-abrir,
+.assistente-unico,
+.chat-flutuante,
+.assistente-painel,
+#botaoChatFlutuante,
+#botaoAssistenteUnico {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* 3. Footer com contraste garantido (texto claro em fundo escuro) */
+.rodape {
+    background: var(--dark) !important;
+    color: var(--on-dark-soft) !important;
+    padding-bottom: 6rem !important;
+}
+.rodape p, .rodape strong {
+    color: var(--on-dark-soft) !important;
+}
+body.claro .rodape {
+    background: var(--dark) !important;
+    color: #faf9f5 !important;
+}
+body.claro .rodape p, body.claro .rodape strong {
+    color: #faf9f5 !important;
+}
+
+/* 4. Nova Barra de Voz no Topo */
+.barra-voz-topo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    margin: 1rem auto;
+    max-width: 56rem;
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 16px;
+}
+
+.botao-voz-topo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary);
+    color: var(--on-primary);
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.botao-voz-topo:hover {
+    transform: scale(1.05);
+    background: #a52840;
+}
+
+.botao-voz-topo[aria-pressed="true"] {
+    background: #5de08a;
+    color: #0d0a0b;
+    animation: pulsarMic 1.2s ease-in-out infinite;
+}
+
+.texto-voz-topo {
+    color: var(--muted);
+    font-size: 1rem;
+    margin: 0;
+}
+
+@keyframes pulsarMic {
+    50% { transform: scale(1.08); }
+}
+
+/* 5. Melhorias de Layout para MOBILE */
+@media (max-width: 768px) {
+    .topo {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+    
+    .barra-voz-topo {
+        margin: 0.5rem;
+        padding: 0.75rem;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .botao-voz-topo {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .painel, .cartao, .subcaixa {
+        padding: 1rem;
+    }
+
+    .rodape {
+        padding: 2rem 1rem !important;
+        font-size: 0.9rem;
+    }
+}
