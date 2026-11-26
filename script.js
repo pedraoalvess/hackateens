@@ -1,9 +1,8 @@
 /* ==========================================================================
-   MOBINTEC - script completo (sem chat flutuante, sem barra de topo)
-   IA integrada ao microfone redondo principal via responder() -> perguntarParaIA()
+   MOBINTEC - script completo (microfone topo funcionando)
    ========================================================================== */
 
-/* ---------- 1) Ajudantes (~linha 6) ---------- */
+/* ---------- 1) Ajudantes ---------- */
 function pegar(seletor) { return document.querySelector(seletor); }
 function semAcento(texto) { return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
 function sortear(max) { return Math.floor(Math.random() * max); }
@@ -27,7 +26,7 @@ function embarqueAtual() {
   return destinoAtual.embarqueEscolhido || destinoAtual.embarques[0];
 }
 
-/* ---------- 2) Dados (~linha 30) ---------- */
+/* ---------- 2) Dados ---------- */
 const VELOCIDADE_TESTE = 5;
 const URL_DA_IA = "https://mobintec-ia.pdeoliveiraalves840.workers.dev/";
 const BOAS_VINDAS = "Bem-vindo ao Mobintec. Escolha como você quer usar: modo visual, com mapa e botões na tela, ou modo acessível, apenas com voz e microfone. Toque no botão do modo que você preferir.";
@@ -46,7 +45,7 @@ function acharDestino(texto) {
   return null;
 }
 
-/* ---------- 3) Fala (~linha 50) ---------- */
+/* ---------- 3) Fala ---------- */
 let ultimaFala = "", velocidadeVoz = 1, vozLigada = true;
 function falar(texto, naFila, aoTerminar) {
   ultimaFala = texto;
@@ -90,7 +89,7 @@ function apitar(frequencia) {
 }
 function vibrar(padrao) { if (navigator.vibrate) navigator.vibrate(padrao); }
 
-/* ---------- 4) Telas e Modo (~linha 100) ---------- */
+/* ---------- 4) Telas e Modo ---------- */
 function pararAcompanhamento() {
   clearInterval(relogioDoTempo); numeroDaEscolha++; destinoAtual = null; dados = null;
   const painel = pegar("#painel"); if (painel) mostrar(painel, false);
@@ -165,7 +164,7 @@ function abrirTela(nome, silencioso, semHistorico) {
   window.scrollTo(0, 0);
 }
 
-/* ---------- 5) Mapa (~linha 180) ---------- */
+/* ---------- 5) Mapa ---------- */
 let mapa = null, camada = null, marcadorOnibus = null, marcadorVoce = null, camadaPerto = null, distanciaAteVoce = null;
 function criarPino(texto, corFundo, corTexto, tamanho) {
   return L.divIcon({ className: "", iconSize: [tamanho, tamanho], iconAnchor: [tamanho / 2, tamanho / 2],
@@ -229,7 +228,7 @@ function aplicarTema(claro, anunciar) {
   if (anunciar) avisar(claro ? "Tema claro." : "Tema escuro.");
 }
 
-/* ---------- 6) Microfone (~linha 265) ---------- */
+/* ---------- 6) Microfone ---------- */
 const ReconhecimentoDoNavegador = window.SpeechRecognition || window.webkitSpeechRecognition;
 let usarModeloProprio = !ReconhecimentoDoNavegador, reconhecimento = null, ouvindo = false, iniciando = false, entendeu = false;
 let gravador = null, fluxoDoMicrofone = null, gravando = false, processando = false, gravacaoCancelada = false, transcritor = null;
@@ -245,10 +244,9 @@ function pararMicrofone() {
   ouvindo = false; iniciando = false;
   const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
-const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
-const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
-
-["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicrofoneTopo"].forEach(id => {
+  const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
+  const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
+  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicrofoneTopo"].forEach(id => {
     const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false");
   });
 }
@@ -274,6 +272,8 @@ function ouvirComNavegador(botao) {
     iniciando = false; ouvindo = true; apitar(880);
     const anel = pegar("#anel"); if (anel) anel.classList.add("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.add("ouvindo");
+    const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.add("ouvindo");
+    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Ouvindo… fale agora";
     if (botao) botao.setAttribute("aria-pressed", "true");
     const estado = pegar("#textoEstado"); if (estado) estado.textContent = "Ouvindo… fale agora.";
     const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… fale agora.";
@@ -301,8 +301,8 @@ function ouvirComNavegador(botao) {
   este.onend = () => {
     if (este !== reconhecimento) return; const estava = ouvindo; pararMicrofone();
     if (estava) { apitar(440); if (!entendeu) avisar("Não entendi. Toque e diga, por exemplo, Cataratas."); }
-     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
-const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
+    const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
+    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
   };
 
   setTimeout(() => { if (este === reconhecimento && iniciando) { iniciando = false; avisar("Microfone demorou."); } }, 10000);
@@ -319,6 +319,8 @@ async function ouvirComModeloProprio(botao) {
     gravando = false; fluxoDoMicrofone.getTracks().forEach(t => t.stop());
     const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
+    const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
+    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para perguntar sobre este ônibus";
     if (botao) botao.setAttribute("aria-pressed", "false");
     if (gravacaoCancelada) return; apitar(440); processando = true; avisar("Entendendo…");
     try {
@@ -328,6 +330,7 @@ async function ouvirComModeloProprio(botao) {
       const modelo = await carregarModelo();
       const res = await modelo(audio.getChannelData(0), { language: "portuguese", task: "transcribe" });
       const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = res.text.trim();
+      const ouvidoAcessivel = pegar("#textoOuvidoAcessivel"); if (ouvidoAcessivel) ouvidoAcessivel.textContent = res.text.trim();
       responder(res.text);
     } catch (e) { avisar("Não entendi o áudio."); }
     processando = false;
@@ -335,8 +338,11 @@ async function ouvirComModeloProprio(botao) {
   gravador.start(); gravando = true; apitar(880);
   const anel = pegar("#anel"); if (anel) anel.classList.add("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.add("ouvindo");
+  const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.add("ouvindo");
+  const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Ouvindo… fale agora";
   if (botao) botao.setAttribute("aria-pressed", "true");
   const estado = pegar("#textoEstado"); if (estado) estado.textContent = "Ouvindo… toque de novo para terminar.";
+  const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… toque de novo para terminar.";
   setTimeout(() => { if (esteGravador.state === "recording") esteGravador.stop(); }, 6000);
 }
 
@@ -349,7 +355,7 @@ async function carregarModelo() {
   return transcritor;
 }
 
-/* ---------- 7) Assistente / destinos (~linha 400) ---------- */
+/* ---------- 7) Assistente / destinos ---------- */
 function querIrAoDestino(texto) { return /quero ir|vou para|ir para|ir ao|me leva|acompanhar|onibus|rota|abrir|vamos/.test(semAcento(texto)); }
 function comandoDeCamera(texto) {
   const t = semAcento(texto);
@@ -482,7 +488,7 @@ function executarAcao(resposta) {
   }
 }
 
-/* ---------- 8) Responder: comandos locais + IA (~linha 520) ---------- */
+/* ---------- 8) Responder comandos ---------- */
 function responder(texto) {
   registrarConversa("Você", texto);
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = '"' + texto.trim() + '"';
@@ -622,7 +628,7 @@ async function perguntarParaIA(texto) {
   }
 }
 
-/* ---------- 9) Localização (~linha 700) ---------- */
+/* ---------- 9) Localização ---------- */
 let idLocal = null, posicaoUsuario = null, ultimoLimiar = null, ultimaDistanciaMostrada = null, centralizouNaPessoa = false;
 function mostrarVoceNoMapa() {
   if (!mapa || !posicaoUsuario) return;
@@ -690,7 +696,7 @@ function falarLocalizacao() {
   avisar(f);
 }
 
-/* ---------- 10) Painel, rota, paradas, perto (~linha 790) ---------- */
+/* ---------- 10) Painel ---------- */
 let destinoAtual = null, dados = null, relogioDoTempo = null, numeroDaEscolha = 0, ultimoMinuto = 0;
 function minutosQueFaltam() { return Math.max(1, Math.ceil(dados.segundosAteChegar / 60)); }
 function textoAcessibilidade() { if (!destinoAtual) return "Escolha um destino."; const emb = embarqueAtual(); return "Acessibilidade do embarque " + emb.nome + ". " + emb.acessibilidade; }
@@ -901,7 +907,7 @@ async function pedirPerto(categoria, ficarNaTela) {
   const achou = await buscarPerto(categoria); if (achou) avisar(textoPerto());
 }
 
-/* ---------- 11) Botões e inicialização (~linha 960) ---------- */
+/* ---------- 11) Botões e inicialização ---------- */
 function adicionarEvento(seletor, evento, funcao) {
   const el = document.querySelector(seletor);
   if (el) el.addEventListener(evento, funcao);
@@ -973,7 +979,6 @@ adicionarEvento("#formulario", "submit", e => { e.preventDefault(); const c = pe
 adicionarEvento("#formularioAba", "submit", e => { e.preventDefault(); const c = pegar("#campoAba"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
 adicionarEvento("#formularioPainel", "submit", e => { e.preventDefault(); const c = pegar("#campoPainel"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
 
-/* Atalhos: acionam o microfone da tela atual (sem chat) */
 function microfoneDaTela() {
   const acessivel = pegar("#telaAcessivel");
   if (acessivel && !acessivel.hidden) return pegar("#botaoMicrofoneAcessivel");
@@ -997,7 +1002,6 @@ function falarInstrucaoInicial(e) {
 document.addEventListener("pointerdown", falarInstrucaoInicial, { once: true });
 document.addEventListener("keydown", falarInstrucaoInicial, { once: true });
 
-/* Toque em espaço vazio: só nas telas que têm microfone (nunca na escolha de modo) */
 let tocarEmQualquerLugar = true;
 document.addEventListener("click", e => {
   const inicio = pegar("#telaInicio");
@@ -1021,7 +1025,6 @@ if (linkPular) {
   linkPular.addEventListener("click", e => { e.preventDefault(); const principal = pegar("#principal"); if (principal) principal.focus(); });
 }
 
-/* Inicialização: só a escolha de modo aparece */
 mostrar(pegar("#telaEscolhaModo"), false);
 mostrar(pegar("#telaInicio"), false);
 mostrar(pegar("#telaAcessivel"), false);
