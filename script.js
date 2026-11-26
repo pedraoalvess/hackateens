@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MOBINTEC - script do site (Versão Final com Modo Acessível e Inicialização Corrigida)
+   MOBINTEC - script do site (Versão Final - Assistente Integrada)
    ========================================================================== */
 
 /* ---------- 1) Ajudantes ---------- */
@@ -63,12 +63,19 @@ function falar(texto, naFila, aoTerminar) {
 }
 function registrarConversa(quem, texto) {
   const lista = pegar("#conversa");
-  if (!lista) return;
+  const listaChat = pegar("#conversaFlutuante");
   const item = document.createElement("li");
   item.className = quem === "Você" ? "voce" : "assistente";
   item.textContent = quem + ": " + texto;
-  lista.appendChild(item);
-  while (lista.children.length > 6) lista.removeChild(lista.firstChild);
+  if (lista) {
+    const itemClone = item.cloneNode(true);
+    lista.appendChild(itemClone);
+    while (lista.children.length > 6) lista.removeChild(lista.firstChild);
+  }
+  if (listaChat) {
+    listaChat.appendChild(item);
+    listaChat.scrollTop = listaChat.scrollHeight;
+  }
 }
 function avisar(texto, aoTerminar) {
   const estado = pegar("#textoEstado");
@@ -105,7 +112,6 @@ function escolherModo(modo) {
   modoAtual = modo;
   mostrar(pegar("#telaEscolhaModo"), false);
   
-  // Adiciona classe no body para o CSS saber qual modo está ativo
   document.body.classList.remove('modo-visual', 'modo-acessivel');
   document.body.classList.add('modo-' + modo);
   
@@ -244,11 +250,9 @@ function pararMicrofone() {
   ouvindo = false; iniciando = false;
   const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
-  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel"].forEach(id => { const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); });
-  const micChat = document.getElementById("botaoMicChat"); if (micChat) micChat.setAttribute("aria-pressed", "false");
-   const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.remove("ouvindo");
-const textoMicAssistente = pegar("#textoMicAssistente"); if (textoMicAssistente) textoMicAssistente.textContent = "Toque para falar";
-  const micFixo = document.getElementById("botaoFalarSempre"); if (micFixo) micFixo.setAttribute("aria-pressed", "false");
+  const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.remove("ouvindo");
+  const textoMicAssistente = pegar("#textoMicAssistente"); if (textoMicAssistente) textoMicAssistente.textContent = "Toque para falar";
+  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicChat"].forEach(id => { const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); });
 }
 let modoConversa = false, botaoDaConversa = null;
 function tocarMicrofone(botao, automatico) {
@@ -267,6 +271,8 @@ function ouvirComNavegador(botao) {
   este.onstart = () => { if (este !== reconhecimento) return; iniciando = false; ouvindo = true; apitar(880);
     const anel = pegar("#anel"); if (anel) anel.classList.add("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.add("ouvindo");
+    const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.add("ouvindo");
+    const textoMicAssistente = pegar("#textoMicAssistente"); if (textoMicAssistente) textoMicAssistente.textContent = "Ouvindo… fale agora";
     if (botao) botao.setAttribute("aria-pressed", "true");
     const estado = pegar("#textoEstado"); if (estado) estado.textContent = "Ouvindo… fale agora.";
     const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… fale agora.";
@@ -305,6 +311,8 @@ async function ouvirComModeloProprio(botao) {
     gravando = false; fluxoDoMicrofone.getTracks().forEach(t => t.stop());
     const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
+    const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.remove("ouvindo");
+    const textoMicAssistente = pegar("#textoMicAssistente"); if (textoMicAssistente) textoMicAssistente.textContent = "Toque para falar";
     if (botao) botao.setAttribute("aria-pressed", "false");
     if (gravacaoCancelada) return; apitar(440); processando = true; avisar("Entendendo…");
     try {
@@ -322,6 +330,8 @@ async function ouvirComModeloProprio(botao) {
   gravador.start(); gravando = true; apitar(880);
   const anel = pegar("#anel"); if (anel) anel.classList.add("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.add("ouvindo");
+  const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.add("ouvindo");
+  const textoMicAssistente = pegar("#textoMicAssistente"); if (textoMicAssistente) textoMicAssistente.textContent = "Ouvindo… fale agora";
   if (botao) botao.setAttribute("aria-pressed", "true");
   const estado = pegar("#textoEstado"); if (estado) estado.textContent = "Ouvindo… toque de novo para terminar.";
   const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… toque de novo para terminar.";
@@ -380,11 +390,7 @@ function mostrarApenasDestinoEscolhido(destino) {
     if (DESTINOS[i] === destino) {
       cartao.style.display = "";
       const botoes = cartao.querySelectorAll("button");
-      botoes.forEach(btn => {
-        if (btn.textContent.includes("Acompanhar")) {
-          btn.style.display = "none";
-        }
-      });
+      botoes.forEach(btn => { if (btn.textContent.includes("Acompanhar")) btn.style.display = "none"; });
       const botoesAntigos = cartao.querySelector(".botoes-embarque");
       if (botoesAntigos) botoesAntigos.remove();
       const botoesEmbarque = document.createElement("div");
@@ -414,9 +420,7 @@ function mostrarApenasDestinoEscolhido(destino) {
         botoesEmbarque.appendChild(btnTrocar);
       }
       cartao.appendChild(botoesEmbarque);
-    } else {
-      cartao.style.display = "none";
-    }
+    } else { cartao.style.display = "none"; }
   });
 }
 
@@ -427,11 +431,7 @@ function mostrarTodosDestinos() {
     const botoes = cartao.querySelector(".botoes-embarque");
     if (botoes) botoes.remove();
     const todosBotoes = cartao.querySelectorAll("button");
-    todosBotoes.forEach(btn => {
-      if (btn.textContent.includes("Acompanhar")) {
-        btn.style.display = "";
-      }
-    });
+    todosBotoes.forEach(btn => { if (btn.textContent.includes("Acompanhar")) btn.style.display = ""; });
   });
 }
 
@@ -439,11 +439,7 @@ function mostrarOpcoesDeEmbarque(destino) {
   const embarques = destino.embarques;
   mostrarApenasDestinoEscolhido(destino);
   abrirTela("lista");
-  if (embarques.length === 1) { 
-    destino.embarqueEscolhido = embarques[0]; 
-    iniciarAcompanhamento(destino); 
-    return; 
-  }
+  if (embarques.length === 1) { destino.embarqueEscolhido = embarques[0]; iniciarAcompanhamento(destino); return; }
   let t = "Para ir a " + destino.nome + ", você tem " + embarques.length + " formas. ";
   embarques.forEach((emb, i) => t += explicarEmbarque(emb, i + 1) + " ");
   t += embarques.length === 2 ? "Diga 1 para " + embarques[0].nome + ", ou 2 para " + embarques[1].nome + "." : "Diga o número da opção.";
@@ -460,22 +456,16 @@ function iniciarAcompanhamento(destino) {
   const emb = destino.embarqueEscolhido;
   let p = "Você escolheu " + destino.nome + ". ";
   if (!emb) {
-    p += "Para ir a " + destino.nome + ", você tem " + destino.embarques.length + " formas. ";
-    p += "Diga o número da opção, ou toque no botão na tela.";
-    destinoPendente = destino;
-    abrirTela("lista");
-    mostrarApenasDestinoEscolhido(destino);
-    setTimeout(() => avisar(p), 300);
-    return;
+    p += "Para ir a " + destino.nome + ", você tem " + destino.embarques.length + " formas. Diga o número da opção, ou toque no botão na tela.";
+    destinoPendente = destino; abrirTela("lista"); mostrarApenasDestinoEscolhido(destino);
+    setTimeout(() => avisar(p), 300); return;
   }
   p += "Embarque em " + emb.nome + ". ";
   if (emb.gratuidade) p += "Gratuidade para PCD. ";
   if (emb.sustentabilidade) p += emb.sustentabilidade + " ";
   if (posicaoUsuario) p += "Você está a " + formatarDistancia(distanciaEntre(posicaoUsuario, emb.posicao)) + " do embarque. ";
   p += proximoHorarioDe(emb).texto;
-  abrirTela("lista");
-  mostrarApenasDestinoEscolhido(destino);
-  escolherDestinoComEmbarque(DESTINOS.indexOf(destino));
+  abrirTela("lista"); mostrarApenasDestinoEscolhido(destino); escolherDestinoComEmbarque(DESTINOS.indexOf(destino));
   setTimeout(() => avisar(p), 500);
 }
 function executarAcao(resposta) {
@@ -505,29 +495,21 @@ function responder(texto) {
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = '"' + texto.trim() + '"';
   const ouvidoAcessivel = pegar("#textoOuvidoAcessivel"); if (ouvidoAcessivel) ouvidoAcessivel.textContent = '"' + texto.trim() + '"';
   
-  // Atualiza a barra de pergunta no painel e limpa o campo de texto
   const eco = pegar("#ecoPergunta"); 
   if (eco) {
     eco.textContent = "💬 Você perguntou: \"" + texto.trim() + "\"";
-    eco.style.display = "block"; // Garante que apareça
+    eco.style.display = "block";
   }
   const campoPainel = pegar("#campoPainel");
-  if (campoPainel) campoPainel.value = ""; // Limpa o campo após enviar
+  if (campoPainel) campoPainel.value = "";
   
-  // BLOQUEIO: na tela de escolha, só aceita comandos de modo
   const telaEscolha = pegar("#telaEscolhaModo");
   if (telaEscolha && !telaEscolha.hidden) {
     const tModo = semAcento(texto);
-    if (/\b(visual|tela|mapa|botao|ver|verdadeiro|completo)\b/.test(tModo)) {
-      escolherModo('visual'); return;
-    }
-    if (/\b(acessivel|cego|voz|audio|somente|ouvinte|deficiente|baixa visao)\b/.test(tModo)) {
-      escolherModo('acessivel'); return;
-    }
-    avisar("Primeiro escolha um modo. Diga: modo visual, ou modo acessível.");
-    return;
+    if (/\b(visual|tela|mapa|botao|ver|verdadeiro|completo)\b/.test(tModo)) { escolherModo('visual'); return; }
+    if (/\b(acessivel|cego|voz|audio|somente|ouvinte|deficiente|baixa visao)\b/.test(tModo)) { escolherModo('acessivel'); return; }
+    avisar("Primeiro escolha um modo. Diga: modo visual, ou modo acessível."); return;
   }
-  // ... (o resto da função responder continua igual, não apague o que vem depois)
   
   if (destinoPendente) {
     const t = semAcento(texto.trim()), num = parseInt(t);
@@ -546,72 +528,43 @@ function responder(texto) {
   if (/\b(voltar|inicio)\b/.test(tNav) && /\b(pontos?|destinos?|inicio)\b/.test(tNav)) { abrirChat(false); voltar(); avisar("Voltando."); return; }
   const t = semAcento(texto);
   
-  // NOVOS COMANDOS
-  if (/\b(trocar|mudar|alterar)\b/.test(t) && /\b(destino|ponto|lugar)\b/.test(t)) {
-    pararAcompanhamento(); abrirTela("inicio"); avisar("Voltando para escolher outro destino."); return;
-  }
-  if (/\b(ligar|ativar)\b/.test(t) && /\b(localizacao|gps|local)\b/.test(t)) {
-    if (idLocal === null) ligarLocalizacao(); else avisar("Localização já está ligada."); return;
-  }
-  if (/\b(desligar|desativar)\b/.test(t) && /\b(localizacao|gps|local)\b/.test(t)) {
-    if (idLocal !== null) ligarLocalizacao(); else avisar("Localização já está desligada."); return;
-  }
-  if (/\b(mais alto|aumentar volume|volume alto)\b/.test(t)) {
-    velocidadeVoz = Math.min(1.6, velocidadeVoz + 0.2); falar("Velocidade aumentada."); return;
-  }
-  if (/\b(mais baixo|diminuir volume|volume baixo)\b/.test(t)) {
-    velocidadeVoz = Math.max(0.6, velocidadeVoz - 0.2); falar("Velocidade diminuída."); return;
-  }
+  if (/\b(trocar|mudar|alterar)\b/.test(t) && /\b(destino|ponto|lugar)\b/.test(t)) { pararAcompanhamento(); abrirTela("inicio"); avisar("Voltando para escolher outro destino."); return; }
+  if (/\b(ligar|ativar)\b/.test(t) && /\b(localizacao|gps|local)\b/.test(t)) { if (idLocal === null) ligarLocalizacao(); else avisar("Localização já está ligada."); return; }
+  if (/\b(desligar|desativar)\b/.test(t) && /\b(localizacao|gps|local)\b/.test(t)) { if (idLocal !== null) ligarLocalizacao(); else avisar("Localização já está desligada."); return; }
+  if (/\b(mais alto|aumentar volume|volume alto)\b/.test(t)) { velocidadeVoz = Math.min(1.6, velocidadeVoz + 0.2); falar("Velocidade aumentada."); return; }
+  if (/\b(mais baixo|diminuir volume|volume baixo)\b/.test(t)) { velocidadeVoz = Math.max(0.6, velocidadeVoz - 0.2); falar("Velocidade diminuída."); return; }
   if (/\b(quanto tempo|tempo falta|quanto falta|tempo ate chegar)\b/.test(t)) {
-    if (destinoAtual && dados) {
-      const minutos = minutosQueFaltam();
-      avisar("Faltam " + minutos + (minutos === 1 ? " minuto" : " minutos") + " para chegar.");
-    } else avisar("Escolha um destino primeiro."); return;
+    if (destinoAtual && dados) { const minutos = minutosQueFaltam(); avisar("Faltam " + minutos + (minutos === 1 ? " minuto" : " minutos") + " para chegar."); }
+    else avisar("Escolha um destino primeiro."); return;
   }
   if (/\b(qual distancia|qual a distancia|estou perto|distancia)\b/.test(t)) {
-    if (distanciaAteVoce !== null) {
-      avisar("Você está a " + formatarDistancia(distanciaAteVoce) + " do ponto de embarque.");
-    } else if (posicaoUsuario && destinoAtual) {
-      const emb = embarqueAtual();
-      const dist = distanciaEntre(posicaoUsuario, emb.posicao);
-      avisar("Você está a " + formatarDistancia(dist) + " do embarque.");
-    } else avisar("Ligue a localização para ver a distância."); return;
+    if (distanciaAteVoce !== null) { avisar("Você está a " + formatarDistancia(distanciaAteVoce) + " do ponto de embarque."); }
+    else if (posicaoUsuario && destinoAtual) { const emb = embarqueAtual(); const dist = distanciaEntre(posicaoUsuario, emb.posicao); avisar("Você está a " + formatarDistancia(dist) + " do embarque."); }
+    else avisar("Ligue a localização para ver a distância."); return;
   }
   if (/\b(abrir|abre)\b/.test(t) && /\b(google maps|maps|mapa google)\b/.test(t)) {
-    if (destinoAtual) {
-      const emb = embarqueAtual();
-      const url = "https://www.google.com/maps/dir/?api=1&destination=" + emb.posicao[0] + "," + emb.posicao[1] + "&travelmode=walking";
-      window.open(url, '_blank');
-      avisar("Abrindo Google Maps.");
-    } else avisar("Escolha um destino primeiro."); return;
+    if (destinoAtual) { const emb = embarqueAtual(); const url = "https://www.google.com/maps/dir/?api=1&destination=" + emb.posicao[0] + "," + emb.posicao[1] + "&travelmode=walking"; window.open(url, '_blank'); avisar("Abrindo Google Maps."); }
+    else avisar("Escolha um destino primeiro."); return;
   }
   if (/\b(operadora|telefone|contato|ligar para)\b/.test(t)) {
-    if (destinoAtual) {
-      const emb = embarqueAtual();
-      avisar("Operadora: " + emb.operadora + ". Contato: " + emb.contato + ".");
-    } else avisar("Escolha um destino primeiro."); return;
+    if (destinoAtual) { const emb = embarqueAtual(); avisar("Operadora: " + emb.operadora + ". Contato: " + emb.contato + "."); }
+    else avisar("Escolha um destino primeiro."); return;
   }
-  if (/\b(voltar ao inicio|voltar para o inicio|ir para o inicio)\b/.test(t)) {
-    pararAcompanhamento(); abrirTela("inicio"); avisar("Voltando ao início."); return;
-  }
+  if (/\b(voltar ao inicio|voltar para o inicio|ir para o inicio)\b/.test(t)) { pararAcompanhamento(); abrirTela("inicio"); avisar("Voltando ao início."); return; }
   
   if (/\b(gratuid|gratu|pcd|deficiencia|bpc|loas)\b/.test(t)) {
     if (destinoAtual) { const emb = embarqueAtual(); avisar(emb.gratuidade ? "Sim! " + emb.nome + " tem gratuidade. " + emb.preco : "Este não tem. Mas a Linha 120 tem. Diga: trocar embarque."); }
-    else avisar("A Linha 120 tem gratuidade para PCD. Apresente o cartão BPC/LOAS.");
-    return;
+    else avisar("A Linha 120 tem gratuidade para PCD. Apresente o cartão BPC/LOAS."); return;
   }
   if (/\b(onde embarco|onde pego|ponto de embarque|quais paradas|onde descer|onde desço)\b/.test(t)) {
-    if (destinoAtual) avisar(textoEmbarque()); else avisar("Escolha um destino primeiro.");
-    return;
+    if (destinoAtual) avisar(textoEmbarque()); else avisar("Escolha um destino primeiro."); return;
   }
   if (/\b(trocar|mudar|alterar|outro)\b/.test(t) && /\b(embarque|ponto|onibus)\b/.test(t)) {
-    if (destinoAtual) mostrarOpcoesDeEmbarque(destinoAtual); else avisar("Escolha um destino primeiro.");
-    return;
+    if (destinoAtual) mostrarOpcoesDeEmbarque(destinoAtual); else avisar("Escolha um destino primeiro."); return;
   }
   if (/\b(horario|horarios|que horas|proximo onibus)\b/.test(t)) {
     if (destinoAtual) { const emb = embarqueAtual(); avisar("Para " + destinoAtual.nome + ", embarque em " + emb.nome + ": " + proximoHorarioDe(emb).texto); }
-    else avisar("Escolha um destino primeiro.");
-    return;
+    else avisar("Escolha um destino primeiro."); return;
   }
   if (URL_DA_IA && pegar("#chatFlutuante") && !pegar("#chatFlutuante").hidden) { perguntarParaIA(texto); return; }
   const destino = acharDestino(texto);
@@ -649,6 +602,7 @@ function responder(texto) {
   if (URL_DA_IA) { perguntarParaIA(texto); return; }
   avisar("Não entendi. Diga ajuda.");
 }
+
 let conversa = [];
 async function perguntarParaIA(texto) {
   const estado = pegar("#textoEstado"), resposta = pegar("#textoResposta");
@@ -673,14 +627,12 @@ async function perguntarParaIA(texto) {
     clearTimeout(prazo); const json = await res.json();
     if (!res.ok || !json.resposta) throw new Error(json.detalhe || json.erro || "sem resposta");
     conversa.push({ role: "user", content: texto }); conversa.push({ role: "assistant", content: json.resposta }); conversa = conversa.slice(-10);
-      avisar(json.resposta, () => {
-      // Atualiza a barra de pergunta com a resposta da IA
+    avisar(json.resposta, () => {
       const ecoA = pegar("#ecoPergunta"); 
       if (ecoA) {
         ecoA.textContent = "🤖 Resposta: " + json.resposta;
         ecoA.style.display = "block";
       }
-      
       if (json.acao === "abrir_mapa" && categoria && !posicaoUsuario && !destinoAtual) categoriaPendente = categoria;
       executarAcao(json);
       if (modoConversa && botaoDaConversa && (!json.acao || json.acao === "nenhuma")) setTimeout(() => { if (modoConversa && !ouvindo && !iniciando) tocarMicrofone(botaoDaConversa, true); }, 400);
@@ -1002,7 +954,7 @@ adicionarEvento("#botaoPerguntarPainel", "click", () => tocarMicrofone(pegar("#b
 document.querySelectorAll(".botao-aba").forEach(botao => {
   botao.addEventListener("click", () => {
     if (!dados) return; mostrarAba(botao.dataset.aba);
-    const falas = { Onibus: frasePrincipal, Rota: textoRota, Perto: textoPerto, Assistente: () => "Pergunte por voz ou digite. Ex: onde eu embarco?" };
+    const falas = { Onibus: frasePrincipal, Rota: textoRota, Perto: textoPerto, Assistente: () => "Pergunte pelo botão flutuante no canto direito." };
     avisar(falas[botao.dataset.aba]());
   });
 });
@@ -1014,14 +966,20 @@ adicionarEvento("#botaoLocal", "click", ligarLocalizacao);
 adicionarEvento("#botaoOpcoes", "click", () => abrirTela("opcoes"));
 adicionarEvento("#botaoVoltarOpcoes", "click", voltar);
 adicionarEvento("#botaoVoltar", "click", voltar);
-adicionarEvento("#botaoVoltarModo", "click", () => { mostrar(pegar("#telaAcessivel"), false); mostrar(pegar("#telaEscolhaModo"), true); });
+adicionarEvento("#botaoVoltarModo", "click", () => { 
+  document.body.classList.remove('modo-visual', 'modo-acessivel');
+  mostrar(pegar("#telaAcessivel"), false); 
+  mostrar(pegar("#telaInicio"), false);
+  mostrar(pegar("#telaEscolhaModo"), true); 
+});
 adicionarEvento("#botaoRepetir", "click", repetirUltima);
 adicionarEvento("#botaoVoz", "click", () => definirVoz(!vozLigada, true));
 adicionarEvento("#botaoTema", "click", () => aplicarTema(!document.body.classList.contains("claro"), true));
 
 let temaSalvo = null, vozSalva = null;
 try { temaSalvo = localStorage.getItem("mobintecTema"); vozSalva = localStorage.getItem("mobintecVoz"); velocidadeVoz = Number(localStorage.getItem("mobintecVelocidade")) || 1; } catch (e) {}
-aplicarTema(temaSalvo ? temaSalvo === "claro" : false, false); definirVoz(vozSalva !== "desligada", false);
+aplicarTema(temaSalvo ? temaSalvo === "claro" : false, false);
+definirVoz(vozSalva !== "desligada", false);
 
 adicionarEvento("#botaoAjuda", "click", () => avisar(TEXTO_AJUDA));
 adicionarEvento("#botaoOuvirStatus", "click", () => { if (dados) anunciarStatus("", true); });
@@ -1050,39 +1008,23 @@ function abrirChat(aberto) {
     pararMicrofone();
   }
 }
+
 adicionarEvento("#botaoAssistenteUnico", "click", () => abrirChat(true));
 adicionarEvento("#botaoFecharChat", "click", () => abrirChat(false));
 
-function falarDeQualquerLugar() {
-  const botao = pegar("#botaoFalarSempre");
-  if (botao && !ouvindo && !iniciando) botao.setAttribute("aria-pressed", "true");
-  tocarMicrofone(botao);
-}
-adicionarEvento("#botaoFalarSempre", "click", falarDeQualquerLugar);
-
-document.addEventListener("keydown", e => { if (e.altKey && (e.key === "v" || e.key === "V")) { e.preventDefault(); falarDeQualquerLugar(); } });
-adicionarEvento("#atalhoFalar", "click", falarDeQualquerLugar);
+document.addEventListener("keydown", e => { if (e.altKey && (e.key === "v" || e.key === "V")) { e.preventDefault(); abrirChat(true); setTimeout(() => { const mic = pegar("#botaoMicChat"); if (mic) tocarMicrofone(mic, true); }, 300); } });
+adicionarEvento("#atalhoFalar", "click", () => { abrirChat(true); setTimeout(() => { const mic = pegar("#botaoMicChat"); if (mic) tocarMicrofone(mic, true); }, 300); });
 adicionarEvento("#atalhoAssistente", "click", () => abrirChat(true));
 
 document.addEventListener("keydown", e => {
   if (e.altKey && (e.key === "a" || e.key === "A")) { e.preventDefault(); abrirChat(pegar("#chatFlutuante") ? pegar("#chatFlutuante").hidden : true); }
-});
-document.addEventListener("keydown", e => {
-  if (e.altKey || e.ctrlKey || e.metaKey) return; if (e.key !== " " && e.key !== "Enter") return;
-  if (e.target.closest("button, input, select, textarea, a, [contenteditable], [role=button]")) return;
-  e.preventDefault(); falarDeQualquerLugar();
-});
-document.addEventListener("dblclick", e => {
-  if (e.target.closest("button, input, select, textarea, label, a, form")) return;
-  const inicio = pegar("#telaInicio"); if (inicio && !inicio.hidden && tocarEmQualquerLugar) return;
-  falarDeQualquerLugar();
 });
 
 let instrucaoFalada = false;
 function falarInstrucaoInicial(e) {
   if (instrucaoFalada) return; instrucaoFalada = true;
   if (e && e.target && e.target.closest && e.target.closest("button, input, select, textarea, a")) return;
-  falar("Para falar com a assistente, toque duas vezes em um espaço vazio, ou aperte Alt + V.", true);
+  falar("Para falar com a assistente, toque no botão do microfone no canto inferior direito, ou aperte Alt + V.", true);
 }
 document.addEventListener("pointerdown", falarInstrucaoInicial, { once: true });
 document.addEventListener("keydown", falarInstrucaoInicial, { once: true });
@@ -1095,7 +1037,7 @@ let tocarEmQualquerLugar = true;
 document.addEventListener("click", e => {
   const inicio = pegar("#telaInicio");
   const naTelaInicial = inicio && !inicio.hidden;
-  const tocou = e.target.closest("button, input, select, textarea, label, a, form, #chatFlutuante");
+  const tocou = e.target.closest("button, input, select, textarea, label, a, form, #chatFlutuante, .assistente-unico, .assistente-painel");
   if (tocarEmQualquerLugar && naTelaInicial && !tocou) tocarMicrofone(pegar("#botaoMicrofone"));
 });
 
@@ -1114,7 +1056,7 @@ if (linkPular) {
 }
 
 // ==========================================================================
-// INICIALIZAÇÃO GARANTIDA (Esconde tudo e mostra só a escolha de modo)
+// INICIALIZAÇÃO GARANTIDA
 // ==========================================================================
 mostrar(pegar("#telaEscolhaModo"), false);
 mostrar(pegar("#telaInicio"), false);
