@@ -5,7 +5,7 @@
    - escuro = preto e bordô do grupo
    ========================================================================== */
 
-/* ---------- Tema escuro (preto e bordô) ---------- */
+/* ---------- Tema escuro (preto e bordô) ---------- */ 
 :root {
     --canvas: #0d0a0b;
     --card: #1f1519;
