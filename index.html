@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0d0a0b">
     <title>MOBINTEC – Ônibus turísticos acessíveis</title>
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -14,16 +13,13 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        fundo: "#0d0a0b", cartao: "#1f1519", texto: "#ffffff", borda: "#ffb3c4",
-                        bordo: "#8b1f2f", painel: "#3b1522", painel2: "#4e1f2e", ok: "#5de08a"
-                    }
+                    colors: { fundo: "#0d0a0b", cartao: "#1f1519", texto: "#ffffff", borda: "#ffb3c4", bordo: "#8b1f2f", painel: "#3b1522", painel2: "#4e1f2e", ok: "#5de08a" }
                 }
             }
         };
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=51">
+    <link rel="stylesheet" href="style.css?v=52">
 </head>
 
 <body class="font-sans">
@@ -39,30 +35,29 @@
 
     <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
         
-        <!-- TELA 1: ESCOLHA DE MODO (sem microfone aqui) -->
+        <!-- TELA 1: ESCOLHA DE MODO -->
         <section id="telaEscolhaModo" aria-labelledby="tituloEscolhaModo" class="tela-escolha" hidden>
             <p id="avisoModo" role="alert" hidden class="caixa w-full"></p>
             <h1 id="tituloEscolhaModo" tabindex="-1" class="font-serif text-3xl md:text-4xl">Como você quer usar o MOBINTEC?</h1>
             <p class="texto-explicativo">Escolha o modo que funciona melhor para você.</p>
             
             <div class="container-modos">
-                <button id="botaoModoVisual" class="botao-modo" aria-label="Modo Visual: site completo com mapa e botões">
+                <button id="botaoModoVisual" class="botao-modo" aria-label="Modo Visual">
                     <div class="icone-modo">👁️</div>
                     <h2>Modo Visual</h2>
-                    <p>Site completo com mapa, botões e informações na tela. Feito para Demonstração.</p>
+                    <p>Site completo com mapa, botões e informações na tela.</p>
                 </button>
                 
-                <button id="botaoModoAcessivel" class="botao-modo" aria-label="Modo Acessível: apenas voz e microfone, guiado por áudio">
+                <button id="botaoModoAcessivel" class="botao-modo" aria-label="Modo Acessível">
                     <div class="icone-modo">🎤</div>
                     <h2>Modo Acessível</h2>
-                    <p>Apenas voz e microfone. A assistente guia você por áudio. O site funcional.</p>
+                    <p>Apenas voz e microfone. A assistente guia você por áudio.</p>
                 </button>
             </div>
-            
             <p class="texto-ajuda">Você também pode falar: "modo visual" ou "modo acessível"</p>
         </section>
 
-        <!-- TELA 2: INÍCIO (Modo Visual) - Microfone redondo principal -->
+        <!-- TELA 2: INÍCIO -->
         <section id="telaInicio" aria-labelledby="tituloInicio" class="flex flex-col items-center gap-6 text-center" hidden>
             <p id="aviso" role="alert" hidden class="caixa w-full"></p>
             <h1 id="tituloInicio" tabindex="-1" class="font-serif text-3xl md:text-4xl">MOBINTEC: para onde você quer ir?</h1>
@@ -81,10 +76,9 @@
             <button id="botaoOpcoes" class="botao" aria-label="Abrir as opções">Opções</button>
         </section>
 
-        <!-- TELA 3: MODO ACESSÍVEL - Microfone redondo grande -->
+        <!-- TELA 3: MODO ACESSÍVEL -->
         <section id="telaAcessivel" aria-labelledby="tituloAcessivel" class="flex flex-col items-center justify-center gap-8 text-center min-h-screen" hidden>
             <h1 id="tituloAcessivel" tabindex="-1" class="font-serif text-4xl">Modo Acessível</h1>
-            <p id="textoAcessivel" role="status" class="text-2xl max-w-2xl">A assistente vai guiar você por voz. Toque no microfone e fale.</p>
             
             <div id="anelAcessivel" class="anel">
                 <span class="onda" aria-hidden="true"></span>
@@ -99,7 +93,7 @@
             <button id="botaoVoltarModo" class="botao">Voltar para escolha de modo</button>
         </section>
 
-        <!-- TELA 4: OPÇÕES (onde a conversa aparece) -->
+        <!-- TELA 4: OPÇÕES -->
         <section id="telaOpcoes" aria-labelledby="tituloOpcoes" hidden aria-hidden="true" class="flex flex-col gap-6">
             <button id="botaoVoltarOpcoes" class="botao self-start" aria-label="Voltar">Voltar</button>
             <h1 id="tituloOpcoes" tabindex="-1" class="font-serif text-4xl">Opções</h1>
@@ -130,17 +124,28 @@
             </div>
             <h1 id="tituloLista" tabindex="-1" class="font-serif text-4xl">Ônibus turísticos de Foz do Iguaçu</h1>
 
+            <!-- NOVO: Microfone na tela de lista para escolher ônibus por voz -->
+            <div class="microfone-topo-aba">
+                <div id="anelTopo" class="anel-topo">
+                    <span class="onda-topo" aria-hidden="true"></span>
+                    <span class="onda-topo" aria-hidden="true"></span>
+                    <span class="onda-topo" aria-hidden="true"></span>
+                    <button id="botaoMicrofoneTopo" class="microfone-topo" aria-pressed="false" aria-label="Escolher ônibus por voz">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+                    </button>
+                </div>
+                <p id="textoTopo" class="texto-topo">Toque para escolher um ônibus por voz</p>
+            </div>
+
             <div id="painel" class="painel" hidden aria-hidden="true">
                 <h2 id="tituloPainel" tabindex="-1" class="font-serif text-3xl"></h2>
                 <div id="alerta" role="alert" aria-live="assertive" aria-atomic="true" class="alerta"></div>
                 
                 <div class="barra-pergunta">
-                    <button type="button" id="botaoPerguntarPainel" class="botao botao-forte" style="white-space: nowrap;">🎤 Perguntar</button>
-                    <form id="formularioPainel" style="flex: 1; display: flex; gap: 0.5rem; min-width: 250px;">
-                        <label for="campoPainel" class="pular">Digite sua pergunta sobre este ônibus</label>
-                        <input id="campoPainel" class="campo-input-pergunta" placeholder="Ex: onde embarco? tem assento livre?" autocomplete="off">
-                        <button type="submit" class="botao botao-forte">Enviar</button>
-                    </form>
+                    <button type="button" id="botaoPerguntarPainel" class="botao botao-forte barra-pergunta-mic" aria-label="Perguntar por voz">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+                        <span>Perguntar por voz</span>
+                    </button>
                     <p id="ecoPergunta" class="eco-pergunta" role="status" aria-live="polite"></p>
                 </div>
 
@@ -151,22 +156,9 @@
                     <button class="botao botao-aba" data-aba="Assistente" aria-current="false">Assistente</button>
                 </div>
 
-             <div id="abaOnibus" class="aba">
-    <!-- NOVO: Microfone no topo da aba Ônibus -->
-    <div class="microfone-topo-aba">
-        <div id="anelTopo" class="anel-topo">
-            <span class="onda-topo" aria-hidden="true"></span>
-            <span class="onda-topo" aria-hidden="true"></span>
-            <span class="onda-topo" aria-hidden="true"></span>
-            <button id="botaoMicrofoneTopo" class="microfone-topo" aria-pressed="false" aria-label="Perguntar sobre este ônibus">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
-            </button>
-        </div>
-        <p id="textoTopo" class="texto-topo">Toque para perguntar sobre este ônibus</p>
-    </div>
-    
-    <div class="subcaixa">
-        <h3 class="text-xl font-semibold">Chegada estimada</h3>
+                <div id="abaOnibus" class="aba">
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Chegada estimada</h3>
                         <p id="tempo" class="font-serif text-6xl"></p>
                         <div class="progresso"><div id="barra" class="barra"></div></div>
                         <button id="botaoOuvirStatus" class="botao">Ouvir status</button>
@@ -256,6 +248,6 @@
     <script src="dados.js?v=40"></script>
     <script src="idiomas.js"></script>
     <script src="camera.js"></script>
-    <script src="script.js?v=51"></script>
+    <script src="script.js?v=52"></script>
 </body>
 </html>
