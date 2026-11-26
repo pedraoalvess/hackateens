@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0d0a0b">
     <title>MOBINTEC – Ônibus turísticos acessíveis</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,13 +14,16 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { fundo: "#0d0a0b", cartao: "#1f1519", texto: "#ffffff", borda: "#ffb3c4", bordo: "#8b1f2f", painel: "#3b1522", painel2: "#4e1f2e", ok: "#5de08a" }
+                    colors: {
+                        fundo: "#0d0a0b", cartao: "#1f1519", texto: "#ffffff", borda: "#ffb3c4",
+                        bordo: "#8b1f2f", painel: "#3b1522", painel2: "#4e1f2e", ok: "#5de08a"
+                    }
                 }
             }
         };
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=50">
+    <link rel="stylesheet" href="style.css?v=51">
 </head>
 
 <body class="font-sans">
@@ -35,29 +39,30 @@
 
     <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
         
-        <!-- TELA 1: ESCOLHA DE MODO (Sem microfone aqui) -->
+        <!-- TELA 1: ESCOLHA DE MODO (sem microfone aqui) -->
         <section id="telaEscolhaModo" aria-labelledby="tituloEscolhaModo" class="tela-escolha" hidden>
             <p id="avisoModo" role="alert" hidden class="caixa w-full"></p>
             <h1 id="tituloEscolhaModo" tabindex="-1" class="font-serif text-3xl md:text-4xl">Como você quer usar o MOBINTEC?</h1>
             <p class="texto-explicativo">Escolha o modo que funciona melhor para você.</p>
             
             <div class="container-modos">
-                <button id="botaoModoVisual" class="botao-modo" aria-label="Modo Visual">
+                <button id="botaoModoVisual" class="botao-modo" aria-label="Modo Visual: site completo com mapa e botões">
                     <div class="icone-modo">👁️</div>
                     <h2>Modo Visual</h2>
-                    <p>Site completo com mapa, botões e informações na tela.</p>
+                    <p>Site completo com mapa, botões e informações na tela. Feito para Demonstração.</p>
                 </button>
                 
-                <button id="botaoModoAcessivel" class="botao-modo" aria-label="Modo Acessível">
+                <button id="botaoModoAcessivel" class="botao-modo" aria-label="Modo Acessível: apenas voz e microfone, guiado por áudio">
                     <div class="icone-modo">🎤</div>
                     <h2>Modo Acessível</h2>
-                    <p>Apenas voz e microfone. A assistente guia você por áudio.</p>
+                    <p>Apenas voz e microfone. A assistente guia você por áudio. O site funcional.</p>
                 </button>
             </div>
+            
             <p class="texto-ajuda">Você também pode falar: "modo visual" ou "modo acessível"</p>
         </section>
 
-        <!-- TELA 2: INÍCIO (Microfone Redondo Principal) -->
+        <!-- TELA 2: INÍCIO (Modo Visual) - Microfone redondo principal -->
         <section id="telaInicio" aria-labelledby="tituloInicio" class="flex flex-col items-center gap-6 text-center" hidden>
             <p id="aviso" role="alert" hidden class="caixa w-full"></p>
             <h1 id="tituloInicio" tabindex="-1" class="font-serif text-3xl md:text-4xl">MOBINTEC: para onde você quer ir?</h1>
@@ -76,9 +81,10 @@
             <button id="botaoOpcoes" class="botao" aria-label="Abrir as opções">Opções</button>
         </section>
 
-        <!-- TELA 3: MODO ACESSÍVEL (Microfone Redondo Grande) -->
+        <!-- TELA 3: MODO ACESSÍVEL - Microfone redondo grande -->
         <section id="telaAcessivel" aria-labelledby="tituloAcessivel" class="flex flex-col items-center justify-center gap-8 text-center min-h-screen" hidden>
             <h1 id="tituloAcessivel" tabindex="-1" class="font-serif text-4xl">Modo Acessível</h1>
+            <p id="textoAcessivel" role="status" class="text-2xl max-w-2xl">A assistente vai guiar você por voz. Toque no microfone e fale.</p>
             
             <div id="anelAcessivel" class="anel">
                 <span class="onda" aria-hidden="true"></span>
@@ -93,7 +99,7 @@
             <button id="botaoVoltarModo" class="botao">Voltar para escolha de modo</button>
         </section>
 
-        <!-- TELA 4: OPÇÕES (Onde a conversa aparece) -->
+        <!-- TELA 4: OPÇÕES (onde a conversa aparece) -->
         <section id="telaOpcoes" aria-labelledby="tituloOpcoes" hidden aria-hidden="true" class="flex flex-col gap-6">
             <button id="botaoVoltarOpcoes" class="botao self-start" aria-label="Voltar">Voltar</button>
             <h1 id="tituloOpcoes" tabindex="-1" class="font-serif text-4xl">Opções</h1>
@@ -109,6 +115,11 @@
                 <button class="botao botao-forte">Enviar</button>
             </form>
             <ul id="conversa" class="conversa" aria-label="Conversa recente"></ul>
+            
+            <p class="text-sm text-muted mt-6 pt-4 border-t border-hair">
+                <strong>Visão Sustentável:</strong> O turismo acessível movimenta mais de R$ 1,2 bilhão/ano no Brasil. 
+                O MOBINTEC conecta esse público a operadoras locais, gerando renda inclusiva e reduzindo a pegada de carbono ao incentivar o transporte público.
+            </p>
         </section>
 
         <!-- TELA 5: LISTA / PAINEL -->
@@ -124,10 +135,10 @@
                 <div id="alerta" role="alert" aria-live="assertive" aria-atomic="true" class="alerta"></div>
                 
                 <div class="barra-pergunta">
-                    <button type="button" id="botaoPerguntarPainel" class="botao botao-forte">🎤 Perguntar</button>
+                    <button type="button" id="botaoPerguntarPainel" class="botao botao-forte" style="white-space: nowrap;">🎤 Perguntar</button>
                     <form id="formularioPainel" style="flex: 1; display: flex; gap: 0.5rem; min-width: 250px;">
-                        <label for="campoPainel" class="pular">Digite sua pergunta</label>
-                        <input id="campoPainel" class="campo-input-pergunta" placeholder="Ex: onde embarco?" autocomplete="off">
+                        <label for="campoPainel" class="pular">Digite sua pergunta sobre este ônibus</label>
+                        <input id="campoPainel" class="campo-input-pergunta" placeholder="Ex: onde embarco? tem assento livre?" autocomplete="off">
                         <button type="submit" class="botao botao-forte">Enviar</button>
                     </form>
                     <p id="ecoPergunta" class="eco-pergunta" role="status" aria-live="polite"></p>
@@ -137,6 +148,7 @@
                     <button class="botao botao-aba" data-aba="Onibus" aria-current="true">Ônibus</button>
                     <button class="botao botao-aba" data-aba="Rota" aria-current="false">Rota</button>
                     <button class="botao botao-aba" data-aba="Perto" aria-current="false">Perto</button>
+                    <button class="botao botao-aba" data-aba="Assistente" aria-current="false">Assistente</button>
                 </div>
 
                 <div id="abaOnibus" class="aba">
@@ -148,9 +160,14 @@
                     </div>
                     <div id="slotCameraOnibus" class="w-full"></div>
                     <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Transporte turístico</h3>
+                        <p id="textoTransporte" class="text-lg"></p>
+                    </div>
+                    <div class="subcaixa">
                         <h3 class="text-xl font-semibold">Sobre o destino e acessibilidade</h3>
                         <p id="textoDestino" class="text-lg"></p>
                         <p id="textoAcessibilidade" class="text-lg"></p>
+                        <p id="textoConfirmar" class="text-lg"></p>
                     </div>
                 </div>
 
@@ -158,7 +175,13 @@
                     <div class="subcaixa">
                         <h3 class="text-xl font-semibold">Rota do ônibus</h3>
                         <p id="textoRota" class="text-lg"></p>
+                        <a id="linkMaps" class="botao inline-block" target="_blank" rel="noopener">Como chegar ao embarque (Google Maps)</a>
+                    </div>
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Paradas da rota</h3>
+                        <p id="textoParadas" class="text-lg"></p>
                         <ol id="listaParadas" class="list-decimal pl-6 text-lg"></ol>
+                        <button id="botaoOuvirParadas" class="botao">Ouvir paradas</button>
                     </div>
                 </div>
 
@@ -168,8 +191,22 @@
                         <div class="flex flex-wrap gap-2">
                             <button class="botao botao-cat" data-cat="hoteis">Hotéis</button>
                             <button class="botao botao-cat" data-cat="restaurantes">Restaurantes</button>
+                            <button class="botao botao-cat" data-cat="atracoes">Pontos turísticos</button>
                         </div>
+                        <p id="textoPerto" class="text-lg"></p>
                         <ul id="listaHoteis" class="list-disc pl-6 text-lg"></ul>
+                    </div>
+                </div>
+
+                <div id="abaAssistente" class="aba" hidden>
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Pergunte à assistente</h3>
+                        <p id="textoResposta" role="status" class="text-lg">Toque no microfone e pergunte o que quiser.</p>
+                        <button id="botaoPerguntar" class="botao botao-forte">Perguntar por voz</button>
+                        <form id="formularioAba" class="flex gap-3 w-full mt-3">
+                            <input id="campoAba" class="campo" placeholder="Ou digite sua pergunta" autocomplete="off">
+                            <button class="botao botao-forte">Enviar</button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -191,19 +228,21 @@
             <div id="slotMapaTela">
                 <div id="blocoMapa">
                     <div id="mapa" aria-hidden="true"></div>
+                    <p id="mensagemMapa" role="status"></p>
                 </div>
             </div>
         </section>
     </main>
 
     <footer class="rodape">
-        <p><strong>MOBINTEC</strong> – Mobilidade, Inovação e Tecnologia.</p>
+        <p class="mb-2"><strong>MOBINTEC – Mobilidade, Inovação e Tecnologia.</strong> Para passageiros: chegue sozinho ao ponto turístico. Para empresas: uma plataforma acessível que leva seu serviço a um público que hoje fica de fora.</p>
         <p>Mapa © OpenStreetMap. A posição do ônibus e a câmera são de demonstração.</p>
     </footer>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="dados.js?v=40"></script>
+    <script src="idiomas.js"></script>
     <script src="camera.js"></script>
-    <script src="script.js?v=50"></script>
+    <script src="script.js?v=51"></script>
 </body>
 </html>
