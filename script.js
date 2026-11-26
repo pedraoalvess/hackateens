@@ -246,6 +246,8 @@ function pararMicrofone() {
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
   ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel"].forEach(id => { const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false"); });
   const micChat = document.getElementById("botaoMicChat"); if (micChat) micChat.setAttribute("aria-pressed", "false");
+   const anelAssistente = pegar("#anelAssistente"); if (anelAssistente) anelAssistente.classList.remove("ouvindo");
+const textoMicAssistente = pegar("#textoMicAssistente"); if (textoMicAssistente) textoMicAssistente.textContent = "Toque para falar";
   const micFixo = document.getElementById("botaoFalarSempre"); if (micFixo) micFixo.setAttribute("aria-pressed", "false");
 }
 let modoConversa = false, botaoDaConversa = null;
@@ -1033,26 +1035,22 @@ adicionarEvento("#formularioPainel", "submit", e => { e.preventDefault(); const 
 function abrirChat(aberto) {
   const chat = pegar("#chatFlutuante"); if (!chat) return;
   chat.hidden = !aberto;
-  const btnChat = pegar("#botaoChatFlutuante");
-  if (btnChat) { btnChat.setAttribute("aria-expanded", aberto ? "true" : "false"); btnChat.hidden = aberto; }
+  const btnChat = pegar("#botaoAssistenteUnico");
+  if (btnChat) { 
+    btnChat.setAttribute("aria-expanded", aberto ? "true" : "false"); 
+  }
   
   if (aberto) {
-    if (!pegar("#conversaFlutuante").children.length) registrarConversa("Assistente", "Olá! Sou a assistente do MOBINTEC. Pode perguntar sobre embarque, horários, acessibilidade ou assentos.");
-    
+    if (!pegar("#conversaFlutuante").children.length) {
+      registrarConversa("Assistente", "Olá! Sou a assistente do MOBINTEC. Toque no microfone ou digite sua pergunta.");
+    }
     const campo = pegar("#campoChat"); if (campo) campo.focus();
-    
-    // NOVO: Ao abrir o chat, já ativa o microfone automaticamente!
-    setTimeout(() => {
-        const micChat = pegar("#botaoMicChat");
-        if (micChat) tocarMicrofone(micChat, true);
-    }, 500);
-    
   } else { 
     if (btnChat) btnChat.focus(); 
-    pararMicrofone(); // Garante que o mic desliga se fechar o chat
+    pararMicrofone();
   }
 }
-adicionarEvento("#botaoChatFlutuante", "click", () => abrirChat(true));
+adicionarEvento("#botaoAssistenteUnico", "click", () => abrirChat(true));
 adicionarEvento("#botaoFecharChat", "click", () => abrirChat(false));
 
 function falarDeQualquerLugar() {
