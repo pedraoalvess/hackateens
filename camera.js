@@ -47,7 +47,7 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
       <button type="button" class="botao" data-acao="parar" hidden>Parar leitura</button>
       <button type="button" class="botao" data-acao="ouvir">Ouvir última leitura</button>
     </div>
-    <p class="camera-nota">O resultado é uma estimativa feita por inteligência artificial, não uma confirmação de lugar livre. A câmera do ônibus é uma câmera de demonstração.</p>
+    <p class="camera-nota">O resultado é uma estimativa feita por inteligência artificial. A câmera do ônibus é uma câmera de demonstração.</p>
   `;
   
   const video = painel.querySelector('.camera-video');
@@ -85,11 +85,10 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
   function textoAssentos() {
     let texto;
     if (!recente()) {
-      texto = 'Sem leitura atual de assentos. A câmera ainda não fez uma leitura válida. A disponibilidade do assento PCD não foi verificada.';
+      texto = 'Fazendo nova análise...';
     } else {
-      const origem = leitura.fonte === 'celular' ?
-        'Análise da câmera do celular.' : 'Análise da câmera do ônibus.';
-      texto = origem + ' ' + leitura.mensagem + ' A disponibilidade do assento PCD não foi verificada.';
+      const origem = leitura.fonte === 'celular' ? 'Câmera do celular: ' : 'Câmera do ônibus: ';
+      texto = origem + leitura.mensagem;
     }
     ultimoTexto = texto;
     return texto;
@@ -141,7 +140,7 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
     limparLeitura();
     cancelarFalaDaCamera();
     ultimaAnunciada = '';
-    if (mostrarMensagem !== false) escrever('Leitura parada. Sem leitura atual de assentos.');
+    if (mostrarMensagem !== false) escrever('Leitura parada.');
   }
   
   function mensagemDeErro(status, json) {
@@ -173,9 +172,7 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
       Number.isFinite(restante) && restante > 0;
     if (!valida) {
       limparLeitura();
-      escrever(json.estado === 'expirado' ?
-        'A leitura venceu antes de chegar. Aguardando uma foto nova.' :
-        'Não foi possível identificar os assentos agora. Aponte a câmera de novo.');
+      escrever('Fazendo nova análise...');
       return false;
     }
     leitura = {
@@ -223,13 +220,13 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
       video.hidden = false;
       await video.play();
       if (minhaSessao !== sessao) return;
-      escrever('Câmera aberta. A leitura é automática. Aponte para os assentos e mantenha o celular firme. Para encerrar, toque em Parar leitura.');
+      escrever('Câmera aberta. Aponte o celular para a frente.');
       iniciarAutomatico();
     } catch (erro) {
       if (minhaSessao !== sessao) return;
       parar(false);
       escrever(erro.name === 'NotAllowedError' ?
-        'Permissão da câmera negada. Libere a câmera nas configurações do navegador ou toque em Começar leitura dos assentos.' :
+        'Permissão da câmera negada. Libere a câmera nas configurações do navegador.' :
         'Não consegui abrir a câmera: ' + erro.message);
     } finally {
       if (minhaSessao === sessao) abrindo = false;
@@ -291,7 +288,7 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
       }
       const idade = performance.now() - inicio;
       if (idade >= VALIDADE_MS) {
-        mensagemErro = 'A análise demorou demais e foi descartada. Vou tentar uma foto nova.';
+        mensagemErro = 'Fazendo nova análise...';
         return 'erro';
       }
       const restante = Math.min(VALIDADE_MS - idade, Number(json.validaPorSegundos) * 1000);
@@ -299,11 +296,11 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
     } catch (erro) {
       if (minhaSessao !== sessao) return 'cancelado';
       if (erro.name === 'AbortError') {
-        mensagemErro = 'O sistema demorou para responder. Vou tentar de novo.';
+        mensagemErro = 'Verifique a internet e tente novamente.';
       } else if (erro.status) {
         mensagemErro = erro.message;
       } else if (erro instanceof TypeError) {
-        mensagemErro = 'Sem conexão com o sistema de análise. Verifique a internet.';
+        mensagemErro = 'Verifique a internet e tente novamente.';
       } else {
         mensagemErro = erro.message;
       }
@@ -354,7 +351,7 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
       if (minhaSessao !== sessao) return;
       if (json.estado === 'sem_leitura') {
         limparLeitura();
-        escrever('A câmera do ônibus ainda não enviou uma foto válida. Aguarde um instante.');
+        escrever('A câmera não está filmando ainda. Aguarde um instante.');
       } else {
         const restante = Number(json.validaPorSegundos) * 1000 - (performance.now() - inicio);
         guardarLeitura(json, restante, 'fixa');
@@ -369,11 +366,11 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
         return;
       }
       if (erro.name === 'AbortError') {
-        escrever('O sistema demorou para responder. Tentando de novo.');
+        escrever('Verifique a internet e tente novamente.');
       } else if (erro.status) {
         escrever(erro.message + ' Tentando de novo.');
       } else {
-        escrever('Sem conexão com o sistema. Tentando de novo.');
+        escrever('Verifique a internet e tente novamente.');
       }
     } finally {
       clearTimeout(prazo);
@@ -389,7 +386,7 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
     modo = 'fixa';
     botaoIniciar.hidden = true;
     botaoParar.hidden = false;
-    escrever('Buscando a análise da câmera do ônibus…');
+    escrever('Pegando imagem da câmera...');
     consultarFixa(sessao);
   }
   
@@ -425,7 +422,7 @@ Suporta: Câmera do celular (local) e ESP32 (câmera fixa do ônibus)
     if (leitura && !recente()) {
       limparLeitura();
       cancelarFalaDaCamera();
-      escrever('A leitura anterior venceu. Aguardando uma foto nova.');
+      escrever('Fazendo nova análise...');
     }
   }, 1000);
   
