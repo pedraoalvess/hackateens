@@ -23,7 +23,7 @@
         };
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
- <link rel="stylesheet" href="style.css?v=99">
+    <link rel="stylesheet" href="style.css?v=42">
 </head>
 
 <body class="font-sans">
@@ -40,10 +40,10 @@
 
     <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
         
-        <!-- TELA DE ESCOLHA DE MODO (Agora com hidden e classes do CSS original) -->
+        <!-- TELA DE ESCOLHA DE MODO -->
         <section id="telaEscolhaModo" aria-labelledby="tituloEscolhaModo" class="tela-escolha" hidden>
-            <p id="avisoModo" role="alert" hidden class="caixa"></p>
-            <h1 id="tituloEscolhaModo" tabindex="-1" class="font-serif">Como você quer usar o MOBINTEC?</h1>
+            <p id="avisoModo" role="alert" hidden class="caixa w-full"></p>
+            <h1 id="tituloEscolhaModo" tabindex="-1" class="font-serif text-3xl md:text-4xl">Como você quer usar o MOBINTEC?</h1>
             <p class="texto-explicativo">Escolha o modo que funciona melhor para você.</p>
             
             <div class="container-modos">
@@ -135,7 +135,7 @@
                 <h2 id="tituloPainel" tabindex="-1" class="font-serif text-3xl"></h2>
                 <div id="alerta" role="alert" aria-live="assertive" aria-atomic="true" class="alerta"></div>
                 
-                            <div class="barra-pergunta">
+                <div class="barra-pergunta">
                     <button type="button" id="botaoPerguntarPainel" class="botao botao-forte" style="white-space: nowrap;">🎤 Perguntar</button>
                     <form id="formularioPainel" style="flex: 1; display: flex; gap: 0.5rem; min-width: 250px;">
                         <label for="campoPainel" class="pular">Digite sua pergunta sobre este ônibus</label>
@@ -202,12 +202,7 @@
                 <div id="abaAssistente" class="aba" hidden>
                     <div class="subcaixa">
                         <h3 class="text-xl font-semibold">Pergunte à assistente</h3>
-                        <p id="textoResposta" role="status" class="text-lg">Toque no botão e pergunte.</p>
-                        <button id="botaoPerguntar" class="botao botao-forte">Perguntar por voz</button>
-                        <form id="formularioAba" class="flex gap-3 w-full mt-3">
-                            <input id="campoAba" class="campo" placeholder="Ou digite sua pergunta" autocomplete="off">
-                            <button class="botao botao-forte">Enviar</button>
-                        </form>
+                        <p id="textoResposta" role="status" class="text-lg">Toque no botão flutuante no canto direito para falar com a assistente.</p>
                     </div>
                 </div>
             </div>
@@ -235,26 +230,35 @@
         </section>
     </main>
 
-    
-
-    <button id="botaoChatFlutuante" class="chat-abrir" aria-expanded="false" aria-label="Abrir assistente">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> <span>Assistente</span>
+    <!-- BOTÃO ÚNICO DA ASSISTENTE INTEGRADA -->
+    <button id="botaoAssistenteUnico" class="assistente-unico" aria-expanded="false" aria-label="Abrir assistente de voz">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
     </button>
     
-    <section id="chatFlutuante" class="chat-flutuante" hidden aria-label="Conversa com a assistente">
-        <div class="chat-topo">
-            <h2 class="text-xl font-semibold">Assistente MOBINTEC</h2>
-        <!-- SUBSTITUA O BOTÃO DA DIREITA POR ESTE -->
-<button id="botaoChatFlutuante" class="chat-abrir" aria-expanded="false" aria-label="Abrir assistente de voz">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg> 
-    <span>Falar com a Assistente</span>
-</button>
+    <!-- PAINEL INTEGRADO DA ASSISTENTE -->
+    <section id="chatFlutuante" class="assistente-painel" hidden aria-label="Assistente de voz integrada">
+        <div class="assistente-topo">
+            <h2 class="text-xl font-semibold">💬 Assistente MOBINTEC</h2>
+            <button id="botaoFecharChat" class="botao chat-fechar" aria-label="Fechar assistente">✕</button>
         </div>
+        
         <ul id="conversaFlutuante" class="conversa chat-lista" aria-live="polite"></ul>
+        
+        <div class="assistente-mic-area">
+            <div id="anelAssistente" class="anel-assistente">
+                <span class="onda-assistente" aria-hidden="true"></span>
+                <span class="onda-assistente" aria-hidden="true"></span>
+                <span class="onda-assistente" aria-hidden="true"></span>
+                <button id="botaoMicChat" class="microfone-assistente" aria-pressed="false" aria-label="Falar com a assistente">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+                </button>
+            </div>
+            <p id="textoMicAssistente" class="texto-mic-assistente" role="status">Toque para falar</p>
+        </div>
+        
         <form id="formularioChat" class="chat-form">
-            <button type="button" id="botaoMicChat" class="botao chat-mic" aria-pressed="false">🎤</button>
-            <input id="campoChat" class="campo" placeholder="Digite ou toque no microfone" autocomplete="off">
-            <button class="botao botao-forte">Enviar</button>
+            <input id="campoChat" class="campo" placeholder="Ou digite sua pergunta" autocomplete="off">
+            <button type="submit" class="botao botao-forte">Enviar</button>
         </form>
     </section>
 
@@ -267,7 +271,6 @@
     <script src="dados.js?v=40"></script>
     <script src="idiomas.js"></script>
     <script src="camera.js"></script>
-    <script src="script.js?v=41"></script>
-    
+    <script src="script.js?v=42"></script>
 </body>
 </html>
