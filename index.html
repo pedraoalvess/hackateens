@@ -135,14 +135,14 @@
                 <h2 id="tituloPainel" tabindex="-1" class="font-serif text-3xl"></h2>
                 <div id="alerta" role="alert" aria-live="assertive" aria-atomic="true" class="alerta"></div>
                 
-                <div class="barra-pergunta">
-                    <button type="button" id="botaoPerguntarPainel" class="botao botao-forte">🎤 Perguntar por voz</button>
-                    <form id="formularioPainel">
+                            <div class="barra-pergunta">
+                    <button type="button" id="botaoPerguntarPainel" class="botao botao-forte" style="white-space: nowrap;">🎤 Perguntar</button>
+                    <form id="formularioPainel" style="flex: 1; display: flex; gap: 0.5rem; min-width: 250px;">
                         <label for="campoPainel" class="pular">Digite sua pergunta sobre este ônibus</label>
-                        <input id="campoPainel" class="campo" placeholder="Ou digite: onde embarco? tem assento livre?" autocomplete="off">
-                        <button class="botao">Enviar</button>
+                        <input id="campoPainel" class="campo-input-pergunta" placeholder="Ex: onde embarco? tem assento livre?" autocomplete="off">
+                        <button type="submit" class="botao botao-forte">Enviar</button>
                     </form>
-                    <p id="ecoPergunta" class="eco" role="status" aria-live="polite"></p>
+                    <p id="ecoPergunta" class="eco-pergunta" role="status" aria-live="polite"></p>
                 </div>
 
                 <div class="flex flex-wrap gap-2" role="group">
