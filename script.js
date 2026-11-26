@@ -105,6 +105,10 @@ function escolherModo(modo) {
   modoAtual = modo;
   mostrar(pegar("#telaEscolhaModo"), false);
   
+  // Adiciona classe no body para o CSS saber qual modo está ativo
+  document.body.classList.remove('modo-visual', 'modo-acessivel');
+  document.body.classList.add('modo-' + modo);
+  
   if (modo === 'visual') {
     mostrar(pegar("#telaInicio"), true);
     falar("Modo visual ativado. Toque em qualquer lugar e fale para escolher um destino.");
