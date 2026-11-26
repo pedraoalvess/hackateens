@@ -3,7 +3,7 @@ MOBINTEC - Sistema de Idiomas
 Suporta: Português (padrão), Inglês e Espanhol.
 Detecta automaticamente pelo que a pessoa fala ou muda por comando de voz.
 ========================================================================== */
-
+ 
 let idiomaAtual = "pt"; // "pt", "en", "es"
 
 const TRADUCOES = {
