@@ -266,6 +266,9 @@ function tocarMicrofone(botao, automatico) {
   limparBolhas();
   if (usarModeloProprio) ouvirComModeloProprio(botao); else ouvirComNavegador(botao);
 }
+  
+  if (usarModeloProprio) ouvirComModeloProprio(botao); else ouvirComNavegador(botao);
+}
 function ouvirComNavegador(botao) {
   const este = new ReconhecimentoDoNavegador(); reconhecimento = este; este.lang = "pt-BR"; este.interimResults = true; entendeu = false; iniciando = true;
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = "";
@@ -1016,13 +1019,7 @@ function abrirChat(aberto) {
   }
 }
 
-adicionarEvento("#botaoAssistenteUnico", "click", () => abrirChat(true));
-adicionarEvento("#botaoFecharChat", "click", () => abrirChat(false));
-
-document.addEventListener("keydown", e => { if (e.altKey && (e.key === "v" || e.key === "V")) { e.preventDefault(); abrirChat(true); setTimeout(() => { const mic = pegar("#botaoMicChat"); if (mic) tocarMicrofone(mic, true); }, 300); } });
-adicionarEvento("#atalhoFalar", "click", () => { abrirChat(true); setTimeout(() => { const mic = pegar("#botaoMicChat"); if (mic) tocarMicrofone(mic, true); }, 300); });
-adicionarEvento("#atalhoAssistente", "click", () => abrirChat(true));
-
+document.addEventListener("keydown", e => { if (e.altKey && (e.key === "v" || e.key === "V")) { e.preventDefault(); abrirChat(true); setTimeout(() => { const mic = pegar("#botaoMicChat"); if (mic) Microfone(mic, true); }, 300); } });
 document.addEventListener("keydown", e => {
   if (e.altKey && (e.key === "a" || e.key === "A")) { e.preventDefault(); abrirChat(pegar("#chatFlutuante") ? pegar("#chatFlutuante").hidden : true); }
 });
@@ -1035,9 +1032,6 @@ function falarInstrucaoInicial(e) {
 }
 document.addEventListener("pointerdown", falarInstrucaoInicial, { once: true });
 document.addEventListener("keydown", falarInstrucaoInicial, { once: true });
-
-adicionarEvento("#botaoMicChat", "click", () => tocarMicrofone(pegar("#botaoMicChat")));
-adicionarEvento("#formularioChat", "submit", e => { e.preventDefault(); const c = pegar("#campoChat"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
 document.addEventListener("keydown", e => { const chat = pegar("#chatFlutuante"); if (e.key === "Escape" && chat && !chat.hidden) abrirChat(false); });
 
 let tocarEmQualquerLugar = true;
@@ -1075,18 +1069,4 @@ mostrar(pegar("#telaMapa"), false);
 mostrar(pegar("#telaEscolhaModo"), true);
 setTimeout(() => falar(BOAS_VINDAS), 600);
 /* ==========================================================================
-   REMOVER CHAT FLUTUANTE
-   ========================================================================== */
 
-/* Esconde completamente o chat e o botão dele */
-.chat-flutuante,
-.assistente-painel,
-.assistente-unico,
-.chat-abrir,
-.falar-sempre,
-#botaoChatFlutuante,
-#botaoAssistenteUnico {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-}
