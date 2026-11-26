@@ -1019,7 +1019,7 @@ adicionarEvento("#botaoTema", "click", () => aplicarTema(!document.body.classLis
 
 let temaSalvo = null, vozSalva = null;
 try { temaSalvo = localStorage.getItem("mobintecTema"); vozSalva = localStorage.getItem("mobintecVoz"); velocidadeVoz = Number(localStorage.getItem("mobintecVelocidade")) || 1; } catch (e) {}
-aplicarTema(temaSalvo ? temaSalvo === "claro" : true, false); definirVoz(vozSalva !== "desligada", false);
+aplicarTema(temaSalvo ? temaSalvo === "claro" : false, false); definirVoz(vozSalva !== "desligada", false);
 
 adicionarEvento("#botaoAjuda", "click", () => avisar(TEXTO_AJUDA));
 adicionarEvento("#botaoOuvirStatus", "click", () => { if (dados) anunciarStatus("", true); });
