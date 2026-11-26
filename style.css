@@ -46,9 +46,11 @@ body.claro {
     --line: #6c6a64;
     --hair: #e6dfd8;
     --focus: #141413;
-    --primary: #a9583e;
-    --accent: #cc785c;
-    --ring: rgba(204, 120, 92, .25);
+      --primary: #8b1f2f;
+    /* bordô igual ao modo escuro */
+    --accent: #ffb3c4;
+    /* rosa igual ao modo escuro */
+    --ring: rgba(139, 31, 47, .25);
     --glow: transparent;
     --dark: #181715;
     --dark-2: #252320;
