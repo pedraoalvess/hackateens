@@ -19,7 +19,7 @@
         };
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=52">
+    <link rel="stylesheet" href="style.css?v=53">
 </head>
 
 <body class="font-sans">
@@ -35,7 +35,6 @@
 
     <main id="principal" tabindex="-1" class="max-w-4xl mx-auto px-5 py-8">
         
-        <!-- TELA 1: ESCOLHA DE MODO -->
         <section id="telaEscolhaModo" aria-labelledby="tituloEscolhaModo" class="tela-escolha" hidden>
             <p id="avisoModo" role="alert" hidden class="caixa w-full"></p>
             <h1 id="tituloEscolhaModo" tabindex="-1" class="font-serif text-3xl md:text-4xl">Como você quer usar o MOBINTEC?</h1>
@@ -57,7 +56,6 @@
             <p class="texto-ajuda">Você também pode falar: "modo visual" ou "modo acessível"</p>
         </section>
 
-        <!-- TELA 2: INÍCIO -->
         <section id="telaInicio" aria-labelledby="tituloInicio" class="flex flex-col items-center gap-6 text-center" hidden>
             <p id="aviso" role="alert" hidden class="caixa w-full"></p>
             <h1 id="tituloInicio" tabindex="-1" class="font-serif text-3xl md:text-4xl">MOBINTEC: para onde você quer ir?</h1>
@@ -76,7 +74,6 @@
             <button id="botaoOpcoes" class="botao" aria-label="Abrir as opções">Opções</button>
         </section>
 
-        <!-- TELA 3: MODO ACESSÍVEL -->
         <section id="telaAcessivel" aria-labelledby="tituloAcessivel" class="flex flex-col items-center justify-center gap-8 text-center min-h-screen" hidden>
             <h1 id="tituloAcessivel" tabindex="-1" class="font-serif text-4xl">Modo Acessível</h1>
             
@@ -93,7 +90,6 @@
             <button id="botaoVoltarModo" class="botao">Voltar para escolha de modo</button>
         </section>
 
-        <!-- TELA 4: OPÇÕES -->
         <section id="telaOpcoes" aria-labelledby="tituloOpcoes" hidden aria-hidden="true" class="flex flex-col gap-6">
             <button id="botaoVoltarOpcoes" class="botao self-start" aria-label="Voltar">Voltar</button>
             <h1 id="tituloOpcoes" tabindex="-1" class="font-serif text-4xl">Opções</h1>
@@ -116,16 +112,12 @@
             </p>
         </section>
 
-        <!-- TELA 5: LISTA / PAINEL -->
         <section id="telaLista" aria-labelledby="tituloLista" hidden aria-hidden="true" class="flex flex-col gap-6">
             <div class="flex flex-wrap gap-3">
                 <button id="botaoVoltar" class="botao">Voltar ao início</button>
                 <button id="botaoAbrirMapa" class="botao">Abrir o mapa</button>
             </div>
             <h1 id="tituloLista" tabindex="-1" class="font-serif text-4xl">Ônibus turísticos de Foz do Iguaçu</h1>
-            
-                <p id="textoTopo" class="texto-topo">Toque para escolher um ônibus por voz</p>
-            </div>
 
             <div id="painel" class="painel" hidden aria-hidden="true">
                 <h2 id="tituloPainel" tabindex="-1" class="font-serif text-3xl"></h2>
@@ -147,22 +139,69 @@
                 </div>
 
                 <div id="abaOnibus" class="aba">
-                                    <div id="abaOnibus" class="aba">
-                    <!-- Microfone integrado no card das informações -->
+                    <!-- Microfone integrado -->
                     <div class="microfone-topo-aba microfone-integrado">
                         <div id="anelTopo" class="anel-topo">
                             <span class="onda-topo" aria-hidden="true"></span>
                             <span class="onda-topo" aria-hidden="true"></span>
                             <span class="onda-topo" aria-hidden="true"></span>
-                            <button id="botaoMicrofoneTopo" class="microfone-topo" aria-pressed="false" aria-label="Escolher ônibus por voz">
+                            <button id="botaoMicrofoneTopo" class="microfone-topo" aria-pressed="false" aria-label="Fazer pergunta sobre este ônibus">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
                             </button>
                         </div>
                         <p id="textoTopo" class="texto-topo">Toque para fazer uma pergunta sobre este ônibus</p>
                     </div>
                     
-                    <div class="subcaixa">
-                        <h3 class="text-xl font-semibold">Chegada estimada</h3>
+                    <!-- NOVO: Painel de Embarque (aparece quando o ônibus chega no ponto) -->
+                    <div id="painelEmbarque" class="painel-embarque" hidden>
+                        <div class="embarque-header">
+                            <span class="embarque-icone">🚌</span>
+                            <h3 class="embarque-titulo">O ônibus chegou ao ponto!</h3>
+                        </div>
+                        <p id="embarqueInstrucao" class="embarque-instrucao">Confirme seu embarque para começar a acompanhar a viagem até o destino.</p>
+                        
+                        <div class="embarque-acoes">
+                            <button id="botaoEmbarquei" class="botao botao-embarquei">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                                <span>Embarquei</span>
+                            </button>
+                            <button id="botaoPrecisoAjuda" class="botao botao-ajuda">
+                                <span>Preciso de ajuda</span>
+                            </button>
+                        </div>
+                        
+                        <p class="embarque-dica">💡 Você também pode falar: "embarquei" ou "preciso de ajuda"</p>
+                    </div>
+                    
+                    <!-- NOVO: Painel de Viagem (aparece após embarcar) -->
+                    <div id="painelViagem" class="painel-viagem" hidden>
+                        <div class="viagem-header">
+                            <span class="viagem-status">🎉 Em viagem</span>
+                            <h3 id="viagemDestino" class="viagem-destino"></h3>
+                        </div>
+                        
+                        <div class="viagem-contador">
+                            <p class="viagem-label">Tempo até o destino</p>
+                            <p id="tempoViagem" class="viagem-tempo">-- min</p>
+                            <div class="progresso"><div id="barraViagem" class="barra"></div></div>
+                        </div>
+                        
+                        <div class="viagem-paradas">
+                            <h4 class="viagem-subtitulo">Próximas paradas</h4>
+                            <ol id="listaParadasViagem" class="lista-paradas-viagem"></ol>
+                            <p id="proximaParada" class="proxima-parada"></p>
+                        </div>
+                        
+                        <div class="viagem-acoes">
+                            <button id="botaoOuvirViagem" class="botao">Ouvir status da viagem</button>
+                            <button id="botaoRepetirParadas" class="botao">Repetir paradas</button>
+                            <button id="botaoChamarMotorista" class="botao botao-ajuda">Chamar motorista</button>
+                            <button id="botaoDesembarquei" class="botao botao-desembarque">
+                                <span>Desci no destino</span>
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="subcaixa">
                         <h3 class="text-xl font-semibold">Chegada estimada</h3>
                         <p id="tempo" class="font-serif text-6xl"></p>
@@ -228,7 +267,6 @@
             <div id="slotMapaOnibus"></div>
         </section>
 
-        <!-- TELA 6: MAPA -->
         <section id="telaMapa" aria-labelledby="tituloMapa" hidden aria-hidden="true" class="flex flex-col gap-6">
             <button id="botaoVoltarMapa" class="botao self-start">Voltar aos ônibus</button>
             <h1 id="tituloMapa" tabindex="-1" class="font-serif text-4xl">Mapa e minha localização</h1>
@@ -254,6 +292,6 @@
     <script src="dados.js?v=40"></script>
     <script src="idiomas.js"></script>
     <script src="camera.js"></script>
-    <script src="script.js?v=52"></script>
+    <script src="script.js?v=53"></script>
 </body>
 </html>
