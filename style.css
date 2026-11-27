@@ -164,12 +164,11 @@ body h1, body h2, body .font-serif {
 
 .botao:hover {
     transform: translateY(-2px);
-    background: var(--dark);
-    color: var(--ink) !important;
-    box-shadow: 0 6px 16px rgba(0,0,0,.3);
-    border-color: var(--accent);
+    background: var(--primary) !important;
+    color: var(--on-primary) !important;
+    box-shadow: 0 6px 16px var(--glow);
+    border-color: var(--primary);
 }
-
 .botao-forte {
     background: var(--primary);
     border-color: var(--primary);
@@ -178,10 +177,10 @@ body h1, body h2, body .font-serif {
 }
 
 .botao-forte:hover {
-    background: #a52840;
+    background: #a52840 !important;
     color: var(--on-primary) !important;
     box-shadow: 0 8px 20px var(--glow);
-    border-color: var(--accent);
+    border-color: #a52840;
 }
 
 .campo {
