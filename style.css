@@ -898,7 +898,8 @@ body.modo-acessivel #telaAcessivel {
     
     #mapa { height: 18rem; border-radius: 12px; }
     
-    .microfone-topo-aba { padding: 1rem 0.5rem; }
+       .microfone-topo-aba { padding: 1rem 0.5rem; }
+    .microfone-integrado { padding: 0.75rem; }
     .anel-topo { width: 6rem !important; height: 6rem !important; }
     .microfone-topo { width: 5rem !important; height: 5rem !important; }
     .microfone-topo svg { width: 36px !important; height: 36px !important; }
@@ -908,8 +909,8 @@ body.modo-acessivel #telaAcessivel {
     .rodape { padding: 2rem 1rem !important; padding-bottom: 7rem !important; font-size: 0.85rem; }
 }
 
-@media (max-width: 360px) {
-    html { font-size: 90%; }
+@media (max-width: 768px) {
+    html { font-size: 100%; }
     .topo { padding: 0.5rem 0.75rem; }
     .marca { font-size: 1.1rem; }
     .lema { font-size: 0.7rem; }
