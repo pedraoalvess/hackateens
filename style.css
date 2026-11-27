@@ -1009,6 +1009,50 @@ body.modo-acessivel #telaAcessivel {
     .botao-desembarque { grid-column: auto; }
     .microfone-integrado { padding: 0.75rem; }
 }
+/* ---------- Tela da Câmera ---------- */
+#telaCamera {
+    padding: 2rem 1rem;
+}
+
+#telaCamera .anel {
+    margin: 1rem 0;
+}
+
+#slotCameraTela {
+    margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+    #telaCamera {
+        padding: 1.5rem 1rem;
+    }
+    
+    #telaCamera .anel {
+        width: 11rem !important;
+        height: 11rem !important;
+    }
+    
+    #telaCamera .microfone {
+        width: 8.5rem !important;
+        height: 8.5rem !important;
+    }
+    
+    #telaCamera .microfone svg {
+        width: 80px !important;
+        height: 80px !important;
+    }
+    
+    #telaCamera .onda {
+        width: 8.5rem !important;
+        height: 8.5rem !important;
+    }
+    
+    #textoEstadoCamera {
+        font-size: 1.25rem !important;
+        text-align: center;
+        padding: 0 1rem;
+    }
+}
 
 /* ==========================================================================
    MOBILE - Botões menores e elegantes
