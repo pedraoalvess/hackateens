@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MOBINTEC - script completo (com função Embarquei)
+   MOBINTEC - script completo (com função Embarquei + Tela da Câmera)
    ========================================================================== */
 
 function pegar(seletor) { return document.querySelector(seletor); }
@@ -28,7 +28,7 @@ function embarqueAtual() {
 const VELOCIDADE_TESTE = 5;
 const URL_DA_IA = "https://mobintec-ia.pdeoliveiraalves840.workers.dev/";
 const BOAS_VINDAS = "Bem-vindo ao Mobintec. Escolha como você quer usar: modo visual, com mapa e botões na tela, ou modo acessível, apenas com voz e microfone. Toque no botão do modo que você preferir.";
-const TEXTO_AJUDA = "Comandos: quero ir para as cataratas, onde eu embarco, tem gratuidade, abre o mapa, repetir, mais devagar, desligar a voz, trocar destino, ligar localização, quanto tempo falta, qual a distância, abrir google maps, falar operadora, embarquei, desci no destino, chamar motorista.";
+const TEXTO_AJUDA = "Comandos: quero ir para as cataratas, onde eu embarco, tem gratuidade, abre o mapa, repetir, mais devagar, desligar a voz, trocar destino, ligar localização, quanto tempo falta, qual a distância, abrir google maps, falar operadora, embarquei, desci no destino, chamar motorista, abrir câmera, leitura de assentos.";
 
 let modoAtual = 'visual';
 let passoAcessivel = 0;
@@ -130,10 +130,12 @@ function abrirTela(nome, silencioso, semHistorico) {
   mostrar(pegar("#telaOpcoes"), nome === "opcoes");
   mostrar(pegar("#telaLista"), nome === "lista");
   mostrar(pegar("#telaMapa"), nome === "mapa");
+  mostrar(pegar("#telaCamera"), nome === "camera");
 
   if (window.CameraMobintec) {
     if (nome === "opcoes") window.CameraMobintec.montarEm("#slotCameraOpcoes");
     else if (nome === "lista") window.CameraMobintec.montarEm("#slotCameraOnibus");
+    else if (nome === "camera") window.CameraMobintec.montarEm("#slotCameraTela");
     else window.CameraMobintec.desmontar();
   }
 
@@ -152,6 +154,9 @@ function abrirTela(nome, silencioso, semHistorico) {
     const titulo = pegar("#tituloMapa"); if (titulo) titulo.focus(); desenharPerto();
     if (idLocal === null) ligarLocalizacao(silencioso);
     else if (!silencioso) falar("Mapa. " + (pegar("#textoLocal") ? pegar("#textoLocal").textContent : ""));
+  } else if (nome === "camera") {
+    const titulo = pegar("#tituloCamera"); if (titulo) titulo.focus();
+    if (!silencioso) falar("Leitura de assentos. Toque no microfone para perguntar sobre os assentos.");
   } else if (nome === "acessivel") {
     const titulo = pegar("#tituloAcessivel"); if (titulo) titulo.focus();
     if (!silencioso) iniciarFluxoAcessivel();
@@ -242,8 +247,10 @@ function pararMicrofone() {
   const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
   const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
+  const anelCamera = pegar("#anelCamera"); if (anelCamera) anelCamera.classList.remove("ouvindo");
   const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para fazer uma pergunta sobre este ônibus";
-  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicrofoneTopo"].forEach(id => {
+  const estadoCamera = pegar("#textoEstadoCamera"); if (estadoCamera) estadoCamera.textContent = "Toque no microfone para perguntar sobre os assentos";
+  ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicrofoneTopo", "#botaoMicrofoneCamera"].forEach(id => {
     const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false");
   });
 }
@@ -270,7 +277,9 @@ function ouvirComNavegador(botao) {
     const anel = pegar("#anel"); if (anel) anel.classList.add("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.add("ouvindo");
     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.add("ouvindo");
+    const anelCamera = pegar("#anelCamera"); if (anelCamera) anelCamera.classList.add("ouvindo");
     const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Ouvindo… fale agora";
+    const estadoCamera = pegar("#textoEstadoCamera"); if (estadoCamera) estadoCamera.textContent = "Ouvindo… fale agora";
     if (botao) botao.setAttribute("aria-pressed", "true");
     const estado = pegar("#textoEstado"); if (estado) estado.textContent = "Ouvindo… fale agora.";
     const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… fale agora.";
@@ -299,7 +308,9 @@ function ouvirComNavegador(botao) {
     if (este !== reconhecimento) return; const estava = ouvindo; pararMicrofone();
     if (estava) { apitar(440); if (!entendeu) avisar("Não entendi. Toque e diga, por exemplo, Cataratas."); }
     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
+    const anelCamera = pegar("#anelCamera"); if (anelCamera) anelCamera.classList.remove("ouvindo");
     const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para fazer uma pergunta sobre este ônibus";
+    const estadoCamera = pegar("#textoEstadoCamera"); if (estadoCamera) estadoCamera.textContent = "Toque no microfone para perguntar sobre os assentos";
   };
 
   setTimeout(() => { if (este === reconhecimento && iniciando) { iniciando = false; avisar("Microfone demorou."); } }, 10000);
@@ -317,7 +328,9 @@ async function ouvirComModeloProprio(botao) {
     const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
+    const anelCamera = pegar("#anelCamera"); if (anelCamera) anelCamera.classList.remove("ouvindo");
     const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para fazer uma pergunta sobre este ônibus";
+    const estadoCamera = pegar("#textoEstadoCamera"); if (estadoCamera) estadoCamera.textContent = "Toque no microfone para perguntar sobre os assentos";
     if (botao) botao.setAttribute("aria-pressed", "false");
     if (gravacaoCancelada) return; apitar(440); processando = true; avisar("Entendendo…");
     try {
@@ -336,7 +349,9 @@ async function ouvirComModeloProprio(botao) {
   const anel = pegar("#anel"); if (anel) anel.classList.add("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.add("ouvindo");
   const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.add("ouvindo");
+  const anelCamera = pegar("#anelCamera"); if (anelCamera) anelCamera.classList.add("ouvindo");
   const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Ouvindo… fale agora";
+  const estadoCamera = pegar("#textoEstadoCamera"); if (estadoCamera) estadoCamera.textContent = "Ouvindo… fale agora";
   if (botao) botao.setAttribute("aria-pressed", "true");
   const estado = pegar("#textoEstado"); if (estado) estado.textContent = "Ouvindo… toque de novo para terminar.";
   const estadoAcessivel = pegar("#textoAcessivel"); if (estadoAcessivel) estadoAcessivel.textContent = "Ouvindo… toque de novo para terminar.";
@@ -359,15 +374,20 @@ function comandoDeCamera(texto) {
   if (/\b(esp32|esp)\b/.test(t)) return "fixa";
   if (/\bcameras?\b/.test(t) && /\b(celular|telefone|aparelho)\b/.test(t)) return "celular";
   if (/\bcameras?\b/.test(t) && /\bonibus\b/.test(t)) return "fixa";
+  if (/\b(ler|leitura)\b/.test(t) && /\b(assentos?|poltronas?|lugar)\b/.test(t)) return "fixa";
   return null;
 }
 function executarComandoDeCamera(comando) {
   if (!window.CameraMobintec) { avisar("Câmera indisponível."); return; }
   if (comando === "parar") { window.CameraMobintec.parar(false); avisar("Câmera parada."); return; }
-  if (destinoAtual && dados) { if (pegar("#telaLista") && pegar("#telaLista").hidden) abrirTela("lista", true); mostrarAba("Onibus"); }
-  else if (pegar("#telaOpcoes") && pegar("#telaOpcoes").hidden) abrirTela("opcoes", true);
-  avisar(comando === "celular" ? "Abrindo câmera do celular." : "Buscando análise da câmera do ônibus.");
-  window.CameraMobintec.iniciar(comando);
+  
+  // Abre tela dedicada da câmera
+  abrirTela("camera", true);
+  
+  setTimeout(() => {
+    avisar(comando === "celular" ? "Abrindo câmera do celular." : "Buscando análise da câmera do ônibus.");
+    window.CameraMobintec.iniciar(comando);
+  }, 300);
 }
 function perguntaSobreAssento(texto) {
   const t = semAcento(texto);
@@ -472,7 +492,7 @@ function executarAcao(resposta) {
   else if (acao === "abrir_camera_celular") executarComandoDeCamera("celular");
   else if (acao === "abrir_camera_onibus") executarComandoDeCamera("fixa");
   else if (acao === "parar_camera") executarComandoDeCamera("parar");
-  else if (acao === "ler_assentos") { if (destinoAtual && dados) mostrarAba("Onibus"); avisar(textoAssento()); }
+  else if (acao === "ler_assentos") { executarComandoDeCamera("fixa"); return; }
   else if (acao === "abrir_opcoes") abrirTela("opcoes");
   else if (acao === "trocar_tema") aplicarTema(!document.body.classList.contains("claro"), true);
   else if (acao === "ler_embarque") avisar(textoEmbarque());
@@ -501,23 +521,18 @@ function confirmarEmbarque() {
   paradasPassadas = [];
   ultimaParadaAvisada = -1;
   
-  // Esconde painel de embarque, mostra painel de viagem
   mostrar(pegar("#painelEmbarque"), false);
   mostrar(pegar("#painelViagem"), true);
   
-  // Atualiza destino no painel
   const viagemDestino = pegar("#viagemDestino");
   if (viagemDestino) viagemDestino.textContent = "Destino: " + destinoAtual.nome;
   
-  // Preenche lista de paradas
   atualizarListaParadasViagem();
   
-  // Aviso sonoro e vibração
   apitar(880);
   setTimeout(() => apitar(1100), 150);
   vibrar([200, 100, 200]);
   
-  // Mensagem de confirmação
   const emb = embarqueAtual();
   let msg = "Embarque confirmado! Você está a bordo do " + destinoAtual.servico + " com destino a " + destinoAtual.nome + ". ";
   msg += "A viagem dura cerca de " + Math.round(segundosAteDestino / 60) + " minutos. ";
@@ -526,7 +541,6 @@ function confirmarEmbarque() {
   
   avisar(msg);
   
-  // Inicia contador da viagem
   if (relogioViagem) clearInterval(relogioViagem);
   relogioViagem = setInterval(passarTempoViagem, 1000);
 }
@@ -537,24 +551,20 @@ function passarTempoViagem() {
   
   segundosAteDestino = Math.max(0, segundosAteDestino - VELOCIDADE_TESTE);
   
-  // Atualiza display
   const tempoViagem = pegar("#tempoViagem");
   if (tempoViagem) {
     const min = Math.ceil(segundosAteDestino / 60);
     tempoViagem.textContent = min > 0 ? min + " min" : "Chegando!";
   }
   
-  // Atualiza barra
   const barraViagem = pegar("#barraViagem");
   if (barraViagem && segundosViagemIniciais > 0) {
     const progresso = Math.round((1 - segundosAteDestino / segundosViagemIniciais) * 100);
     barraViagem.style.width = Math.min(100, progresso) + "%";
   }
   
-  // Verifica paradas no caminho
   verificarParadasViagem();
   
-  // Avisos de proximidade do destino
   if (segundosAteDestino === 0) {
     clearInterval(relogioViagem);
     anunciarChegadaDestino();
@@ -569,12 +579,11 @@ function passarTempoViagem() {
 function verificarParadasViagem() {
   if (!paradas || paradas.length === 0) return;
   
-  // Simula passagem por paradas baseado no tempo
   const totalParadas = Math.min(paradas.length, 5);
   const paradaAtual = Math.floor((1 - segundosAteDestino / segundosViagemIniciais) * totalParadas);
   
   if (paradaAtual > ultimaParadaAvisada && paradaAtual < totalParadas) {
-    ultimaParadaOuvirAvisada = paradaAtual;
+    ultimaParadaAvisada = paradaAtual;
     const parada = paradas[paradaAtual];
     if (parada) {
       avisar("Passando pela parada: " + parada.nome + ".");
@@ -606,7 +615,6 @@ function atualizarListaParadasViagem() {
     lista.appendChild(li);
   }
   
-  // Atualiza próxima parada
   const proximaParada = pegar("#proximaParada");
   if (proximaParada) {
     if (paradaAtual + 1 < totalParadas) {
@@ -629,7 +637,6 @@ function anunciarChegadaDestino() {
   
   avisar(msg);
   
-  // Muda botão para "Desci no destino"
   const btnDesembarque = pegar("#botaoDesembarquei");
   if (btnDesembarque) {
     btnDesembarque.focus();
@@ -658,7 +665,14 @@ function chamarMotorista() {
 }
 
 function precisarAjuda() {
-  avisar("Sem problemas! Se precisar de ajuda, você pode: 1) Chamar o motorista pelo botão 'Chamar motorista'. 2) Ligar para a operadora " + (embarqueAtual() ? embarqueAtual().operadora + ", telefone " + embarqueAtual().contato + "." : ".") + " 3) Pedir ajuda a um passageiro próximo. Estou aqui se precisar de mais alguma coisa.");
+  const emb = embarqueAtual();
+  let msg = "Sem problemas! Se precisar de ajuda, você pode: ";
+  msg += "1) Chamar o motorista pelo botão 'Chamar motorista'. ";
+  if (emb) {
+    msg += "2) Ligar para a operadora " + emb.operadora + ", telefone " + emb.contato + ". ";
+  }
+  msg += "3) Pedir ajuda a um passageiro próximo. Estou aqui se precisar de mais alguma coisa.";
+  avisar(msg);
 }
 
 function ouvirStatusViagem() {
@@ -714,7 +728,7 @@ function responder(texto) {
     avisar("Primeiro escolha um modo. Toque em modo visual ou modo acessível."); return;
   }
 
-  // NOVO: Comandos de embarque/viagem
+  // Comandos de embarque/viagem
   const tLower = semAcento(texto);
   if (/\b(embarquei|embarquei no onibus|estou no onibus|ja embarquei|entrei no onibus)\b/.test(tLower)) {
     confirmarEmbarque(); return;
@@ -745,6 +759,11 @@ function responder(texto) {
     return;
   }
 
+  // Comandos de câmera
+  const cmdCam = comandoDeCamera(texto);
+  if (cmdCam) { executarComandoDeCamera(cmdCam); return; }
+  
+  // Se está na tela de lista sem destino
   const telaLista = pegar("#telaLista");
   if (telaLista && !telaLista.hidden && !destinoAtual) {
     const t = semAcento(texto);
@@ -774,7 +793,6 @@ function responder(texto) {
     }
   }
 
-  const cmdCam = comandoDeCamera(texto); if (cmdCam) { executarComandoDeCamera(cmdCam); return; }
   const t = semAcento(texto);
 
   if (/\b(trocar|mudar|alterar)\b/.test(t) && /\b(destino|ponto|lugar)\b/.test(t)) { pararAcompanhamento(); abrirTela(modoAtual === 'acessivel' ? 'acessivel' : 'inicio'); avisar("Voltando para escolher outro destino."); return; }
@@ -820,7 +838,11 @@ function responder(texto) {
     if (URL_DA_IA) { destacarBolha(destino); perguntarParaIA(texto); return; }
     falarSobreDestino(destino); return;
   }
-  if (perguntaSobreAssento(texto)) { if (destinoAtual && dados) mostrarAba("Onibus"); avisar(textoAssento()); return; }
+  if (perguntaSobreAssento(texto)) { 
+    // Se está perguntando sobre assentos, abre tela dedicada da câmera
+    executarComandoDeCamera("fixa"); 
+    return; 
+  }
   if (t.includes("claro") && t.includes("tema")) { aplicarTema(true, true); return; }
   if (t.includes("escuro") && t.includes("tema")) { aplicarTema(false, true); return; }
   if (t.includes("repet") || t.includes("de novo")) { repetirUltima(); return; }
@@ -841,7 +863,7 @@ function responder(texto) {
   if (!destinoAtual) { if (URL_DA_IA) perguntarParaIA(texto); else avisar("Primeiro diga um destino, por exemplo Cataratas."); return; }
   if (t.includes("transporte") || t.includes("preco") || t.includes("operadora")) { mostrarAba("Onibus"); avisar(textoTransporte()); return; }
   if (t.includes("acessibilidade") || t.includes("rampa")) { mostrarAba("Onibus"); avisar(textoAcessibilidade()); return; }
-  if (t.includes("assento") || t.includes("livre")) { mostrarAba("Onibus"); avisar(textoAssento()); return; }
+  if (t.includes("assento") || t.includes("livre")) { executarComandoDeCamera("fixa"); return; }
   if (t.includes("parada")) { 
     if (embarcado) { repetirParadas(); return; }
     mostrarAba("Rota"); avisar(textoParadas()); return; 
@@ -941,6 +963,7 @@ function ligarLocalizacao(silencioso) {
   }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
   atualizarBotaoLocal();
 }
+
 function textoEmbarque() {
   if (!destinoAtual) return "Escolha um destino primeiro.";
   const emb = embarqueAtual();
@@ -950,6 +973,7 @@ function textoEmbarque() {
   if (distanciaAteVoce !== null) f += " Você está a " + formatarDistancia(distanciaAteVoce) + " do embarque.";
   return f;
 }
+
 function falarLocalizacao() {
   if (idLocal === null) { ligarLocalizacao(); return; }
   if (!posicaoUsuario) { avisar("Buscando localização..."); return; }
@@ -959,17 +983,44 @@ function falarLocalizacao() {
   avisar(f);
 }
 
+/* ---------- Painel e Dados ---------- */
 let destinoAtual = null, dados = null, relogioDoTempo = null, numeroDaEscolha = 0, ultimoMinuto = 0;
+
 function minutosQueFaltam() { return Math.max(1, Math.ceil(dados.segundosAteChegar / 60)); }
-function textoAcessibilidade() { if (!destinoAtual) return "Escolha um destino."; const emb = embarqueAtual(); return "Acessibilidade do embarque " + emb.nome + ". " + emb.acessibilidade; }
+
+function textoAcessibilidade() { 
+  if (!destinoAtual) return "Escolha um destino."; 
+  const emb = embarqueAtual(); 
+  return "Acessibilidade do embarque " + emb.nome + ". " + emb.acessibilidade; 
+}
+
 function mostrarAba(nome) {
-  ["Onibus", "Rota", "Perto", "Assistente"].forEach(aba => { const el = pegar("#aba" + aba); if (el) el.hidden = aba !== nome; });
+  ["Onibus", "Rota", "Perto", "Assistente"].forEach(aba => { 
+    const el = pegar("#aba" + aba); 
+    if (el) el.hidden = aba !== nome; 
+  });
   document.querySelectorAll(".botao-aba").forEach(b => b.setAttribute("aria-current", b.dataset.aba === nome ? "true" : "false"));
 }
-function textoAssento() { if (window.CameraMobintec) return window.CameraMobintec.textoAssentos(); return "Sem leitura atual de assentos."; }
-function textoRota() { if (!destinoAtual || !dados) return "Escolha um destino."; const emb = embarqueAtual(); return destinoAtual.servico + ": de " + emb.nome + " até " + destinoAtual.nome + ", " + formatarDistancia(dados.distancia) + ", cerca de " + Math.round(dados.duracao / 60) + " min."; }
-const CATEGORIAS = { hoteis: { nome: "hotéis", sigla: "H", filtro: '["tourism"~"hotel|hostel|guest_house|motel|apartment"]' }, restaurantes: { nome: "restaurantes", sigla: "R", filtro: '["amenity"~"restaurant|cafe|fast_food|bar"]' }, atracoes: { nome: "pontos turísticos", sigla: "T", filtro: '["tourism"~"attraction|museum|viewpoint|zoo|theme_park|gallery"]' } };
+
+function textoAssento() { 
+  if (window.CameraMobintec) return window.CameraMobintec.textoAssentos(); 
+  return "Sem leitura atual de assentos."; 
+}
+
+function textoRota() { 
+  if (!destinoAtual || !dados) return "Escolha um destino."; 
+  const emb = embarqueAtual(); 
+  return destinoAtual.servico + ": de " + emb.nome + " até " + destinoAtual.nome + ", " + formatarDistancia(dados.distancia) + ", cerca de " + Math.round(dados.duracao / 60) + " min."; 
+}
+
+const CATEGORIAS = { 
+  hoteis: { nome: "hotéis", sigla: "H", filtro: '["tourism"~"hotel|hostel|guest_house|motel|apartment"]' }, 
+  restaurantes: { nome: "restaurantes", sigla: "R", filtro: '["amenity"~"restaurant|cafe|fast_food|bar"]' }, 
+  atracoes: { nome: "pontos turísticos", sigla: "T", filtro: '["tourism"~"attraction|museum|viewpoint|zoo|theme_park|gallery"]' } 
+};
+
 let perto = { categoria: "hoteis", nome: "hotéis", referencia: "", centro: null, lista: [] };
+
 function categoriaNoTexto(texto) {
   const t = semAcento(texto);
   if (/restaurante|comer|fome|almoc|jantar|lanche|cafe/.test(t)) return "restaurantes";
@@ -977,51 +1028,69 @@ function categoriaNoTexto(texto) {
   if (/ponto turistico|pontos turisticos|atracao|atracoes|museu|mirante|o que fazer/.test(t)) return "atracoes";
   return null;
 }
+
 let numeroDaBusca = 0;
+
 function textoPerto() {
   if (perto.lista.length === 0) return "Não encontrei " + perto.nome + " perto de " + perto.referencia + ".";
   return "Perto de " + perto.referencia + ", " + perto.nome + ": " + perto.lista.map(l => l.nome + ", a " + formatarDistancia(l.distancia)).join("; ") + ".";
 }
+
 function frasePrincipal(comAssentos) {
   if (!dados || !destinoAtual) return "Escolha um destino.";
   let quando = "chegou ao embarque";
-  if (dados.segundosAteChegar > 0) { const m = minutosQueFaltam(); quando = "chegando em " + m + (m > 1 ? " minutos" : " minuto"); }
+  if (dados.segundosAteChegar > 0) { 
+    const m = minutosQueFaltam(); 
+    quando = "chegando em " + m + (m > 1 ? " minutos" : " minuto"); 
+  }
   const f = destinoAtual.servico + " " + quando + ".";
   return comAssentos ? f + " " + textoAssento() : f;
 }
+
 async function buscarRota(origem, destino) {
   try {
     const res = await fetch("https://router.project-osrm.org/route/v1/driving/" + origem[1] + "," + origem[0] + ";" + destino[1] + "," + destino[0] + "?overview=full&geometries=geojson");
-    const json = await res.json(); const rota = json.routes[0];
+    const json = await res.json(); 
+    const rota = json.routes[0];
     return { pontos: rota.geometry.coordinates.map(p => [p[1], p[0]]), duracao: rota.duration, distancia: rota.distance };
   } catch (e) {
-    const m = distanciaEntre(origem, destino); return { pontos: [origem, destino], duracao: Math.max(60, m / 8), distancia: m };
+    const m = distanciaEntre(origem, destino); 
+    return { pontos: [origem, destino], duracao: Math.max(60, m / 8), distancia: m };
   }
 }
+
 function posicaoDoOnibus() {
   const parte = dados.segundosAteChegar / dados.duracao, idx = Math.round(parte * (dados.pontos.length - 1));
   return dados.pontos[Math.min(dados.pontos.length - 1, Math.max(0, idx))];
 }
+
 function desenharRotaNoMapa() {
   if (!mapa || !dados || !destinoAtual) return;
-  camada.clearLayers(); L.polyline(dados.pontos, { color: corDaRota(), weight: 6 }).addTo(camada);
+  camada.clearLayers(); 
+  L.polyline(dados.pontos, { color: corDaRota(), weight: 6 }).addTo(camada);
   const emb = embarqueAtual();
   if (emb) L.marker(emb.posicao, { icon: criarPino("E", "#ffffff", "#0d0a0b", 30), keyboard: false }).addTo(camada);
   L.marker(destinoAtual.posicao, { icon: criarPino(destinoAtual.sigla, "#8b1f2f", "#ffffff", 36), keyboard: false }).addTo(camada);
   marcadorOnibus = L.marker(posicaoDoOnibus(), { icon: criarPino(destinoAtual.sigla, "#ffffff", "#0d0a0b", 46), keyboard: false }).addTo(camada);
-  const limites = L.polyline(dados.pontos).getBounds(); if (posicaoUsuario) limites.extend(posicaoUsuario);
+  const limites = L.polyline(dados.pontos).getBounds(); 
+  if (posicaoUsuario) limites.extend(posicaoUsuario);
   mapa.fitBounds(limites, { padding: [30, 30] });
 }
+
 function desenharPerto() {
-  if (!mapa) return; camadaPerto.clearLayers();
+  if (!mapa) return; 
+  camadaPerto.clearLayers();
   perto.lista.forEach(l => L.marker(l.posicao, { icon: criarPino(CATEGORIAS[perto.categoria].sigla, "#ffffff", "#0d0a0b", 30), keyboard: false }).addTo(camadaPerto));
   if (perto.centro) {
-    const limites = L.latLngBounds([perto.centro]); perto.lista.forEach(l => limites.extend(l.posicao));
+    const limites = L.latLngBounds([perto.centro]); 
+    perto.lista.forEach(l => limites.extend(l.posicao));
     L.marker(perto.centro, { icon: criarPino("★", "#8b1f2f", "#ffffff", 36), keyboard: false }).addTo(camadaPerto);
     mapa.fitBounds(limites, { padding: [40, 40], maxZoom: 16 });
   }
 }
+
 let paradas = [], paradasAvisadas = {}, chegandoAvisado = false;
+
 function proximoHorarioDe(embarque) {
   if (!embarque || !embarque.horarios || embarque.horarios.length === 0) return { texto: "Horários a confirmar.", minutos: null, hora: null };
   const agora = new Date(), agoraMin = agora.getHours() * 60 + agora.getMinutes();
@@ -1035,6 +1104,7 @@ function proximoHorarioDe(embarque) {
   let tempo = faltam < 60 ? "faltam " + faltam + (faltam === 1 ? " minuto" : " minutos") : "faltam " + Math.floor(faltam / 60) + (Math.floor(faltam / 60) === 1 ? " hora" : " horas") + (faltam % 60 > 0 ? " e " + (faltam % 60) + " minutos" : "");
   return { texto: "Próxima partida às " + escolhido + ", " + tempo + aviso, minutos: faltam, hora: escolhido };
 }
+
 function textoTransporte() {
   if (!destinoAtual) return "Escolha um destino.";
   const emb = embarqueAtual(), lista = emb.horarios ? emb.horarios.map(h => h.hora).join(", ") : "a confirmar";
@@ -1043,108 +1113,170 @@ function textoTransporte() {
   if (emb.sustentabilidade) t += emb.sustentabilidade + " ";
   return t + "Operadora: " + emb.operadora + ". Contato: " + emb.contato + ".";
 }
+
 function textoParadas() {
   if (paradas.length === 0) return "Nenhuma parada encontrada nos dados do mapa.";
   return "Há " + paradas.length + " paradas até " + destinoAtual.nome + ". Primeiras: " + paradas.slice(0, 5).map(p => p.nome).join("; ") + (paradas.length > 5 ? ", e outras." : ".");
 }
+
 async function buscarParadas() {
-  const minha = numeroDaEscolha; paradas = []; paradasAvisadas = {}; chegandoAvisado = false;
+  const minha = numeroDaEscolha; 
+  paradas = []; paradasAvisadas = {}; chegandoAvisado = false;
   const txt = pegar("#textoParadas"); if (txt) txt.textContent = "Procurando paradas…";
   const listaEl = pegar("#listaParadas"); if (listaEl) listaEl.replaceChildren();
   try {
     const lats = dados.pontos.map(p => p[0]), lons = dados.pontos.map(p => p[1]), margem = 0.002;
     const caixa = [Math.min(...lats) - margem, Math.min(...lons) - margem, Math.max(...lats) + margem, Math.max(...lons) + margem].join(",");
     const res = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: new URLSearchParams({ data: '[out:json][timeout:20];node["highway"="bus_stop"](' + caixa + ');out 600;' }) });
-    const json = await res.json(); if (minha !== numeroDaEscolha) return;
+    const json = await res.json(); 
+    if (minha !== numeroDaEscolha) return;
     const achadas = [];
     json.elements.forEach(item => {
       let menor = Infinity, ordem = 0;
       dados.pontos.forEach((p, i) => { const d = distanciaEntre(p, [item.lat, item.lon]); if (d < menor) { menor = d; ordem = i; } });
       if (menor <= 100) achadas.push({ nome: (item.tags && item.tags.name) || "parada sem nome", posicao: [item.lat, item.lon], ordem });
     });
-    achadas.sort((a, b) => a.ordem - b.ordem); paradas = achadas.slice(0, 40);
-  } catch (e) { if (minha !== numeroDaEscolha) return; paradas = []; }
+    achadas.sort((a, b) => a.ordem - b.ordem); 
+    paradas = achadas.slice(0, 40);
+  } catch (e) { 
+    if (minha !== numeroDaEscolha) return; 
+    paradas = []; 
+  }
   const itens = paradas.slice(0, 8).map(p => { const el = document.createElement("li"); el.textContent = p.nome; return el; });
   if (listaEl) listaEl.replaceChildren(...itens);
   if (txt) txt.textContent = paradas.length === 0 ? "Nenhuma parada encontrada." : paradas.length + " paradas no caminho" + (paradas.length > 8 ? " (mostrando 8)." : ".");
 }
+
 function avisarProximidade() {
   if (!destinoAtual || !posicaoUsuario) return;
-  if (distanciaEntre(posicaoUsuario, destinoAtual.posicao) <= 300 && !chegandoAvisado) { chegandoAvisado = true; avisar("Você está chegando em " + destinoAtual.nome + "."); return; }
+  if (distanciaEntre(posicaoUsuario, destinoAtual.posicao) <= 300 && !chegandoAvisado) { 
+    chegandoAvisado = true; 
+    avisar("Você está chegando em " + destinoAtual.nome + "."); 
+    return; 
+  }
   for (let i = 0; i < paradas.length; i++) {
     if (!paradasAvisadas[i] && distanciaEntre(posicaoUsuario, paradas[i].posicao) <= 100) {
-      paradasAvisadas[i] = true; avisar("Parada " + paradas[i].nome + ", a " + formatarDistancia(distanciaEntre(posicaoUsuario, paradas[i].posicao)) + "."); return;
+      paradasAvisadas[i] = true; 
+      avisar("Parada " + paradas[i].nome + ", a " + formatarDistancia(distanciaEntre(posicaoUsuario, paradas[i].posicao)) + "."); 
+      return;
     }
   }
 }
+
 function desenharPainel() {
   if (!dados) return;
-  const tempo = pegar("#tempo"); if (tempo) tempo.textContent = dados.segundosAteChegar > 0 ? minutosQueFaltam() + " min" : "Chegou";
-  const barra = pegar("#barra"); if (barra) barra.style.width = Math.round(Math.min(1, Math.max(0, 1 - dados.segundosAteChegar / dados.segundosIniciais)) * 100) + "%";
+  const tempo = pegar("#tempo"); 
+  if (tempo) tempo.textContent = dados.segundosAteChegar > 0 ? minutosQueFaltam() + " min" : "Chegou";
+  const barra = pegar("#barra"); 
+  if (barra) barra.style.width = Math.round(Math.min(1, Math.max(0, 1 - dados.segundosAteChegar / dados.segundosIniciais)) * 100) + "%";
 }
+
 function anunciarStatus(prefixo, comAssentos) {
-  desenharPainel(); const f = (prefixo ? prefixo + " " : "") + frasePrincipal(comAssentos);
-  const alerta = pegar("#alerta"); if (alerta) { alerta.textContent = ""; setTimeout(() => alerta.textContent = f, 40); }
+  desenharPainel(); 
+  const f = (prefixo ? prefixo + " " : "") + frasePrincipal(comAssentos);
+  const alerta = pegar("#alerta"); 
+  if (alerta) { alerta.textContent = ""; setTimeout(() => alerta.textContent = f, 40); }
   falar(f);
   if (dados.segundosAteChegar === 0) {
     vibrar([400, 150, 400]);
-    // NOVO: Mostra painel de embarque quando o ônibus chega
     if (!embarcado) {
       mostrar(pegar("#painelEmbarque"), true);
       const btnEmbarquei = pegar("#botaoEmbarquei");
       if (btnEmbarquei) setTimeout(() => btnEmbarquei.focus(), 500);
     }
+  } else if (prefixo) {
+    vibrar([200, 100, 200]); 
+  } else {
+    vibrar(80);
   }
-  else if (prefixo) vibrar([200, 100, 200]); else vibrar(80);
 }
+
 async function escolherDestino(indice) {
   const destino = DESTINOS[indice];
-  if (destino.embarques.length > 1 && !destino.embarqueEscolhido) { destacarBolha(destino); mostrarOpcoesDeEmbarque(destino); return; }
+  if (destino.embarques.length > 1 && !destino.embarqueEscolhido) { 
+    destacarBolha(destino); 
+    mostrarOpcoesDeEmbarque(destino); 
+    return; 
+  }
   if (!destino.embarqueEscolhido) destino.embarqueEscolhido = destino.embarques[0];
   iniciarAcompanhamento(destino);
 }
+
 async function escolherDestinoComEmbarque(indice) {
-  clearInterval(relogioDoTempo); numeroDaEscolha++; const minha = numeroDaEscolha; destinoAtual = DESTINOS[indice];
-  ultimoLimiar = null; ultimaDistanciaMostrada = null; chegandoAvisado = false; paradasAvisadas = {}; atualizarDistanciaDoEmbarque();
+  clearInterval(relogioDoTempo); 
+  numeroDaEscolha++; 
+  const minha = numeroDaEscolha; 
+  destinoAtual = DESTINOS[indice];
+  ultimoLimiar = null; 
+  ultimaDistanciaMostrada = null; 
+  chegandoAvisado = false; 
+  paradasAvisadas = {}; 
+  atualizarDistanciaDoEmbarque();
   embarcado = false;
   const emb = embarqueAtual();
-  const titulo = pegar("#tituloPainel"); if (titulo) titulo.textContent = destinoAtual.servico + " · " + destinoAtual.nome;
-  const rotaTxt = pegar("#textoRota"); if (rotaTxt) rotaTxt.textContent = "Calculando rota…";
-  const hoteis = pegar("#listaHoteis"); if (hoteis) hoteis.replaceChildren();
-  const painel = pegar("#painel"); if (painel) mostrar(painel, true);
+  const titulo = pegar("#tituloPainel"); 
+  if (titulo) titulo.textContent = destinoAtual.servico + " · " + destinoAtual.nome;
+  const rotaTxt = pegar("#textoRota"); 
+  if (rotaTxt) rotaTxt.textContent = "Calculando rota…";
+  const hoteis = pegar("#listaHoteis"); 
+  if (hoteis) hoteis.replaceChildren();
+  const painel = pegar("#painel"); 
+  if (painel) mostrar(painel, true);
   mostrar(pegar("#painelEmbarque"), false);
   mostrar(pegar("#painelViagem"), false);
   if (mapa && camada) camada.clearLayers();
-  const rota = await buscarRota(emb.posicao, destinoAtual.posicao); if (minha !== numeroDaEscolha) return;
+  const rota = await buscarRota(emb.posicao, destinoAtual.posicao); 
+  if (minha !== numeroDaEscolha) return;
   dados = { pontos: rota.pontos, duracao: Math.max(60, rota.duracao), distancia: rota.distancia, segundosAteChegar: Math.min(Math.max(60, rota.duracao), 240 + sortear(120)) };
-  dados.segundosIniciais = dados.segundosAteChegar; ultimoMinuto = minutosQueFaltam();
+  dados.segundosIniciais = dados.segundosAteChegar; 
+  ultimoMinuto = minutosQueFaltam();
   desenharRotaNoMapa();
-  const rTxt = pegar("#textoRota"); if (rTxt) rTxt.textContent = textoRota();
-  const dTxt = pegar("#textoDestino"); if (dTxt) dTxt.textContent = destinoAtual.descricao;
-  const aTxt = pegar("#textoAcessibilidade"); if (aTxt) aTxt.textContent = textoAcessibilidade();
-  const cTxt = pegar("#textoConfirmar"); if (cTxt) cTxt.textContent = "A confirmar: " + destinoAtual.aConfirmar.join("; ") + ".";
-  const tTxt = pegar("#textoTransporte"); if (tTxt) tTxt.textContent = textoTransporte();
-  mostrarAba("Onibus"); desenharPainel();
-  const link = pegar("#linkMaps"); if (link) link.href = "https://www.google.com/maps/dir/?api=1&destination=" + emb.posicao[0] + "," + emb.posicao[1] + "&travelmode=walking";
+  const rTxt = pegar("#textoRota"); 
+  if (rTxt) rTxt.textContent = textoRota();
+  const dTxt = pegar("#textoDestino"); 
+  if (dTxt) dTxt.textContent = destinoAtual.descricao;
+  const aTxt = pegar("#textoAcessibilidade"); 
+  if (aTxt) aTxt.textContent = textoAcessibilidade();
+  const cTxt = pegar("#textoConfirmar"); 
+  if (cTxt) cTxt.textContent = "A confirmar: " + destinoAtual.aConfirmar.join("; ") + ".";
+  const tTxt = pegar("#textoTransporte"); 
+  if (tTxt) tTxt.textContent = textoTransporte();
+  mostrarAba("Onibus"); 
+  desenharPainel();
+  const link = pegar("#linkMaps"); 
+  if (link) link.href = "https://www.google.com/maps/dir/?api=1&destination=" + emb.posicao[0] + "," + emb.posicao[1] + "&travelmode=walking";
   if (titulo) titulo.focus();
   if (navigator.wakeLock) navigator.wakeLock.request("screen").catch(() => {});
-  relogioDoTempo = setInterval(passarTempo, 1000); buscarPerto("hoteis"); buscarParadas();
+  relogioDoTempo = setInterval(passarTempo, 1000); 
+  buscarPerto("hoteis"); 
+  buscarParadas();
 }
+
 function passarTempo() {
   if (!dados) return;
   dados.segundosAteChegar = Math.max(0, dados.segundosAteChegar - VELOCIDADE_TESTE);
   if (marcadorOnibus) marcadorOnibus.setLatLng(posicaoDoOnibus());
-  if (dados.segundosAteChegar === 0) { clearInterval(relogioDoTempo); anunciarStatus(""); }
-  else if (minutosQueFaltam() !== ultimoMinuto) { ultimoMinuto = minutosQueFaltam(); anunciarStatus(""); }
-  else desenharPainel();
+  if (dados.segundosAteChegar === 0) { 
+    clearInterval(relogioDoTempo); 
+    anunciarStatus(""); 
+  } else if (minutosQueFaltam() !== ultimoMinuto) { 
+    ultimoMinuto = minutosQueFaltam(); 
+    anunciarStatus(""); 
+  } else {
+    desenharPainel();
+  }
 }
+
 async function buscarPerto(categoria, base) {
   const tipo = CATEGORIAS[categoria];
   document.querySelectorAll(".botao-cat").forEach(b => b.setAttribute("aria-current", b.dataset.cat === categoria ? "true" : "false"));
-  const centro = base ? base.posicao : (posicaoUsuario || (destinoAtual ? destinoAtual.posicao : null)); if (!centro) return false;
-  const minha = numeroDaBusca + 1; numeroDaBusca = minha;
+  const centro = base ? base.posicao : (posicaoUsuario || (destinoAtual ? destinoAtual.posicao : null)); 
+  if (!centro) return false;
+  const minha = numeroDaBusca + 1; 
+  numeroDaBusca = minha;
   perto = { categoria, nome: tipo.nome, referencia: base ? base.nome : (posicaoUsuario ? "você" : destinoAtual.nome), centro: base ? base.posicao : null, lista: [] };
-  const txt = pegar("#textoPerto"); if (txt) txt.textContent = "Procurando " + tipo.nome + " perto de " + perto.referencia + "…";
+  const txt = pegar("#textoPerto"); 
+  if (txt) txt.textContent = "Procurando " + tipo.nome + " perto de " + perto.referencia + "…";
   const lista = [];
   try {
     const raio = !base && posicaoUsuario ? 3000 : 5000;
@@ -1155,32 +1287,44 @@ async function buscarPerto(categoria, base) {
       if (p[0] && item.tags && item.tags.name) lista.push({ nome: item.tags.name, posicao: p, distancia: distanciaEntre(centro, p) });
     }
     lista.sort((a, b) => a.distancia - b.distancia);
-  } catch (e) { lista.length = 0; }
+  } catch (e) { 
+    lista.length = 0; 
+  }
   if (minha !== numeroDaBusca) return false;
   perto.lista = lista.slice(0, 4);
   const itens = perto.lista.map(l => { const el = document.createElement("li"); el.textContent = l.nome + " · " + formatarDistancia(l.distancia); return el; });
   if (itens.length === 0) { const v = document.createElement("li"); v.textContent = "Nenhum resultado."; itens.push(v); }
-  const hoteis = pegar("#listaHoteis"); if (hoteis) hoteis.replaceChildren(...itens);
+  const hoteis = pegar("#listaHoteis"); 
+  if (hoteis) hoteis.replaceChildren(...itens);
   if (txt) txt.textContent = "Mostrando " + tipo.nome + " perto de " + perto.referencia + ".";
-  desenharPerto(); return true;
+  desenharPerto(); 
+  return true;
 }
+
 async function pedirPertoDe(destino, categoria) {
-  destacarBolha(destino); if (pegar("#telaMapa") && pegar("#telaMapa").hidden) abrirTela("mapa", true);
+  destacarBolha(destino); 
+  if (pegar("#telaMapa") && pegar("#telaMapa").hidden) abrirTela("mapa", true);
   avisar("Procurando " + CATEGORIAS[categoria].nome + " perto de " + destino.nome + "…");
-  const achou = await buscarPerto(categoria, destino); if (achou) avisar(textoPerto());
+  const achou = await buscarPerto(categoria, destino); 
+  if (achou) avisar(textoPerto());
 }
+
 let categoriaPendente = null;
 async function pedirPerto(categoria, ficarNaTela) {
   if (!ficarNaTela && pegar("#telaMapa") && pegar("#telaMapa").hidden) abrirTela("mapa", true);
   if (!posicaoUsuario && !destinoAtual) {
-    categoriaPendente = categoria; if (idLocal === null) ligarLocalizacao(true);
-    avisar("Ligando localização para procurar " + CATEGORIAS[categoria].nome + " perto de você."); return;
+    categoriaPendente = categoria; 
+    if (idLocal === null) ligarLocalizacao(true);
+    avisar("Ligando localização para procurar " + CATEGORIAS[categoria].nome + " perto de você."); 
+    return;
   }
   if (destinoAtual && ficarNaTela) mostrarAba("Perto");
   avisar("Procurando " + CATEGORIAS[categoria].nome + "…");
-  const achou = await buscarPerto(categoria); if (achou) avisar(textoPerto());
+  const achou = await buscarPerto(categoria); 
+  if (achou) avisar(textoPerto());
 }
 
+/* ---------- Inicialização e Eventos ---------- */
 function adicionarEvento(seletor, evento, funcao) {
   const el = document.querySelector(seletor);
   if (el) el.addEventListener(evento, funcao);
@@ -1191,18 +1335,28 @@ DESTINOS.forEach((destino, i) => {
   bolha.className = "bolha b" + (i + 1);
   bolha.setAttribute("aria-label", "Escolher " + destino.nome);
   bolha.innerHTML = '<span class="foto" aria-hidden="true"></span><span class="nome"></span>';
-  const foto = bolha.querySelector(".foto"); if (foto) foto.style.backgroundImage = "url(" + destino.foto + ")";
-  const nome = bolha.querySelector(".nome"); if (nome) nome.textContent = destino.nome;
+  const foto = bolha.querySelector(".foto"); 
+  if (foto) foto.style.backgroundImage = "url(" + destino.foto + ")";
+  const nome = bolha.querySelector(".nome"); 
+  if (nome) nome.textContent = destino.nome;
   bolha.onclick = () => irParaDestino(destino, false);
-  const bolhas = pegar("#bolhas"); if (bolhas) bolhas.appendChild(bolha);
+  const bolhas = pegar("#bolhas"); 
+  if (bolhas) bolhas.appendChild(bolha);
 
-  const cartao = document.createElement("li"); cartao.className = "cartao";
+  const cartao = document.createElement("li"); 
+  cartao.className = "cartao";
   cartao.innerHTML = '<h3 class="font-serif text-3xl"></h3><p class="pilula"></p><button class="botao botao-forte">Acompanhar o ônibus</button>';
-  const h3 = cartao.querySelector("h3"); if (h3) h3.textContent = destino.nome;
-  const p = cartao.querySelector("p"); if (p) p.textContent = destino.servico;
+  const h3 = cartao.querySelector("h3"); 
+  if (h3) h3.textContent = destino.nome;
+  const p = cartao.querySelector("p"); 
+  if (p) p.textContent = destino.servico;
   const btn = cartao.querySelector("button");
-  if (btn) { btn.setAttribute("aria-label", "Acompanhar o " + destino.servico + " até " + destino.nome); btn.onclick = () => escolherDestino(i); }
-  const cartoes = pegar("#cartoes"); if (cartoes) cartoes.appendChild(cartao);
+  if (btn) { 
+    btn.setAttribute("aria-label", "Acompanhar o " + destino.servico + " até " + destino.nome); 
+    btn.onclick = () => escolherDestino(i); 
+  }
+  const cartoes = pegar("#cartoes"); 
+  if (cartoes) cartoes.appendChild(cartao);
 });
 
 adicionarEvento("#botaoModoVisual", "click", () => escolherModo('visual'));
@@ -1210,10 +1364,10 @@ adicionarEvento("#botaoModoAcessivel", "click", () => escolherModo('acessivel'))
 adicionarEvento("#botaoMicrofone", "click", () => tocarMicrofone(pegar("#botaoMicrofone")));
 adicionarEvento("#botaoMicrofoneAcessivel", "click", () => tocarMicrofone(pegar("#botaoMicrofoneAcessivel")));
 adicionarEvento("#botaoPerguntar", "click", () => tocarMicrofone(pegar("#botaoPerguntar")));
-adicionarEvento("#botaoPerguntarPainel", "click", () => tocarMicrofone(pegar("#botaoPerguntarPainel")));
 adicionarEvento("#botaoMicrofoneTopo", "click", () => tocarMicrofone(pegar("#botaoMicrofoneTopo")));
+adicionarEvento("#botaoMicrofoneCamera", "click", () => tocarMicrofone(pegar("#botaoMicrofoneCamera")));
 
-// NOVO: Eventos dos botões de embarque/viagem
+// Eventos dos botões de embarque/viagem
 adicionarEvento("#botaoEmbarquei", "click", confirmarEmbarque);
 adicionarEvento("#botaoPrecisoAjuda", "click", precisarAjuda);
 adicionarEvento("#botaoOuvirViagem", "click", ouvirStatusViagem);
@@ -1223,15 +1377,20 @@ adicionarEvento("#botaoDesembarquei", "click", confirmarDesembarque);
 
 document.querySelectorAll(".botao-aba").forEach(botao => {
   botao.addEventListener("click", () => {
-    if (!dados) return; mostrarAba(botao.dataset.aba);
+    if (!dados) return; 
+    mostrarAba(botao.dataset.aba);
     const falas = { Onibus: frasePrincipal, Rota: textoRota, Perto: textoPerto, Assistente: () => "Toque no microfone e pergunte o que quiser." };
     avisar(falas[botao.dataset.aba]());
   });
 });
-document.querySelectorAll(".botao-cat").forEach(botao => { botao.addEventListener("click", () => pedirPerto(botao.dataset.cat, true)); });
+
+document.querySelectorAll(".botao-cat").forEach(botao => { 
+  botao.addEventListener("click", () => pedirPerto(botao.dataset.cat, true)); 
+});
 
 adicionarEvento("#botaoAbrirMapa", "click", () => abrirTela("mapa"));
 adicionarEvento("#botaoVoltarMapa", "click", voltar);
+adicionarEvento("#botaoVoltarCamera", "click", voltar);
 adicionarEvento("#botaoLocal", "click", ligarLocalizacao);
 adicionarEvento("#botaoOpcoes", "click", () => abrirTela("opcoes"));
 adicionarEvento("#botaoVoltarOpcoes", "click", voltar);
@@ -1247,7 +1406,11 @@ adicionarEvento("#botaoVoz", "click", () => definirVoz(!vozLigada, true));
 adicionarEvento("#botaoTema", "click", () => aplicarTema(!document.body.classList.contains("claro"), true));
 
 let temaSalvo = null, vozSalva = null;
-try { temaSalvo = localStorage.getItem("mobintecTema"); vozSalva = localStorage.getItem("mobintecVoz"); velocidadeVoz = Number(localStorage.getItem("mobintecVelocidade")) || 1; } catch (e) {}
+try { 
+  temaSalvo = localStorage.getItem("mobintecTema"); 
+  vozSalva = localStorage.getItem("mobintecVoz"); 
+  velocidadeVoz = Number(localStorage.getItem("mobintecVelocidade")) || 1; 
+} catch (e) {}
 aplicarTema(temaSalvo ? temaSalvo === "claro" : false, false);
 definirVoz(vozSalva !== "desligada", false);
 
@@ -1256,28 +1419,46 @@ adicionarEvento("#botaoOuvirStatus", "click", () => { if (dados) anunciarStatus(
 adicionarEvento("#botaoOuvirParadas", "click", () => { if (dados) avisar(textoParadas()); });
 adicionarEvento("#botaoOuvirHoteis", "click", () => { if (dados) avisar(textoPerto()); });
 
-adicionarEvento("#formulario", "submit", e => { e.preventDefault(); const c = pegar("#campoTexto"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
-adicionarEvento("#formularioAba", "submit", e => { e.preventDefault(); const c = pegar("#campoAba"); if (c && c.value.trim()) { responder(c.value); c.value = ""; } });
+adicionarEvento("#formulario", "submit", e => { 
+  e.preventDefault(); 
+  const c = pegar("#campoTexto"); 
+  if (c && c.value.trim()) { responder(c.value); c.value = ""; } 
+});
+adicionarEvento("#formularioAba", "submit", e => { 
+  e.preventDefault(); 
+  const c = pegar("#campoAba"); 
+  if (c && c.value.trim()) { responder(c.value); c.value = ""; } 
+});
 
 function microfoneDaTela() {
+  const camera = pegar("#telaCamera");
+  if (camera && !camera.hidden) return pegar("#botaoMicrofoneCamera");
   const acessivel = pegar("#telaAcessivel");
   if (acessivel && !acessivel.hidden) return pegar("#botaoMicrofoneAcessivel");
   const lista = pegar("#telaLista");
   if (lista && !lista.hidden) return pegar("#botaoMicrofoneTopo");
   const inicio = pegar("#telaInicio");
   if (inicio && !inicio.hidden) return pegar("#botaoMicrofone");
-  return pegar("#botaoPerguntarPainel") || pegar("#botaoMicrofone");
+  return pegar("#botaoPerguntar") || pegar("#botaoMicrofone");
 }
-adicionarEvento("#atalhoFalar", "click", () => { const m = microfoneDaTela(); if (m) tocarMicrofone(m); });
+
+adicionarEvento("#atalhoFalar", "click", () => { 
+  const m = microfoneDaTela(); 
+  if (m) tocarMicrofone(m); 
+});
+
 document.addEventListener("keydown", e => {
   if (e.altKey && (e.key === "v" || e.key === "V" || e.key === "a" || e.key === "A")) {
-    e.preventDefault(); const m = microfoneDaTela(); if (m) tocarMicrofone(m);
+    e.preventDefault(); 
+    const m = microfoneDaTela(); 
+    if (m) tocarMicrofone(m);
   }
 });
 
 let instrucaoFalada = false;
 function falarInstrucaoInicial(e) {
-  if (instrucaoFalada) return; instrucaoFalada = true;
+  if (instrucaoFalada) return; 
+  instrucaoFalada = true;
   if (e && e.target && e.target.closest && e.target.closest("button, input, select, textarea, a")) return;
   falar("Para falar com a assistente, toque no microfone, ou aperte Alt mais V.", true);
 }
@@ -1302,23 +1483,41 @@ document.addEventListener("click", e => {
 
 const navegador = navigator.userAgent;
 if (/(Instagram|FBAN|FBAV|FB_IAB|WhatsApp|TikTok|; wv)/i.test(navegador)) {
-  const aviso = pegar("#aviso"); if (aviso) { mostrar(aviso, true); aviso.textContent = "Abra no navegador (Chrome/Safari) para a voz funcionar."; }
+  const aviso = pegar("#aviso"); 
+  if (aviso) { 
+    mostrar(aviso, true); 
+    aviso.textContent = "Abra no navegador (Chrome/Safari) para a voz funcionar."; 
+  }
 } else if (!ReconhecimentoDoNavegador) {
-  const aviso = pegar("#aviso"); if (aviso) { mostrar(aviso, true); aviso.textContent = "Navegador sem voz própria. O site baixará ~40MB na primeira vez."; }
+  const aviso = pegar("#aviso"); 
+  if (aviso) { 
+    mostrar(aviso, true); 
+    aviso.textContent = "Navegador sem voz própria. O site baixará ~40MB na primeira vez."; 
+  }
 }
 
-window.addEventListener("popstate", () => { const tela = (history.state && history.state.tela) || "inicio"; abrirTela(tela, false, true); });
+window.addEventListener("popstate", () => { 
+  const tela = (history.state && history.state.tela) || "inicio"; 
+  abrirTela(tela, false, true); 
+});
 
 const linkPular = document.querySelector("a.pular");
 if (linkPular) {
-  linkPular.addEventListener("click", e => { e.preventDefault(); const principal = pegar("#principal"); if (principal) principal.focus(); });
+  linkPular.addEventListener("click", e => { 
+    e.preventDefault(); 
+    const principal = pegar("#principal"); 
+    if (principal) principal.focus(); 
+  });
 }
 
+// Inicialização garantida
 mostrar(pegar("#telaEscolhaModo"), false);
 mostrar(pegar("#telaInicio"), false);
 mostrar(pegar("#telaAcessivel"), false);
 mostrar(pegar("#telaOpcoes"), false);
 mostrar(pegar("#telaLista"), false);
 mostrar(pegar("#telaMapa"), false);
+mostrar(pegar("#telaCamera"), false);
+
 mostrar(pegar("#telaEscolhaModo"), true);
 setTimeout(() => falar(BOAS_VINDAS), 600);
