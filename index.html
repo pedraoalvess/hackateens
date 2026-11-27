@@ -123,17 +123,7 @@
                 <button id="botaoAbrirMapa" class="botao">Abrir o mapa</button>
             </div>
             <h1 id="tituloLista" tabindex="-1" class="font-serif text-4xl">Ônibus turísticos de Foz do Iguaçu</h1>
-
-            <!-- NOVO: Microfone na tela de lista para escolher ônibus por voz -->
-            <div class="microfone-topo-aba">
-                <div id="anelTopo" class="anel-topo">
-                    <span class="onda-topo" aria-hidden="true"></span>
-                    <span class="onda-topo" aria-hidden="true"></span>
-                    <span class="onda-topo" aria-hidden="true"></span>
-                    <button id="botaoMicrofoneTopo" class="microfone-topo" aria-pressed="false" aria-label="Escolher ônibus por voz">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
-                    </button>
-                </div>
+            
                 <p id="textoTopo" class="texto-topo">Toque para escolher um ônibus por voz</p>
             </div>
 
@@ -157,6 +147,22 @@
                 </div>
 
                 <div id="abaOnibus" class="aba">
+                                    <div id="abaOnibus" class="aba">
+                    <!-- Microfone integrado no card das informações -->
+                    <div class="microfone-topo-aba microfone-integrado">
+                        <div id="anelTopo" class="anel-topo">
+                            <span class="onda-topo" aria-hidden="true"></span>
+                            <span class="onda-topo" aria-hidden="true"></span>
+                            <span class="onda-topo" aria-hidden="true"></span>
+                            <button id="botaoMicrofoneTopo" class="microfone-topo" aria-pressed="false" aria-label="Escolher ônibus por voz">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+                            </button>
+                        </div>
+                        <p id="textoTopo" class="texto-topo">Toque para fazer uma pergunta sobre este ônibus</p>
+                    </div>
+                    
+                    <div class="subcaixa">
+                        <h3 class="text-xl font-semibold">Chegada estimada</h3>
                     <div class="subcaixa">
                         <h3 class="text-xl font-semibold">Chegada estimada</h3>
                         <p id="tempo" class="font-serif text-6xl"></p>
