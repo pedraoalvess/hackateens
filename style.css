@@ -764,6 +764,253 @@ body.modo-acessivel #telaAcessivel {
 }
 
 /* ==========================================================================
+   PAINEL DE EMBARQUE E VIAGEM
+   ========================================================================== */
+
+/* Painel de Embarque (quando o ônibus chega no ponto) */
+.painel-embarque {
+    background: linear-gradient(135deg, var(--primary), #a52840);
+    color: var(--on-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 8px 24px var(--glow);
+    animation: aparecerEmbarque 0.5s ease-out;
+}
+
+@keyframes aparecerEmbarque {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.embarque-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.embarque-icone {
+    font-size: 3rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    animation: balançar 2s ease-in-out infinite;
+}
+
+@keyframes balançar {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+.embarque-titulo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--on-primary);
+}
+
+.embarque-instrucao {
+    font-size: 1rem;
+    margin: 0;
+    opacity: 0.95;
+    line-height: 1.4;
+}
+
+.embarque-acoes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 280px;
+}
+
+.botao-embarquei {
+    background: var(--ok) !important;
+    color: #0d0a0b !important;
+    border-color: var(--ok) !important;
+    font-weight: 700 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem !important;
+    font-size: 1.3rem !important;
+    box-shadow: 0 4px 12px rgba(93, 224, 138, 0.4);
+    animation: pulsarEmbarque 2s ease-in-out infinite;
+}
+
+@keyframes pulsarEmbarque {
+    0%, 100% { box-shadow: 0 4px 12px rgba(93, 224, 138, 0.4); }
+    50% { box-shadow: 0 4px 20px rgba(93, 224, 138, 0.7); }
+}
+
+.botao-embarquei:hover {
+    background: #7ae89d !important;
+    transform: translateY(-2px);
+}
+
+.botao-ajuda {
+    background: transparent !important;
+    color: var(--on-primary) !important;
+    border: 2px solid var(--on-primary) !important;
+}
+
+.botao-ajuda:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.embarque-dica {
+    font-size: 0.85rem;
+    margin: 0;
+    opacity: 0.85;
+    font-style: italic;
+}
+
+/* Painel de Viagem (após embarcar) */
+.painel-viagem {
+    background: var(--dark-2);
+    border: 2px solid var(--ok);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    animation: aparecerEmbarque 0.5s ease-out;
+}
+
+.viagem-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+}
+
+.viagem-status {
+    background: var(--ok);
+    color: #0d0a0b;
+    padding: 0.3rem 1rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.viagem-destino {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--on-dark);
+}
+
+.viagem-contador {
+    background: var(--dark);
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.viagem-label {
+    font-size: 0.9rem;
+    color: var(--on-dark-soft);
+    margin: 0 0 0.5rem;
+}
+
+.viagem-tempo {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--ok);
+    margin: 0;
+    font-family: Georgia, serif;
+}
+
+.viagem-paradas {
+    background: var(--dark);
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.viagem-subtitulo {
+    font-size: 1rem;
+    color: var(--on-dark);
+    margin: 0 0 0.75rem;
+    font-weight: 600;
+}
+
+.lista-paradas-viagem {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.lista-paradas-viagem li {
+    padding: 0.5rem 0.75rem;
+    background: var(--dark-2);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: var(--on-dark);
+    border-left: 3px solid var(--muted);
+}
+
+.lista-paradas-viagem li.parada-passada {
+    opacity: 0.5;
+    text-decoration: line-through;
+    border-left-color: var(--muted);
+}
+
+.lista-paradas-viagem li.parada-atual {
+    border-left-color: var(--ok);
+    background: rgba(93, 224, 138, 0.1);
+    font-weight: 600;
+}
+
+.lista-paradas-viagem li.parada-proxima {
+    border-left-color: var(--accent);
+}
+
+.proxima-parada {
+    font-size: 0.95rem;
+    color: var(--on-dark-soft);
+    margin: 0;
+    font-style: italic;
+}
+
+.viagem-acoes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.botao-desembarque {
+    grid-column: 1 / -1;
+    background: var(--warn) !important;
+    color: #0d0a0b !important;
+    border-color: var(--warn) !important;
+    font-weight: 700 !important;
+}
+
+.botao-desembarque:hover {
+    background: #ffc978 !important;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .painel-embarque { padding: 1.25rem; }
+    .embarque-icone { font-size: 2.5rem; }
+    .embarque-titulo { font-size: 1.25rem; }
+    .viagem-tempo { font-size: 2.5rem; }
+    .viagem-acoes { grid-template-columns: 1fr; }
+    .botao-desembarque { grid-column: auto; }
+    .microfone-integrado { padding: 0.75rem; }
+}
+
+/* ==========================================================================
    MOBILE - Botões menores e elegantes
    ========================================================================== */
 
