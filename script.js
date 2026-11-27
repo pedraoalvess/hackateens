@@ -381,8 +381,22 @@ function executarComandoDeCamera(comando) {
   if (!window.CameraMobintec) { avisar("Câmera indisponível."); return; }
   if (comando === "parar") { window.CameraMobintec.parar(false); avisar("Câmera parada."); return; }
   
-  // Abre tela dedicada da câmera
-  abrirTela("camera", true);
+  const telaLista = pegar("#telaLista");
+  const painel = pegar("#painel");
+
+  // Se já estiver na tela de informações do ônibus, mantém aqui e mostra a câmera
+  if (telaLista && !telaLista.hidden && painel && !painel.hidden) {
+    mostrarAba("Onibus"); // Garante que a aba correta esteja visível
+    
+    // Rola suavemente a tela até o local da câmera para o usuário ver
+    const slotCamera = pegar("#slotCameraOnibus");
+    if (slotCamera) {
+      setTimeout(() => slotCamera.scrollIntoView({ behavior: 'smooth', block: 'center' }), 400);
+    }
+  } else {
+    // Se estiver em outra tela (início, mapa, etc), abre a página dedicada da câmera
+    abrirTela("camera", true);
+  }
   
   setTimeout(() => {
     avisar(comando === "celular" ? "Abrindo câmera do celular." : "Buscando análise da câmera do ônibus.");
