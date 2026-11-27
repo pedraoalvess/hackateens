@@ -370,16 +370,31 @@ async function carregarModelo() {
 function querIrAoDestino(texto) { return /quero ir|vou para|ir para|ir ao|me leva|acompanhar|onibus|rota|abrir|vamos/.test(semAcento(texto)); }
 function comandoDeCamera(texto) {
   const t = semAcento(texto);
+  
+  // 1. Parar a leitura
   if (/\bcameras?\b/.test(t) && /\b(parar|pare|desligar|fechar|encerrar)\b/.test(t)) return "parar";
-  if (/\b(esp32|esp)\b/.test(t)) return "fixa";
+  
+  // 2. Câmera do celular (apenas se o usuário pedir explicitamente)
   if (/\bcameras?\b/.test(t) && /\b(celular|telefone|aparelho)\b/.test(t)) return "celular";
+  
+  // 3. NOVO: Entender "abrir câmera", "ver câmera", "ligar câmera" como mapeamento de assentos (ônibus)
+  if (/\b(abrir|ver|mostrar|ligar|iniciar|chamar)\b/.test(t) && /\bcameras?\b/.test(t)) return "fixa";
+  
+  // 4. NOVO: Entender "leitura de assentos", "mapeamento", "análise de assentos"
+  if (/\b(leitura|mapeamento|analise|verificar)\b/.test(t) && /\b(assentos?|poltronas?|lugares?)\b/.test(t)) return "fixa";
+  
+  // 5. Câmera do ônibus (explícito)
   if (/\bcameras?\b/.test(t) && /\bonibus\b/.test(t)) return "fixa";
-  if (/\b(ler|leitura)\b/.test(t) && /\b(assentos?|poltronas?|lugar)\b/.test(t)) return "fixa";
+  
   return null;
 }
 function executarComandoDeCamera(comando) {
-  if (!window.CameraMobintec) { avisar("Câmera indisponível."); return; }
-  if (comando === "parar") { window.CameraMobintec.parar(false); avisar("Câmera parada."); return; }
+  if (!window.CameraMobintec) { avisar("Câmera indisponível no momento."); return; }
+  if (comando === "parar") { 
+    window.CameraMobintec.parar(false); 
+    avisar("Leitura de assentos parada."); 
+    return; 
+  }
   
   const telaLista = pegar("#telaLista");
   const painel = pegar("#painel");
@@ -399,7 +414,12 @@ function executarComandoDeCamera(comando) {
   }
   
   setTimeout(() => {
-    avisar(comando === "celular" ? "Abrindo câmera do celular." : "Buscando análise da câmera do ônibus.");
+    // Feedback de voz claro e específico
+    const msg = comando === "celular" 
+      ? "Abrindo a câmera do seu celular para analisar os assentos." 
+      : "Buscando a análise e o mapeamento de assentos da câmera do ônibus.";
+    
+    avisar(msg);
     window.CameraMobintec.iniciar(comando);
   }, 300);
 }
