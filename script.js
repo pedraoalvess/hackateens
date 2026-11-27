@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MOBINTEC - script completo
+   MOBINTEC - script completo (com função Embarquei)
    ========================================================================== */
 
 function pegar(seletor) { return document.querySelector(seletor); }
@@ -28,7 +28,7 @@ function embarqueAtual() {
 const VELOCIDADE_TESTE = 5;
 const URL_DA_IA = "https://mobintec-ia.pdeoliveiraalves840.workers.dev/";
 const BOAS_VINDAS = "Bem-vindo ao Mobintec. Escolha como você quer usar: modo visual, com mapa e botões na tela, ou modo acessível, apenas com voz e microfone. Toque no botão do modo que você preferir.";
-const TEXTO_AJUDA = "Comandos: quero ir para as cataratas, onde eu embarco, tem gratuidade, abre o mapa, repetir, mais devagar, desligar a voz, trocar destino, ligar localização, quanto tempo falta, qual a distância, abrir google maps, falar operadora.";
+const TEXTO_AJUDA = "Comandos: quero ir para as cataratas, onde eu embarco, tem gratuidade, abre o mapa, repetir, mais devagar, desligar a voz, trocar destino, ligar localização, quanto tempo falta, qual a distância, abrir google maps, falar operadora, embarquei, desci no destino, chamar motorista.";
 
 let modoAtual = 'visual';
 let passoAcessivel = 0;
@@ -88,7 +88,10 @@ function vibrar(padrao) { if (navigator.vibrate) navigator.vibrate(padrao); }
 
 function pararAcompanhamento() {
   clearInterval(relogioDoTempo); numeroDaEscolha++; destinoAtual = null; dados = null;
+  embarcado = false;
   const painel = pegar("#painel"); if (painel) mostrar(painel, false);
+  const painelEmbarque = pegar("#painelEmbarque"); if (painelEmbarque) mostrar(painelEmbarque, false);
+  const painelViagem = pegar("#painelViagem"); if (painelViagem) mostrar(painelViagem, false);
   mostrarTodosDestinos();
 }
 function voltar() {
@@ -239,7 +242,7 @@ function pararMicrofone() {
   const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
   const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
   const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
-  const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para escolher um ônibus por voz";
+  const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para fazer uma pergunta sobre este ônibus";
   ["#botaoMicrofone", "#botaoMicrofoneAcessivel", "#botaoPerguntar", "#botaoPerguntarPainel", "#botaoMicrofoneTopo"].forEach(id => {
     const b = pegar(id); if (b) b.setAttribute("aria-pressed", "false");
   });
@@ -296,7 +299,7 @@ function ouvirComNavegador(botao) {
     if (este !== reconhecimento) return; const estava = ouvindo; pararMicrofone();
     if (estava) { apitar(440); if (!entendeu) avisar("Não entendi. Toque e diga, por exemplo, Cataratas."); }
     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
-    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para escolher um ônibus por voz";
+    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para fazer uma pergunta sobre este ônibus";
   };
 
   setTimeout(() => { if (este === reconhecimento && iniciando) { iniciando = false; avisar("Microfone demorou."); } }, 10000);
@@ -314,7 +317,7 @@ async function ouvirComModeloProprio(botao) {
     const anel = pegar("#anel"); if (anel) anel.classList.remove("ouvindo");
     const anelAcessivel = pegar("#anelAcessivel"); if (anelAcessivel) anelAcessivel.classList.remove("ouvindo");
     const anelTopo = pegar("#anelTopo"); if (anelTopo) anelTopo.classList.remove("ouvindo");
-    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para escolher um ônibus por voz";
+    const textoTopo = pegar("#textoTopo"); if (textoTopo) textoTopo.textContent = "Toque para fazer uma pergunta sobre este ônibus";
     if (botao) botao.setAttribute("aria-pressed", "false");
     if (gravacaoCancelada) return; apitar(440); processando = true; avisar("Entendendo…");
     try {
@@ -481,6 +484,220 @@ function executarAcao(resposta) {
   }
 }
 
+/* ---------- FUNÇÕES DE EMBARQUE E VIAGEM ---------- */
+let embarcado = false;
+let segundosAteDestino = 0;
+let segundosViagemIniciais = 0;
+let paradasPassadas = [];
+let ultimaParadaAvisada = -1;
+
+function confirmarEmbarque() {
+  if (!destinoAtual || !dados) { avisar("Escolha um destino primeiro."); return; }
+  if (embarcado) { avisar("Você já está em viagem."); return; }
+  
+  embarcado = true;
+  segundosAteDestino = Math.max(60, dados.duracao);
+  segundosViagemIniciais = segundosAteDestino;
+  paradasPassadas = [];
+  ultimaParadaAvisada = -1;
+  
+  // Esconde painel de embarque, mostra painel de viagem
+  mostrar(pegar("#painelEmbarque"), false);
+  mostrar(pegar("#painelViagem"), true);
+  
+  // Atualiza destino no painel
+  const viagemDestino = pegar("#viagemDestino");
+  if (viagemDestino) viagemDestino.textContent = "Destino: " + destinoAtual.nome;
+  
+  // Preenche lista de paradas
+  atualizarListaParadasViagem();
+  
+  // Aviso sonoro e vibração
+  apitar(880);
+  setTimeout(() => apitar(1100), 150);
+  vibrar([200, 100, 200]);
+  
+  // Mensagem de confirmação
+  const emb = embarqueAtual();
+  let msg = "Embarque confirmado! Você está a bordo do " + destinoAtual.servico + " com destino a " + destinoAtual.nome + ". ";
+  msg += "A viagem dura cerca de " + Math.round(segundosAteDestino / 60) + " minutos. ";
+  if (emb && emb.ondeDescer) msg += "Você deve descer em: " + emb.ondeDescer + ". ";
+  msg += "Vou avisar quando estiver chegando.";
+  
+  avisar(msg);
+  
+  // Inicia contador da viagem
+  if (relogioViagem) clearInterval(relogioViagem);
+  relogioViagem = setInterval(passarTempoViagem, 1000);
+}
+
+let relogioViagem = null;
+function passarTempoViagem() {
+  if (!embarcado || !destinoAtual) return;
+  
+  segundosAteDestino = Math.max(0, segundosAteDestino - VELOCIDADE_TESTE);
+  
+  // Atualiza display
+  const tempoViagem = pegar("#tempoViagem");
+  if (tempoViagem) {
+    const min = Math.ceil(segundosAteDestino / 60);
+    tempoViagem.textContent = min > 0 ? min + " min" : "Chegando!";
+  }
+  
+  // Atualiza barra
+  const barraViagem = pegar("#barraViagem");
+  if (barraViagem && segundosViagemIniciais > 0) {
+    const progresso = Math.round((1 - segundosAteDestino / segundosViagemIniciais) * 100);
+    barraViagem.style.width = Math.min(100, progresso) + "%";
+  }
+  
+  // Verifica paradas no caminho
+  verificarParadasViagem();
+  
+  // Avisos de proximidade do destino
+  if (segundosAteDestino === 0) {
+    clearInterval(relogioViagem);
+    anunciarChegadaDestino();
+  } else if (segundosAteDestino === 120) {
+    avisar("Atenção: faltam 2 minutos para o seu destino, " + destinoAtual.nome + ". Prepare-se para desembarcar.");
+    vibrar([300, 100, 300]);
+  } else if (segundosAteDestino === 300) {
+    avisar("Faltam 5 minutos para o seu destino.");
+  }
+}
+
+function verificarParadasViagem() {
+  if (!paradas || paradas.length === 0) return;
+  
+  // Simula passagem por paradas baseado no tempo
+  const totalParadas = Math.min(paradas.length, 5);
+  const paradaAtual = Math.floor((1 - segundosAteDestino / segundosViagemIniciais) * totalParadas);
+  
+  if (paradaAtual > ultimaParadaAvisada && paradaAtual < totalParadas) {
+    ultimaParadaOuvirAvisada = paradaAtual;
+    const parada = paradas[paradaAtual];
+    if (parada) {
+      avisar("Passando pela parada: " + parada.nome + ".");
+      paradasPassadas.push(paradaAtual);
+      atualizarListaParadasViagem();
+    }
+  }
+}
+
+function atualizarListaParadasViagem() {
+  const lista = pegar("#listaParadasViagem");
+  if (!lista) return;
+  lista.replaceChildren();
+  
+  if (!paradas || paradas.length === 0) {
+    lista.innerHTML = '<li class="parada-proxima">Informação de paradas indisponível</li>';
+    return;
+  }
+  
+  const totalParadas = Math.min(paradas.length, 5);
+  const paradaAtual = Math.floor((1 - segundosAteDestino / segundosViagemIniciais) * totalParadas);
+  
+  for (let i = 0; i < totalParadas; i++) {
+    const li = document.createElement("li");
+    li.textContent = paradas[i].nome;
+    if (i < paradaAtual) li.className = "parada-passada";
+    else if (i === paradaAtual) li.className = "parada-atual";
+    else if (i === paradaAtual + 1) li.className = "parada-proxima";
+    lista.appendChild(li);
+  }
+  
+  // Atualiza próxima parada
+  const proximaParada = pegar("#proximaParada");
+  if (proximaParada) {
+    if (paradaAtual + 1 < totalParadas) {
+      proximaParada.textContent = "Próxima: " + paradas[paradaAtual + 1].nome;
+    } else {
+      proximaParada.textContent = "Última parada antes do destino";
+    }
+  }
+}
+
+function anunciarChegadaDestino() {
+  apitar(1320);
+  setTimeout(() => apitar(1320), 200);
+  vibrar([500, 200, 500, 200, 500]);
+  
+  const emb = embarqueAtual();
+  let msg = "Você chegou ao destino: " + destinoAtual.nome + "! ";
+  if (emb && emb.ondeDescer) msg += "Desça em: " + emb.ondeDescer + ". ";
+  msg += "Obrigado por usar o MOBINTEC. Tenha um excelente passeio!";
+  
+  avisar(msg);
+  
+  // Muda botão para "Desci no destino"
+  const btnDesembarque = pegar("#botaoDesembarquei");
+  if (btnDesembarque) {
+    btnDesembarque.focus();
+  }
+}
+
+function confirmarDesembarque() {
+  if (!embarcado) { avisar("Você ainda não embarcou."); return; }
+  
+  embarcado = false;
+  if (relogioViagem) clearInterval(relogioViagem);
+  
+  mostrar(pegar("#painelViagem"), false);
+  
+  avisar("Desembarque confirmado! Foi um prazer acompanhar sua viagem. Se precisar de mais alguma coisa, é só falar.");
+  vibrar([200, 100, 200]);
+}
+
+function chamarMotorista() {
+  if (!destinoAtual) { avisar("Escolha um destino primeiro."); return; }
+  const emb = embarqueAtual();
+  if (!emb) { avisar("Informações do embarque indisponíveis."); return; }
+  
+  avisar("Chamando a atenção do motorista. Operadora: " + emb.operadora + ". Contato: " + emb.contato + ". Se precisar, sinalize com o braço ao se aproximar do ponto.");
+  vibrar([300, 100, 300, 100, 300]);
+}
+
+function precisarAjuda() {
+  avisar("Sem problemas! Se precisar de ajuda, você pode: 1) Chamar o motorista pelo botão 'Chamar motorista'. 2) Ligar para a operadora " + (embarqueAtual() ? embarqueAtual().operadora + ", telefone " + embarqueAtual().contato + "." : ".") + " 3) Pedir ajuda a um passageiro próximo. Estou aqui se precisar de mais alguma coisa.");
+}
+
+function ouvirStatusViagem() {
+  if (!embarcado || !destinoAtual) { avisar("Você não está em viagem."); return; }
+  
+  const min = Math.ceil(segundosAteDestino / 60);
+  let msg = "Você está em viagem no " + destinoAtual.servico + " com destino a " + destinoAtual.nome + ". ";
+  msg += "Faltam " + min + (min === 1 ? " minuto" : " minutos") + " para chegar. ";
+  
+  if (paradas && paradas.length > 0) {
+    const totalParadas = Math.min(paradas.length, 5);
+    const paradaAtual = Math.floor((1 - segundosAteDestino / segundosViagemIniciais) * totalParadas);
+    if (paradaAtual + 1 < totalParadas) {
+      msg += "Próxima parada: " + paradas[paradaAtual + 1].nome + ". ";
+    }
+  }
+  
+  const emb = embarqueAtual();
+  if (emb && emb.ondeDescer) msg += "Você deve descer em: " + emb.ondeDescer + ".";
+  
+  avisar(msg);
+}
+
+function repetirParadas() {
+  if (!paradas || paradas.length === 0) { avisar("Não há informações de paradas no momento."); return; }
+  
+  const totalParadas = Math.min(paradas.length, 5);
+  const paradaAtual = Math.floor((1 - segundosAteDestino / segundosViagemIniciais) * totalParadas);
+  
+  let msg = "Paradas da viagem: ";
+  for (let i = 0; i < totalParadas; i++) {
+    if (i < paradaAtual) msg += paradas[i].nome + " (já passou). ";
+    else if (i === paradaAtual) msg += paradas[i].nome + " (atual). ";
+    else msg += paradas[i].nome + ". ";
+  }
+  
+  avisar(msg);
+}
+
 function responder(texto) {
   registrarConversa("Você", texto);
   const ouvido = pegar("#textoOuvido"); if (ouvido) ouvido.textContent = '"' + texto.trim() + '"';
@@ -497,26 +714,50 @@ function responder(texto) {
     avisar("Primeiro escolha um modo. Toque em modo visual ou modo acessível."); return;
   }
 
-  // NOVO: Se está na tela de lista e não tem destino escolhido, interpretar como escolha de ônibus
+  // NOVO: Comandos de embarque/viagem
+  const tLower = semAcento(texto);
+  if (/\b(embarquei|embarquei no onibus|estou no onibus|ja embarquei|entrei no onibus)\b/.test(tLower)) {
+    confirmarEmbarque(); return;
+  }
+  if (/\b(deschi|desci do onibus|cheguei|ja desci|desembarquei)\b/.test(tLower)) {
+    confirmarDesembarque(); return;
+  }
+  if (/\b(chamar motorista|chamar o motorista|parar onibus|parar o onibus)\b/.test(tLower)) {
+    chamarMotorista(); return;
+  }
+  if (/\b(preciso de ajuda|preciso ajuda|me ajuda|ajuda aqui|socorro)\b/.test(tLower)) {
+    precisarAjuda(); return;
+  }
+  if (/\b(status da viagem|status viagem|como ta a viagem|quanto falta|falta quanto|tempo de viagem)\b/.test(tLower)) {
+    ouvirStatusViagem(); return;
+  }
+  if (/\b(repetir paradas|quais paradas|lista de paradas|paradas restantes)\b/.test(tLower)) {
+    repetirParadas(); return;
+  }
+  if (/\b(onde descer|onde eu desço|minha parada|qual minha parada)\b/.test(tLower)) {
+    if (embarcado && embarqueAtual()) {
+      avisar("Você deve descer em: " + embarqueAtual().ondeDescer + ". Faltam " + Math.ceil(segundosAteDestino / 60) + " minutos.");
+    } else if (destinoAtual && embarqueAtual()) {
+      avisar("Você deve descer em: " + embarqueAtual().ondeDescer + ".");
+    } else {
+      avisar("Escolha um destino primeiro.");
+    }
+    return;
+  }
+
   const telaLista = pegar("#telaLista");
   if (telaLista && !telaLista.hidden && !destinoAtual) {
     const t = semAcento(texto);
-    
-    // Tenta interpretar como número (1, 2, 3...)
     const num = parseInt(t);
     if (!isNaN(num) && num >= 1 && num <= DESTINOS.length) {
       escolherDestino(num - 1);
       return;
     }
-    
-    // Tenta achar o destino pelo nome
     const destino = acharDestino(texto);
     if (destino) {
       escolherDestino(DESTINOS.indexOf(destino));
       return;
     }
-    
-    // Se não achou, avisa
     const listaNomes = DESTINOS.map((d, i) => (i + 1) + " para " + d.nome).join(", ");
     avisar("Não entendi. Diga o número ou nome do destino. Opções: " + listaNomes + ".");
     return;
@@ -540,7 +781,8 @@ function responder(texto) {
   if (/\b(ligar|ativar)\b/.test(t) && /\b(localizacao|gps|local)\b/.test(t)) { if (idLocal === null) ligarLocalizacao(); else avisar("Localização já está ligada."); return; }
   if (/\b(desligar|desativar)\b/.test(t) && /\b(localizacao|gps|local)\b/.test(t)) { if (idLocal !== null) ligarLocalizacao(); else avisar("Localização já está desligada."); return; }
   if (/\b(quanto tempo|tempo falta|quanto falta|tempo ate chegar)\b/.test(t)) {
-    if (destinoAtual && dados) { const m = minutosQueFaltam(); avisar("Faltam " + m + (m === 1 ? " minuto" : " minutos") + " para chegar."); }
+    if (embarcado) { ouvirStatusViagem(); return; }
+    if (destinoAtual && dados) { const m = minutosQueFaltam(); avisar("Faltam " + m + (m === 1 ? " minuto" : " minutos") + " para o ônibus chegar no ponto."); }
     else avisar("Escolha um destino primeiro."); return;
   }
   if (/\b(qual distancia|qual a distancia|estou perto|distancia)\b/.test(t)) {
@@ -600,9 +842,15 @@ function responder(texto) {
   if (t.includes("transporte") || t.includes("preco") || t.includes("operadora")) { mostrarAba("Onibus"); avisar(textoTransporte()); return; }
   if (t.includes("acessibilidade") || t.includes("rampa")) { mostrarAba("Onibus"); avisar(textoAcessibilidade()); return; }
   if (t.includes("assento") || t.includes("livre")) { mostrarAba("Onibus"); avisar(textoAssento()); return; }
-  if (t.includes("parada")) { mostrarAba("Rota"); avisar(textoParadas()); return; }
+  if (t.includes("parada")) { 
+    if (embarcado) { repetirParadas(); return; }
+    mostrarAba("Rota"); avisar(textoParadas()); return; 
+  }
   if (t.includes("rota") || t.includes("distancia")) { mostrarAba("Rota"); avisar(textoRota()); return; }
-  if (t.includes("onibus") || t.includes("chega") || t.includes("tempo")) { mostrarAba("Onibus"); avisar(frasePrincipal()); return; }
+  if (t.includes("onibus") || t.includes("chega") || t.includes("tempo")) { 
+    if (embarcado) { ouvirStatusViagem(); return; }
+    mostrarAba("Onibus"); avisar(frasePrincipal()); return; 
+  }
   if (URL_DA_IA) { perguntarParaIA(texto); return; }
   avisar("Não entendi. Diga ajuda.");
 }
@@ -672,7 +920,7 @@ function aoReceberPosicao(posicao) {
   if (distanciaAteVoce <= 50) faixa = 50; else if (distanciaAteVoce <= 200) faixa = 200; else if (distanciaAteVoce <= 500) faixa = 500;
   if (faixa !== null && (ultimoLimiar === null || faixa < ultimoLimiar)) {
     ultimoLimiar = faixa; const emb = embarqueAtual();
-    avisar(faixa === 50 ? "Você chegou ao ponto de embarque, " + emb.nome + "." : "Você está a menos de " + faixa + " metros do embarque.");
+    avisar(faixa === 50 ? "Você chegou ao ponto de embarque, " + emb.nome + ". Confirme seu embarque tocando no botão 'Embarquei' ou falando 'embarquei'." : "Você está a menos de " + faixa + " metros do embarque.");
     if (faixa === 50) vibrar([300, 120, 300]);
   }
 }
@@ -838,7 +1086,16 @@ function anunciarStatus(prefixo, comAssentos) {
   desenharPainel(); const f = (prefixo ? prefixo + " " : "") + frasePrincipal(comAssentos);
   const alerta = pegar("#alerta"); if (alerta) { alerta.textContent = ""; setTimeout(() => alerta.textContent = f, 40); }
   falar(f);
-  if (dados.segundosAteChegar === 0) vibrar([400, 150, 400]); else if (prefixo) vibrar([200, 100, 200]); else vibrar(80);
+  if (dados.segundosAteChegar === 0) {
+    vibrar([400, 150, 400]);
+    // NOVO: Mostra painel de embarque quando o ônibus chega
+    if (!embarcado) {
+      mostrar(pegar("#painelEmbarque"), true);
+      const btnEmbarquei = pegar("#botaoEmbarquei");
+      if (btnEmbarquei) setTimeout(() => btnEmbarquei.focus(), 500);
+    }
+  }
+  else if (prefixo) vibrar([200, 100, 200]); else vibrar(80);
 }
 async function escolherDestino(indice) {
   const destino = DESTINOS[indice];
@@ -849,11 +1106,14 @@ async function escolherDestino(indice) {
 async function escolherDestinoComEmbarque(indice) {
   clearInterval(relogioDoTempo); numeroDaEscolha++; const minha = numeroDaEscolha; destinoAtual = DESTINOS[indice];
   ultimoLimiar = null; ultimaDistanciaMostrada = null; chegandoAvisado = false; paradasAvisadas = {}; atualizarDistanciaDoEmbarque();
+  embarcado = false;
   const emb = embarqueAtual();
   const titulo = pegar("#tituloPainel"); if (titulo) titulo.textContent = destinoAtual.servico + " · " + destinoAtual.nome;
   const rotaTxt = pegar("#textoRota"); if (rotaTxt) rotaTxt.textContent = "Calculando rota…";
   const hoteis = pegar("#listaHoteis"); if (hoteis) hoteis.replaceChildren();
   const painel = pegar("#painel"); if (painel) mostrar(painel, true);
+  mostrar(pegar("#painelEmbarque"), false);
+  mostrar(pegar("#painelViagem"), false);
   if (mapa && camada) camada.clearLayers();
   const rota = await buscarRota(emb.posicao, destinoAtual.posicao); if (minha !== numeroDaEscolha) return;
   dados = { pontos: rota.pontos, duracao: Math.max(60, rota.duracao), distancia: rota.distancia, segundosAteChegar: Math.min(Math.max(60, rota.duracao), 240 + sortear(120)) };
@@ -953,6 +1213,14 @@ adicionarEvento("#botaoPerguntar", "click", () => tocarMicrofone(pegar("#botaoPe
 adicionarEvento("#botaoPerguntarPainel", "click", () => tocarMicrofone(pegar("#botaoPerguntarPainel")));
 adicionarEvento("#botaoMicrofoneTopo", "click", () => tocarMicrofone(pegar("#botaoMicrofoneTopo")));
 
+// NOVO: Eventos dos botões de embarque/viagem
+adicionarEvento("#botaoEmbarquei", "click", confirmarEmbarque);
+adicionarEvento("#botaoPrecisoAjuda", "click", precisarAjuda);
+adicionarEvento("#botaoOuvirViagem", "click", ouvirStatusViagem);
+adicionarEvento("#botaoRepetirParadas", "click", repetirParadas);
+adicionarEvento("#botaoChamarMotorista", "click", chamarMotorista);
+adicionarEvento("#botaoDesembarquei", "click", confirmarDesembarque);
+
 document.querySelectorAll(".botao-aba").forEach(botao => {
   botao.addEventListener("click", () => {
     if (!dados) return; mostrarAba(botao.dataset.aba);
@@ -1016,7 +1284,6 @@ function falarInstrucaoInicial(e) {
 document.addEventListener("pointerdown", falarInstrucaoInicial, { once: true });
 document.addEventListener("keydown", falarInstrucaoInicial, { once: true });
 
-// TOCAR EM QUALQUER LUGAR ATIVA O MICROFONE (exceto na tela de escolha)
 let tocarEmQualquerLugar = true;
 document.addEventListener("click", e => {
   const escolha = pegar("#telaEscolhaModo");
