@@ -273,6 +273,25 @@
                 </div>
             </div>
         </section>
+                <!-- TELA 7: CÂMERA (Leitura de Assentos) -->
+        <section id="telaCamera" aria-labelledby="tituloCamera" hidden aria-hidden="true" class="flex flex-col gap-6">
+            <button id="botaoVoltarCamera" class="botao self-start">Voltar</button>
+            <h1 id="tituloCamera" tabindex="-1" class="font-serif text-4xl">Leitura de Assentos</h1>
+            
+            <div class="flex flex-col items-center gap-6">
+                <div id="anelCamera" class="anel">
+                    <span class="onda" aria-hidden="true"></span>
+                    <span class="onda" aria-hidden="true"></span>
+                    <span class="onda" aria-hidden="true"></span>
+                    <button id="botaoMicrofoneCamera" class="microfone" aria-pressed="false" aria-label="Fazer pergunta sobre assentos">
+                        <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+                    </button>
+                </div>
+                <p id="textoEstadoCamera" role="status" class="text-2xl font-semibold">Toque no microfone para perguntar sobre os assentos</p>
+            </div>
+            
+            <div id="slotCameraTela" class="w-full"></div>
+        </section>
     </main>
 
     <footer class="rodape">
